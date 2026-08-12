@@ -21,4 +21,10 @@
     <ProjectReference Include="..\EDEEste.ControlCajaChica.Infrastructure\EDEEste.ControlCajaChica.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\" />
+    <Folder Include="Shared\" />
+    <Folder Include="Pages\" />
+  </ItemGroup>
+
 </Project>
