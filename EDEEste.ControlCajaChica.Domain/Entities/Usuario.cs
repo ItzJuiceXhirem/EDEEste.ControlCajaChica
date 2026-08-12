@@ -1,17 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Security.Principal;
-using System.Text;
+using Microsoft.AspNetCore.Identity;
 
 namespace EDEEste.ControlCajaChica.Domain.Entities
 {
-    public class Usuario
+    public class Usuario : IdentityUser
     {
-        public required string Id { get; set; }
-        public required string Nombre { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public Rol RolId { get; set; } = new Rol();
-        public bool Activo { get; set; }
-
+        public string Nombre { get; set; } = string.Empty;
+        public Rol Rol { get; set; }
+        public bool Activo { get; set; } = true;
     }
 }

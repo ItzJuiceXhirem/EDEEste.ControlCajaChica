@@ -1,6 +1,11 @@
 using EDEEste.ControlCajaChica.Presentation.Components;
 using EDEEste.ControlCajaChica.Presentation.Components.Account;
-using EDEEste.ControlCajaChica.Presentation.Data;
+using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Infrastructure.Persistence;
+using EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors;
+using EDEEste.ControlCajaChica.Infrastructure.Services;
+using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -22,21 +27,35 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
+// Registrar servicios de Infraestructura requeridos por DbContext e Interceptores
+builder.Services.AddScoped<ICriptografiaService, CriptografiaService>();
+builder.Services.AddScoped<AuditoriaInterceptor>();
+builder.Services.AddScoped<IReporteGastosService, QuestPdfReporteService>();
+builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+// Register the Infrastructure ApplicationDbContext explicitly to avoid ambiguous type references.
+builder.Services.AddDbContext<EDEEste.ControlCajaChica.Infrastructure.Persistence.ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<EDEEste.ControlCajaChica.Infrastructure.Persistence.ApplicationDbContext>());
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
+builder.Services.AddIdentity<Usuario, IdentityRole>(options =>
     {
         options.SignIn.RequireConfirmedAccount = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddEntityFrameworkStores<EDEEste.ControlCajaChica.Infrastructure.Persistence.ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, IdentityNoOpEmailSender>();
+builder.Services.AddSingleton<IEmailSender<Usuario>, IdentityNoOpEmailSender>();
+
+//Identity añadido de aquí
+
+//hasta acá
 
 var app = builder.Build();
 

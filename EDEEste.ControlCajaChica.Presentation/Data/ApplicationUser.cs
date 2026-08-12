@@ -1,10 +1,20 @@
+// ApplicationUser is deprecated in favor of Domain.Entities.Usuario. Keep a tiny wrapper for compatibility if other files reference the type.
 using Microsoft.AspNetCore.Identity;
+using EDEEste.ControlCajaChica.Domain.Entities;
 
 namespace EDEEste.ControlCajaChica.Presentation.Data
 {
-    // Add profile data for application users by adding properties to the ApplicationUser class
-    public class ApplicationUser : IdentityUser
+    [Obsolete("Use Domain.Entities.Usuario instead.")]
+    public sealed class ApplicationUser : IdentityUser
     {
+        public ApplicationUser() { }
+        public ApplicationUser(Usuario u)
+        {
+            Id = u.Id;
+            UserName = u.UserName;
+            NormalizedUserName = u.NormalizedUserName;
+            Email = u.Email;
+            NormalizedEmail = u.NormalizedEmail;
+        }
     }
-
 }
