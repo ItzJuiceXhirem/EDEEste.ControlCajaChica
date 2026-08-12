@@ -1,4 +1,5 @@
 <Solution>
+  <Folder Name="/tests/" />
   <Project Path="EDEEste.ControlCajaChica.Application/EDEEste.ControlCajaChica.Application.csproj" />
   <Project Path="EDEEste.ControlCajaChica.Domain/EDEEste.ControlCajaChica.Domain.csproj" />
   <Project Path="EDEEste.ControlCajaChica.Infrastructure/EDEEste.ControlCajaChica.Infrastructure.csproj" />
