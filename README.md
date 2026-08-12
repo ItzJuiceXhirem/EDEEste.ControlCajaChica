@@ -24,22 +24,27 @@
 -
 
 # Roles de usuario y accesos👤: #
-- Custodio (responsable): 
+- **Custodio (responsable)**: 
 	*Registrar gastos y adjuntar facturas.
 	*Ejecutar el arqueo mensual.
 	*Generar y enviar solicitudes de reposición.
 
-- Admin del sistema:
+- **Admin del sistema**:
 	*Configurar fondos, límites, categorías de gastos 	y asignación de usuarios.
 
-- Aprobador / Gerente de Área:
+- **Aprobador / Gerente de Área**:
 	*Revisar gastos e inspeccionar comprobantes.
 	*Aprobar o rechazar la solicitud de reposición.
 
-- Finanzas:
+- **Finanzas**:
 	*Procesar el pago de la reposición.
 	*Recibir el PDF conjunto con las facturas.
 	*Marcar la reposición como "Pagada/Reembolsada".
 
-- Auditor Interno (Read-Only):
+- **Auditor Interno (Read-Only)**:
 	*Consultar historial de reposiciones, arqueos mensuales y reportes de descuadres.
+
+
+
+## **Documento con más detalles:** ##
+https://docs.google.com/document/d/1ufyiH4gopLmlQHYqOEYCUDjL2y-eVDmJEaGS8_1B2tw/edit?usp=sharing
