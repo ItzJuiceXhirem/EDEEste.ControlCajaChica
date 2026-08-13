@@ -27,11 +27,16 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
+// Se agrega HttpContextAccessor y los servicios de identidad desacoplados:
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IIdentityService, IdentityService>();
+
 // Registrar servicios de Infraestructura requeridos por DbContext e Interceptores
 builder.Services.AddScoped<ICriptografiaService, CriptografiaService>();
 builder.Services.AddScoped<AuditoriaInterceptor>();
 builder.Services.AddScoped<IReporteGastosService, QuestPdfReporteService>();
-builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 // Register the Infrastructure ApplicationDbContext explicitly to avoid ambiguous type references.
@@ -52,10 +57,6 @@ builder.Services.AddIdentity<Usuario, IdentityRole>(options =>
 
 builder.Services.AddSingleton<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, IdentityNoOpEmailSender>();
 builder.Services.AddSingleton<IEmailSender<Usuario>, IdentityNoOpEmailSender>();
-
-//Identity añadido de aquí
-
-//hasta acá
 
 var app = builder.Build();
 

@@ -14,9 +14,9 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public decimal MontoReclamado { get; set; }
         public DateTime FechaSolicitud { get; set; }
         public string SolicitoUsuarioId { get; set; } = string.Empty; //FK
-        public string? AprobadorUsuarioId { get; set; } //FK
+        public string? GerenteUsuarioId { get; set; } //FK
         public DateTime? FechaAprobacion { get; set; }
-        public string? PagadorUsuarioId { get; set; }//FK
+        public string? FinanzasUsuarioId { get; set; } //FK
         public DateTime? FechaPago { get; set; }
         public string? ReferenciaPago { get; set;}
         public string? RutaPdfConsolidado { get; set; }

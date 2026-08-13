@@ -1,24 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Linq;
-using System.Text.Json;
+﻿using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Interfaces;
-using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
 
 namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
 {
     public class AuditoriaInterceptor : SaveChangesInterceptor
     {
         private readonly ICriptografiaService _criptografiaService;
-        private readonly string _usuarioActual = "AdminCajaChica";
+        private readonly ICurrentUserService _currentUserService;
 
-        public AuditoriaInterceptor(ICriptografiaService criptografiaService)
+        public AuditoriaInterceptor(ICriptografiaService criptografiaService, ICurrentUserService currentUserService)
         {
             _criptografiaService = criptografiaService;
+            _currentUserService = currentUserService;
         }
 
         public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -26,6 +28,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             var context = eventData.Context;
             if (context == null) return base.SavingChanges(eventData, result);
 
+            var usuarioActual = _currentUserService.UserId ?? "Sistema";
             var auditoriaEntries = new List<LogAuditoria>();
 
             // ChangeTracker da acceso a todas las entidades que EF Core está por guardar
@@ -39,12 +42,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
                 {
                     if (entry.State == EntityState.Added)
                     {
-                        auditable.CreadoPorId = _usuarioActual;
+                        auditable.CreadoPorId = usuarioActual;
                         auditable.FechaCreacion = DateTime.UtcNow;
                     }
                     else if (entry.State == EntityState.Modified)
                     {
-                        auditable.ModificadoPorId = _usuarioActual;
+                        auditable.ModificadoPorId = usuarioActual;
                         auditable.FechaModificacion = DateTime.UtcNow;
                     }
                     else if (entry.State == EntityState.Deleted)
@@ -52,7 +55,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
                         // se intercepta el borrado físico de la BDD y lo convertimos en lógico
                         entry.State = EntityState.Modified;
                         auditable.IsDeleted = true;
-                        auditable.ModificadoPorId = _usuarioActual;
+                        auditable.ModificadoPorId = usuarioActual;
                         auditable.FechaModificacion = DateTime.UtcNow;
                     }
                 }
@@ -62,7 +65,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
                 {
                     var log = new LogAuditoria
                     {
-                        UsuarioId = _usuarioActual,
+                        UsuarioId = usuarioActual,
                         TipoAccion = entry.State.ToString(),
                         NombreTabla = entry.Metadata.GetTableName() ?? entry.Entity.GetType().Name,
                         RegistroId = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString() ?? "N/A"
