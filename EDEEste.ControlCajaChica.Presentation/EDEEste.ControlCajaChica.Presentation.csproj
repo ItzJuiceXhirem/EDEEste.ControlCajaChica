@@ -22,7 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\" />
     <Folder Include="Shared\" />
     <Folder Include="Pages\" />
   </ItemGroup>

@@ -1,35 +1,54 @@
-﻿using EDEEste.ControlCajaChica.Application.Common.Interfaces;
-using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
+using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using System;
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace EDEEste.ControlCajaChica.Infrastructure.Services
-{    
-    public class IdentityService : IIdentityService
+{
+    public sealed class IdentityService : IIdentityService
     {
         private readonly UserManager<Usuario> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IdentityOptions _opciones;
 
-        public IdentityService(UserManager<Usuario> userManager, RoleManager<IdentityRole> roleManager)
+        public IdentityService(
+            UserManager<Usuario> userManager,
+            RoleManager<IdentityRole> roleManager,
+            IOptions<IdentityOptions> opciones)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _opciones = opciones.Value;
         }
-        public async Task CheckRoleAsync(string roleName)
+
+        public bool RequiereCuentaConfirmada => _opciones.SignIn.RequireConfirmedAccount;
+
+        public async Task AsegurarRolAsync(string rol)
         {
-            if (!await _roleManager.RoleExistsAsync(roleName))
+            if (!await _roleManager.RoleExistsAsync(rol))
             {
-                await _roleManager.CreateAsync(new IdentityRole { Name = roleName });
+                await _roleManager.CreateAsync(new IdentityRole(rol));
             }
         }
 
-        public async Task<(bool Success, string[] Errors)> CreateUserAsync(string email, string password, string nombre, string rol)
+        public async Task<ResultadoIdentidad> CrearUsuarioAsync(string email, string password, string nombre, string rol)
         {
-            var user = new Usuario
+            // Se acepta unicamente un rol del catalogo: asi un typo no termina creando
+            // un rol nuevo y vacio al que despues nadie le aplica permisos.
+            if (!RolesApp.Todos.Contains(rol))
+            {
+                return ResultadoIdentidad.Fallo($"El rol '{rol}' no existe en el catalogo de roles del sistema.");
+            }
+
+            var usuario = new Usuario
             {
                 UserName = email,
                 Email = email,
@@ -37,28 +56,50 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 Activo = true
             };
 
-            var result = await _userManager.CreateAsync(user, password);
-            if (!result.Succeeded)
+            var resultado = await _userManager.CreateAsync(usuario, password);
+            if (!resultado.Succeeded)
             {
-                return (false, result.Errors.Select(e => e.Description).ToArray());
+                return ResultadoIdentidad.Fallo(resultado.Errors.Select(e => e.Description));
             }
 
-            await CheckRoleAsync(rol);
-            await _userManager.AddToRoleAsync(user, rol);
+            await AsegurarRolAsync(rol);
+            var resultadoRol = await _userManager.AddToRoleAsync(usuario, rol);
+            if (!resultadoRol.Succeeded)
+            {
+                // Sin rol la cuenta no sirve para nada y ademas queda invisible en el
+                // control de accesos, asi que se revierte en vez de dejarla a medias.
+                await _userManager.DeleteAsync(usuario);
+                return ResultadoIdentidad.Fallo(resultadoRol.Errors.Select(e => e.Description));
+            }
 
-            return (true, Array.Empty<string>());
+            return ResultadoIdentidad.Ok(usuario.Id);
         }
 
-        public async Task<string?> GetUserNameAsync(string userId)
+        public async Task<string?> GenerarTokenConfirmacionEmailAsync(string usuarioId)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            return user?.UserName;
+            var usuario = await _userManager.FindByIdAsync(usuarioId);
+            if (usuario is null)
+            {
+                return null;
+            }
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(usuario);
+
+            // Base64Url sin relleno, igual que WebEncoders.Base64UrlEncode, que es lo
+            // que espera ConfirmEmail.razor al decodificarlo.
+            return Base64Url.EncodeToString(Encoding.UTF8.GetBytes(token));
         }
 
-        public async Task<bool> IsInRoleAsync(string userId, string role)
+        public async Task<string?> ObtenerNombreUsuarioAsync(string usuarioId)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            return user != null && await _userManager.IsInRoleAsync(user, role);
+            var usuario = await _userManager.FindByIdAsync(usuarioId);
+            return usuario?.UserName;
+        }
+
+        public async Task<bool> EstaEnRolAsync(string usuarioId, string rol)
+        {
+            var usuario = await _userManager.FindByIdAsync(usuarioId);
+            return usuario is not null && await _userManager.IsInRoleAsync(usuario, rol);
         }
     }
 }

@@ -1,42 +1,183 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Domain.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
-using EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors;
+using EDEEste.ControlCajaChica.Infrastructure.Identity;
 
 namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 {
     public class ApplicationDbContext : IdentityDbContext<Usuario>, IApplicationDbContext
     {
-        private readonly AuditoriaInterceptor _auditoriaInterceptor;
-
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, AuditoriaInterceptor auditoriaInterceptor)
+        // Los interceptores ya no se reciben por constructor: se registran al
+        // configurar las opciones en DependencyInjection.AddInfrastructure. Asi el
+        // contexto sigue teniendo la firma que esperan las herramientas de EF
+        // (dotnet ef migrations) y se pueden sumar interceptores sin tocar esta clase.
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-            _auditoriaInterceptor = auditoriaInterceptor;
         }
 
         public DbSet<Gasto> Gastos { get; set; }
         public DbSet<FondoCajaChica> Fondos { get; set; }
+        public DbSet<CategoriaGasto> CategoriasGasto { get; set; }
+        public DbSet<SolicitudReposicion> Reposiciones { get; set; }
+        public DbSet<ArqueoCaja> Arqueos { get; set; }
+        public DbSet<DetalleArqueoDenominacion> DetallesArqueo { get; set; }
+        public DbSet<ComprobanteAdjunto> Comprobantes { get; set; }
         public DbSet<LogAuditoria> LogsAuditoria { get; set; }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.AddInterceptors(_auditoriaInterceptor);
-            base.OnConfiguring(optionsBuilder);
-        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // filtro global para que nunca traiga registros donde IsDeleted == true al hacer un query normal
-            modelBuilder.Entity<Gasto>().HasQueryFilter(g => !g.IsDeleted);
-            modelBuilder.Entity<FondoCajaChica>().HasQueryFilter(f => !f.IsDeleted);
+            ConfigurarRelaciones(modelBuilder);
+            ConfigurarBitacora(modelBuilder);
+            ConfigurarBorradoLogico(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
+
+            // Estas dos recorren el modelo completo, asi que van despues de que EF
+            // termino de descubrir los tipos (incluidos los de Identity).
+            AplicarPrecisionDeMontos(modelBuilder);
+            AplicarLongitudDeFirmas(modelBuilder);
+        }
+
+        /// <summary>
+        /// Todas las relaciones usan DeleteBehavior.Restrict.
+        ///
+        /// El borrado fisico no deberia ocurrir nunca: AuditoriaInterceptor convierte
+        /// los Remove() en borrado logico. Restrict es la red de seguridad para el
+        /// caso en que algo se salte esa ruta: preferimos que la BDD rechace la
+        /// operacion antes que arrastrar gastos o comprobantes en cascada y perder
+        /// evidencia contable.
+        /// </summary>
+        private static void ConfigurarRelaciones(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Gasto>(gasto =>
+            {
+                gasto.HasOne(g => g.FondoCajaChica)
+                     .WithMany(f => f.Gastos)
+                     .HasForeignKey(g => g.FondoCajaChicaId)
+                     .OnDelete(DeleteBehavior.Restrict);
+
+                gasto.HasOne(g => g.CategoriaGasto)
+                     .WithMany()
+                     .HasForeignKey(g => g.CategoriaGastoId)
+                     .OnDelete(DeleteBehavior.Restrict);
+
+                // Opcional: un gasto vive sin reposicion hasta que se incluye en una.
+                gasto.HasOne(g => g.Reposicion)
+                     .WithMany(r => r.Gastos)
+                     .HasForeignKey(g => g.ReposicionId)
+                     .IsRequired(false)
+                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<SolicitudReposicion>()
+                .HasOne(r => r.FondoCajaChica)
+                .WithMany(f => f.Reposiciones)
+                .HasForeignKey(r => r.FondoCajaChicaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ArqueoCaja>()
+                .HasOne(a => a.FondoCajaChica)
+                .WithMany(f => f.Arqueos)
+                .HasForeignKey(a => a.FondoCajaChicaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<DetalleArqueoDenominacion>(detalle =>
+            {
+                detalle.HasOne(d => d.ArqueoCaja)
+                       .WithMany(a => a.DetallesDenominacion)
+                       .HasForeignKey(d => d.ArqueoCajaId)
+                       .OnDelete(DeleteBehavior.Restrict);
+
+                // Propiedad calculada: no es una columna.
+                detalle.Ignore(d => d.SubtotalDenominacion);
+            });
+
+            modelBuilder.Entity<ComprobanteAdjunto>()
+                .HasOne(c => c.Gasto)
+                .WithMany(g => g.Comprobantes)
+                .HasForeignKey(c => c.GastoId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
+
+        private static void ConfigurarBitacora(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<LogAuditoria>(log =>
+            {
+                // Correlativo que fija el orden de la cadena de hashes. Lo genera la
+                // BDD para que dos escrituras concurrentes no puedan reclamar el
+                // mismo lugar en la cadena.
+                log.Property(l => l.Secuencia).ValueGeneratedOnAdd();
+                log.HasIndex(l => l.Secuencia).IsUnique();
+
+                log.Property(l => l.HashFirma).HasMaxLength(64);
+                log.Property(l => l.HashAnterior).HasMaxLength(64);
+            });
+        }
+
+        /// <summary>
+        /// Filtro global para que nunca traiga registros donde IsDeleted == true al
+        /// hacer un query normal. Se aplica a todas las entidades auditables: si una
+        /// quedara sin filtro, un registro "borrado" seguiria apareciendo a traves de
+        /// sus navegaciones. Para el historial de auditoria hay que usar
+        /// IgnoreQueryFilters() explicitamente.
+        /// </summary>
+        private static void ConfigurarBorradoLogico(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Gasto>().HasQueryFilter(g => !g.IsDeleted);
+            modelBuilder.Entity<FondoCajaChica>().HasQueryFilter(f => !f.IsDeleted);
+            modelBuilder.Entity<CategoriaGasto>().HasQueryFilter(c => !c.IsDeleted);
+            modelBuilder.Entity<SolicitudReposicion>().HasQueryFilter(r => !r.IsDeleted);
+            modelBuilder.Entity<ArqueoCaja>().HasQueryFilter(a => !a.IsDeleted);
+            modelBuilder.Entity<DetalleArqueoDenominacion>().HasQueryFilter(d => !d.IsDeleted);
+            modelBuilder.Entity<ComprobanteAdjunto>().HasQueryFilter(c => !c.IsDeleted);
+        }
+
+        /// <summary>
+        /// Fija decimal(18,4) para todos los montos.
+        ///
+        /// No es cosmetico: sin esto EF usa decimal(18,2) por convencion y SQL Server
+        /// trunca en silencio. Como la firma HMAC se calcula en memoria sobre el valor
+        /// original (normalizado a 4 decimales por ConstructorFirma), al releer la fila
+        /// el valor truncado ya no produciria el mismo hash y el sistema reportaria una
+        /// manipulacion que nunca ocurrio. La escala de la columna y la del hash tienen
+        /// que ser la misma.
+        /// </summary>
+        private static void AplicarPrecisionDeMontos(ModelBuilder modelBuilder)
+        {
+            var propiedadesDecimales = modelBuilder.Model
+                .GetEntityTypes()
+                .SelectMany(tipo => tipo.GetProperties())
+                .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?));
+
+            foreach (var propiedad in propiedadesDecimales)
+            {
+                propiedad.SetPrecision(18);
+                propiedad.SetScale(4);
+            }
+        }
+
+        /// <summary>
+        /// Un HMAC-SHA256 en hexadecimal siempre mide 64 caracteres, asi que no hay
+        /// razon para dejar estas columnas como nvarchar(max).
+        /// </summary>
+        private static void AplicarLongitudDeFirmas(ModelBuilder modelBuilder)
+        {
+            var tiposFirmados = modelBuilder.Model
+                .GetEntityTypes()
+                .Where(tipo => typeof(ITamperProofEntity).IsAssignableFrom(tipo.ClrType));
+
+            foreach (var tipo in tiposFirmados)
+            {
+                tipo.FindProperty(nameof(ITamperProofEntity.HashFirma))?.SetMaxLength(64);
+            }
         }
     }
 }

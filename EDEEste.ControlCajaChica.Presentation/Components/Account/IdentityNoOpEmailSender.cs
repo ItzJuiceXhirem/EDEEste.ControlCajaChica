@@ -1,4 +1,4 @@
-using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 

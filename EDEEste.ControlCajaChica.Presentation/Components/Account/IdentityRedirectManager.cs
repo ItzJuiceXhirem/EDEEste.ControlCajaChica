@@ -1,4 +1,4 @@
-using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 
@@ -49,12 +49,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account
         public void RedirectToCurrentPageWithStatus(string message, HttpContext context)
             => RedirectToWithStatus(CurrentPath, message, context);
 
-        public void RedirectToInvalidUser(HttpContext context)
-        {
-            var userId = context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
-            RedirectToWithStatus("Account/InvalidUser", $"Error: Unable to load user with ID '{userId}'.", context);
-        }
-
-        public void RedirectToInvalidUser(object userManager, HttpContext context) => RedirectToInvalidUser(context);
+        public void RedirectToInvalidUser(UserManager<Usuario> userManager, HttpContext context)
+            => RedirectToWithStatus(
+                "Account/InvalidUser",
+                $"Error: Unable to load user with ID '{userManager.GetUserId(context.User)}'.",
+                context);
     }
 }

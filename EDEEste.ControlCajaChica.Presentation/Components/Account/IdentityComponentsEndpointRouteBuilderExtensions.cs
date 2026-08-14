@@ -1,6 +1,6 @@
 using EDEEste.ControlCajaChica.Presentation.Components.Account.Pages;
 using EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage;
-using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
