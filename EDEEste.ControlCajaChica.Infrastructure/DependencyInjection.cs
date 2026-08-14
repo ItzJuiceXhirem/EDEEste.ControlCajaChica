@@ -25,6 +25,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             services.AddScoped<IIdentityService, IdentityService>();
             services.AddScoped<IReporteGastosService, QuestPdfReporteService>();
             services.AddScoped<IFileStorageService, FileStorageService>();
+            services.AddScoped<IPdfConsolidadorService, PdfConsolidadorService>();
             services.AddScoped<InicializadorIdentidad>();
 
             return services;

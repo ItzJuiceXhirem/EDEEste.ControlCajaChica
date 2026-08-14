@@ -15,6 +15,14 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public Gasto? Gasto { get; set; }
 
         public string NombreOriginal { get; set; } = string.Empty;
+
+        // Transcripcion corta que digita el custodio al adjuntar el archivo (ej.
+        // "Factura" vs. "Autorizacion por correo - Juan Perez"): un mismo gasto puede
+        // traer varios adjuntos con roles distintos, y el PDF consolidado la muestra
+        // en una portada antes de cada uno para no depender de que la imagen/PDF se
+        // vea nitido.
+        public string Descripcion { get; set; } = string.Empty;
+
         public string RutaArchivo { get; set; } = string.Empty;
         public string TipoMime { get; set; } = string.Empty; // Ej: application/pdf, image/jpeg
         public long TamanoBytes { get; set; }
@@ -35,6 +43,7 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
                 .Agregar(Id)
                 .Agregar(GastoId)
                 .Agregar(NombreOriginal)
+                .Agregar(Descripcion)
                 .Agregar(RutaArchivo)
                 .Agregar(TipoMime)
                 .Agregar(TamanoBytes)

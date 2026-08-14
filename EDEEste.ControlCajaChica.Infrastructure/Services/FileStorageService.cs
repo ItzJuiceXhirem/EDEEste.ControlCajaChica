@@ -22,9 +22,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             }
         }
 
+        public string ObtenerRutaFisica(string rutaRelativa) =>
+            Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", rutaRelativa);
+
         public Task EliminarArchivoAsync(string rutaRelativa)
         {
-            var rutaFisica = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", rutaRelativa);
+            var rutaFisica = ObtenerRutaFisica(rutaRelativa);
             if (File.Exists(rutaFisica))
             {
                 File.Delete(rutaFisica);
@@ -58,7 +61,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
         public async Task<bool> VerificarIntegridadArchivoAsync(string rutaRelativa, string hashOriginal)
         {
-            var rutaFisica = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", rutaRelativa);
+            var rutaFisica = ObtenerRutaFisica(rutaRelativa);
             if (!File.Exists(rutaFisica)) return false;
 
             var hashActual = await CalcularHashArchivoAsync(rutaFisica);

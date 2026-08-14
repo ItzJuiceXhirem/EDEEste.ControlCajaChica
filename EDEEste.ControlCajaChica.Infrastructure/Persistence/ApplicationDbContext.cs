@@ -164,6 +164,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 // guiones. Se usa el mas largo de los dos.
                 gasto.Property(g => g.RNCProveedor).HasMaxLength(11);
             });
+
+            // Etiqueta corta que digita el custodio por archivo adjunto (no es una
+            // regla de negocio externa como NCF/RNC, es propia del sistema).
+            modelBuilder.Entity<ComprobanteAdjunto>()
+                .Property(c => c.Descripcion)
+                .HasMaxLength(200);
         }
 
         /// <summary>

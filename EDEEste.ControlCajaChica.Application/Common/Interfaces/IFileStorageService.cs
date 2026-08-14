@@ -11,5 +11,8 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
         Task<RespuestaArchivoDto> GuardarComprobanteAsync(SubirComprobanteDto comprobanteDto);
         Task EliminarArchivoAsync(string rutaRelativa);
         Task<bool> VerificarIntegridadArchivoAsync(string rutaRelativa, string hashOriginal);
+
+        /// <summary>Resuelve la ruta relativa guardada en BDD a una ruta fisica en disco.</summary>
+        string ObtenerRutaFisica(string rutaRelativa);
     }
 }
