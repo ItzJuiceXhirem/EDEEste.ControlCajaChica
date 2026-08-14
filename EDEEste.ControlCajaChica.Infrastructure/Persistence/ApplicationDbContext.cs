@@ -37,6 +37,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             ConfigurarRelaciones(modelBuilder);
             ConfigurarBitacora(modelBuilder);
             ConfigurarBorradoLogico(modelBuilder);
+            ConfigurarLongitudesDeTexto(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
 
@@ -138,6 +139,31 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             modelBuilder.Entity<ArqueoCaja>().HasQueryFilter(a => !a.IsDeleted);
             modelBuilder.Entity<DetalleArqueoDenominacion>().HasQueryFilter(d => !d.IsDeleted);
             modelBuilder.Entity<ComprobanteAdjunto>().HasQueryFilter(c => !c.IsDeleted);
+        }
+
+        /// <summary>
+        /// Longitudes reales para columnas de texto que hasta ahora quedaban en
+        /// nvarchar(max) por convencion. CodigoSolicitud (SolicitudReposicion) y
+        /// CodigoArqueo (ArqueoCaja) se dejan fuera a proposito: son codigos internos
+        /// propios y aun no se confirmo su formato con negocio.
+        /// </summary>
+        private static void ConfigurarLongitudesDeTexto(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Gasto>(gasto =>
+            {
+                // DGII: NCF "de papel" = 11 caracteres, e-NCF electronico = 13. Se usa
+                // el mas largo para poder guardar cualquiera de los dos formatos; a
+                // nvarchar(N) mas corto no le afecta que quepa un string mas corto.
+                gasto.Property(g => g.NCF).HasMaxLength(13);
+
+                // Sin tope legal fijo; se sigue la convencion de 80-150 caracteres que
+                // usan los sistemas contables dominicanos, tomando el limite superior.
+                gasto.Property(g => g.Proveedor).HasMaxLength(150);
+
+                // RNC (empresa) = 9 digitos, cedula (persona fisica) = 11 digitos, sin
+                // guiones. Se usa el mas largo de los dos.
+                gasto.Property(g => g.RNCProveedor).HasMaxLength(11);
+            });
         }
 
         /// <summary>

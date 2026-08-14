@@ -12,10 +12,6 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        // Las claves foraneas son Guid y la navegacion es una propiedad aparte. Antes
-        // la FK estaba declarada como el objeto navegado, asi que EF generaba una
-        // columna sombra "FondoCajaChicaIdId" y la relacion real quedaba fuera de la
-        // firma HMAC: se podia repuntar un gasto a otro fondo sin romper el hash.
         public Guid FondoCajaChicaId { get; set; }
         public FondoCajaChica? FondoCajaChica { get; set; }
 
@@ -24,10 +20,10 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
 
         public Guid? ReposicionId { get; set; }
         public SolicitudReposicion? Reposicion { get; set; }
+        public string Proveedor { get; set; } = string.Empty; //80-150 caracteres
 
-        public string Proveedor { get; set; } = string.Empty;
-        public string RNCProveedor { get; set; } = string.Empty;
-        public string NCF { get; set; } = string.Empty;
+        public string RNCProveedor { get; set; } = string.Empty; // RNC (empresas, 9 digitos) o cedula (persona fisica, 11 digitos) sin guiones
+        public string NCF { get; set; } = string.Empty; // NCF: 11 caracteres. e-NCF: 13 caracteres
         public string? Concepto { get; set; }
         public decimal Subtotal { get; set; }
         public decimal MontoITBIS { get; set; }
