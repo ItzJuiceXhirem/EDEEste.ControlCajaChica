@@ -41,7 +41,7 @@ else
 
                         <div class="progress mb-3" role="progressbar" aria-label="Balance del fondo"
                              aria-valuenow="@((double)porcentaje)" aria-valuemin="0" aria-valuemax="100">
-                            <div class="progress-bar @(porcentaje <= alerta ? "bg-warning" : "bg-success")"
+                            <div class="progress-bar @ClaseBarra(porcentaje)"
                                  style="width: @porcentaje.ToString("N0")%"></div>
                         </div>
 
@@ -70,4 +70,19 @@ else
 
     private static decimal PorcentajeAlerta(FondoCajaChica fondo) =>
         fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : PorcentajeAlertaPorDefecto;
+
+    /// <summary>
+    /// Semaforo del efectivo disponible: verde desde 50%, amarillo entre 30% y 49%,
+    /// rojo en 29% o menos.
+    ///
+    /// Es a proposito independiente de PorcentajeAlertaReposicion: el color da una
+    /// lectura uniforme de todos los fondos de un vistazo, mientras que el aviso de
+    /// "toca solicitar reposicion" si respeta el umbral configurado de cada fondo.
+    /// </summary>
+    private static string ClaseBarra(decimal porcentaje) => porcentaje switch
+    {
+        >= 50m => "bg-success",
+        >= 30m => "bg-warning",
+        _ => "bg-danger"
+    };
 }

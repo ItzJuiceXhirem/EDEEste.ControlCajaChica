@@ -94,7 +94,10 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 FondoCajaChicaId = fondo.Id,
                 CategoriaGastoId = categoria.Id,
                 Proveedor = comando.Proveedor.Trim(),
-                RNCProveedor = comando.RNCProveedor.Trim(),
+                // Se guarda canonico (solo digitos): la columna es nvarchar(11) y con
+                // los guiones de la cedula el texto mide 13. El formato es cosa de la
+                // pantalla, no del dato.
+                RNCProveedor = SoloDigitos(comando.RNCProveedor),
                 NCF = comando.NCF.Trim(),
                 Concepto = comando.Concepto?.Trim(),
                 Subtotal = comando.Subtotal,
@@ -152,6 +155,19 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 errores.Add("El monto total debe ser mayor que cero.");
             }
 
+            // Sin esto, un subtotal negativo compensado con un ITBIS inflado cuadra
+            // contra el total y pasa el resto de las validaciones. El formulario ya
+            // pone min="0", pero eso es del navegador: la regla tiene que vivir aqui.
+            if (comando.Subtotal < 0)
+            {
+                errores.Add("El subtotal no puede ser negativo.");
+            }
+
+            if (comando.MontoITBIS < 0)
+            {
+                errores.Add("El ITBIS no puede ser negativo.");
+            }
+
             // Se compara el desglose contra el total en vez de calcularlo, porque el
             // ITBIS que aparece impreso en la factura manda sobre cualquier cuenta
             // nuestra (hay articulos exentos y tasas distintas).
@@ -193,11 +209,13 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 errores.Add("El NCF debe tener 11 caracteres (NCF) o 13 (e-NCF).");
             }
 
-            // RNC de empresa = 9 digitos, cedula de persona fisica = 11.
-            var rnc = comando.RNCProveedor?.Trim() ?? string.Empty;
-            if (rnc.Length > 0 && (rnc.Length is not 9 and not 11 || !rnc.All(char.IsDigit)))
+            // RNC de empresa = 9 digitos, cedula de persona fisica = 11. El formulario
+            // muestra la cedula con guiones (XXX-XXXXXXX-X), asi que aqui se comparan
+            // solo los digitos.
+            var rnc = SoloDigitos(comando.RNCProveedor);
+            if (rnc.Length > 0 && rnc.Length is not 9 and not 11)
             {
-                errores.Add("El RNC debe tener 9 digitos (empresa) u 11 (cedula), sin guiones.");
+                errores.Add("El RNC debe tener 9 digitos (empresa) u 11 (cedula).");
             }
 
             if (comando.Comprobantes.Count == 0)
@@ -225,6 +243,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
             return errores;
         }
+
+        /// <summary>
+        /// Deja solo los digitos de un RNC/cedula, descartando guiones y espacios.
+        /// </summary>
+        private static string SoloDigitos(string? valor) =>
+            string.IsNullOrEmpty(valor)
+                ? string.Empty
+                : new string(valor.Where(char.IsDigit).ToArray());
 
         /// <summary>
         /// El limite efectivo es el mas estricto entre el 2.5% del fondo fijo (tope

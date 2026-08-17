@@ -69,9 +69,12 @@ else
                 <InputText @bind-Value="entrada.Proveedor" class="form-control" maxlength="150" />
             </div>
             <div class="col-md-3 mb-2">
-                <label class="form-label">RNC / Cedula</label>
-                <InputText @bind-Value="entrada.RNCProveedor" class="form-control" maxlength="11" />
-                <div class="form-text">9 digitos (RNC) u 11 (cedula).</div>
+                <label class="form-label">RNC / Cédula</label>
+                @* Input plano en vez de InputText: el valor se reescribe en cada
+                   pulsacion para insertar los guiones de la cedula. *@
+                <input class="form-control" maxlength="13" inputmode="numeric"
+                       value="@entrada.RNCProveedor" @oninput="FormatearRnc" />
+                <div class="form-text">9 digitos (RNC) u 11 (cédula).</div>
             </div>
             <div class="col-md-3 mb-2">
                 <label class="form-label">NCF</label>
@@ -88,20 +91,23 @@ else
         <div class="row">
             <div class="col-md-3 mb-2">
                 <label class="form-label">Subtotal</label>
-                <InputNumber @bind-Value="entrada.Subtotal" class="form-control" />
+                <InputNumber @bind-Value="entrada.Subtotal" class="form-control" min="0" step="0.01" placeholder="0" />
             </div>
             <div class="col-md-3 mb-2">
                 <label class="form-label">ITBIS</label>
-                <InputNumber @bind-Value="entrada.MontoITBIS" class="form-control" />
+                <InputNumber @bind-Value="entrada.MontoITBIS" class="form-control" min="0" step="0.01" placeholder="0" />
             </div>
             <div class="col-md-3 mb-2">
                 <label class="form-label">Monto total</label>
-                <InputNumber @bind-Value="entrada.MontoTotal" class="form-control" />
+                <InputNumber @bind-Value="entrada.MontoTotal" class="form-control" min="0" step="0.01" placeholder="0" />
                 <div class="form-text">Subtotal + ITBIS debe cuadrar con este total.</div>
             </div>
             <div class="col-md-3 mb-2">
                 <label class="form-label">Fecha del gasto</label>
-                <InputDate @bind-Value="entrada.FechaGasto" class="form-control" />
+                @* Un gasto no puede haber ocurrido todavia: el selector no ofrece
+                   fechas futuras y el handler vuelve a comprobarlo. *@
+                <InputDate @bind-Value="entrada.FechaGasto" class="form-control"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")" />
             </div>
         </div>
 
@@ -132,8 +138,16 @@ else
                     {
                         <tr>
                             <td>
-                                @adjunto.Archivo.Name
-                                <div class="text-muted small">@(adjunto.Archivo.Size / 1024) KB</div>
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        @adjunto.Archivo.Name
+                                        <div class="text-muted small">@(adjunto.Archivo.Size / 1024) KB</div>
+                                    </div>
+                                    <button type="button" class="btn-close mt-1"
+                                            title="Quitar este archivo"
+                                            aria-label="Quitar @adjunto.Archivo.Name"
+                                            @onclick="() => QuitarAdjunto(adjunto)"></button>
+                                </div>
                             </td>
                             <td>
                                 <input class="form-control" maxlength="200"
@@ -189,6 +203,31 @@ else
         }
     }
 
+    private void QuitarAdjunto(AdjuntoSeleccionado adjunto)
+    {
+        adjuntos.Remove(adjunto);
+        errores.Clear();
+    }
+
+    /// <summary>
+    /// Deja solo digitos y, cuando llegan a 11 (una cedula), los muestra como
+    /// XXX-XXXXXXX-X. Un RNC de empresa (9 digitos) se deja sin guiones. Lo que se
+    /// envia al handler se vuelve a limpiar alli, asi que en BDD solo entran digitos.
+    /// </summary>
+    private void FormatearRnc(ChangeEventArgs e)
+    {
+        var digitos = new string((e.Value?.ToString() ?? string.Empty).Where(char.IsDigit).ToArray());
+
+        if (digitos.Length > 11)
+        {
+            digitos = digitos[..11];
+        }
+
+        entrada.RNCProveedor = digitos.Length == 11
+            ? $"{digitos[..3]}-{digitos[3..10]}-{digitos[10]}"
+            : digitos;
+    }
+
     private async Task GuardarAsync()
     {
         errores.Clear();
@@ -209,9 +248,9 @@ else
                 RNCProveedor = entrada.RNCProveedor ?? string.Empty,
                 NCF = entrada.NCF ?? string.Empty,
                 Concepto = entrada.Concepto,
-                Subtotal = entrada.Subtotal,
-                MontoITBIS = entrada.MontoITBIS,
-                MontoTotal = entrada.MontoTotal,
+                Subtotal = entrada.Subtotal ?? 0,
+                MontoITBIS = entrada.MontoITBIS ?? 0,
+                MontoTotal = entrada.MontoTotal ?? 0,
                 FechaGasto = entrada.FechaGasto
             };
 
@@ -276,9 +315,12 @@ else
         public string? RNCProveedor { get; set; }
         public string? NCF { get; set; }
         public string? Concepto { get; set; }
-        public decimal Subtotal { get; set; }
-        public decimal MontoITBIS { get; set; }
-        public decimal MontoTotal { get; set; }
+
+        // Nullables para que el campo salga vacio y se vea el placeholder "0" en vez
+        // de un cero escrito que el usuario tiene que borrar antes de teclear.
+        public decimal? Subtotal { get; set; }
+        public decimal? MontoITBIS { get; set; }
+        public decimal? MontoTotal { get; set; }
         public DateTime FechaGasto { get; set; } = DateTime.Today;
 
         public void Limpiar(Guid fondoId, Guid categoriaId)
@@ -289,9 +331,9 @@ else
             RNCProveedor = null;
             NCF = null;
             Concepto = null;
-            Subtotal = 0;
-            MontoITBIS = 0;
-            MontoTotal = 0;
+            Subtotal = null;
+            MontoITBIS = null;
+            MontoTotal = null;
             FechaGasto = DateTime.Today;
         }
     }

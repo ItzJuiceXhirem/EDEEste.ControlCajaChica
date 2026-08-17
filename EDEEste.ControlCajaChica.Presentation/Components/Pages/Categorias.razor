@@ -50,7 +50,16 @@
                             <td>@categoria.Nombre</td>
                             <td>@categoria.CuentaContable</td>
                             <td>@(categoria.RequiereNCF ? "Si" : "No")</td>
-                            <td>@(categoria.Activo ? "Si" : "No")</td>
+                            <td>
+                                @* El check no es solo indicador: marcarlo activa o
+                                   desactiva la categoria en el momento. *@
+                                <input type="checkbox" class="form-check-input"
+                                       checked="@categoria.Activo"
+                                       disabled="@(cambiandoId == categoria.Id)"
+                                       title="@(categoria.Activo ? "Desactivar" : "Activar") esta categoria"
+                                       aria-label="@(categoria.Activo ? "Desactivar" : "Activar") @categoria.Nombre"
+                                       @onchange="e => CambiarActivoAsync(categoria, e.Value is true)" />
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -88,10 +97,40 @@
     private IReadOnlyList<CategoriaGasto>? categorias;
     private readonly EntradaCategoria entrada = new();
     private bool guardando;
+    private Guid? cambiandoId;
     private string? mensaje;
     private string? error;
 
     protected override async Task OnInitializedAsync() => await RecargarAsync();
+
+    /// <summary>
+    /// La categoria viene rastreada por el mismo DbContext con scope que usa el
+    /// repositorio, asi que basta con cambiar la propiedad y guardar.
+    /// </summary>
+    private async Task CambiarActivoAsync(CategoriaGasto categoria, bool activo)
+    {
+        mensaje = null;
+        error = null;
+        cambiandoId = categoria.Id;
+
+        try
+        {
+            categoria.Activo = activo;
+            await Contexto.SaveChangesAsync();
+            mensaje = $"Categoria '{categoria.Nombre}' {(activo ? "activada" : "desactivada")}.";
+        }
+        catch (Exception ex)
+        {
+            // Si no se pudo guardar, se devuelve el check a como estaba para que la
+            // pantalla no muestre un estado que la BDD no tiene.
+            categoria.Activo = !activo;
+            error = ex.Message;
+        }
+        finally
+        {
+            cambiandoId = null;
+        }
+    }
 
     private async Task RecargarAsync() => categorias = await RepositorioCategorias.ListarAsync();
 
