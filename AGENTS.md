@@ -30,7 +30,12 @@ dotnet ef database update --project EDEEste.ControlCajaChica.Infrastructure --st
 - `ICurrentUserService` is implemented in **Presentation** (`Presentation/Services/CurrentUserService.cs`), not Infrastructure — it needs `IHttpContextAccessor` + `AuthenticationStateProvider`. It checks both because HttpContext is null inside an interactive Blazor circuit and the provider throws outside one.
 - Identity is wired with `AddIdentityCore` + `.AddRoles<IdentityRole>()`, **not** `AddIdentity`. `AddIdentity` re-registers the cookie schemes that `AddIdentityCookies()` already added and blows up at startup with `Scheme already exists: Identity.Application`.
 - Business rules live in `README.md` (Spanish): fondo fijo invariants, 2.5% max per gasto, reposición window 30–20% of fondo, and the role matrix (Custodio / Admin / Aprobador / Finanzas / Auditor).
-- Most `Application/Features/*` files are still empty stubs — the command/handler pattern is scaffolded, not implemented.
+
+## Casos de uso (Application)
+- **No MediatR.** Commands are plain DTOs (`RegistrarGastoCommand`) paired with a handler class (`RegistrarGastoHandler`) that exposes `EjecutarAsync`. Application has **zero PackageReferences**, same rule as Domain — that is why handlers are registered in `Program.cs` (the composition root) instead of an `AddApplication` extension: Application cannot reference the DI package.
+- Handlers return `ResultadoOperacion<T>`; a broken business rule is a returned error list, not an exception. Exceptions are reserved for real infrastructure failures.
+- Data access goes through repository interfaces in `Application/Common/Interfaces` implemented in `Infrastructure/Repositories`. **Repositories never save** — they only query and `Add`. The handler owns the transaction boundary and calls `IApplicationDbContext.SaveChangesAsync` once, so a gasto, its comprobantes, the fondo balance and the audit rows all commit together.
+- Implemented: `RegistrarGastoHandler`, `CrearSolicitudReposicionHandler`. Still stubs: `AnularGastoCommand`, `AprobarReposicionCommand`, `ProcesarPagoReposicionCommand`, `RegistrarArqueoMensualCommand`, and the Fondos/Categorías admin commands.
 
 ## Sello de integridad (HMAC)
 Rows implementing `ITamperProofEntity` carry a `HashFirma` so direct edits in the database are detectable.
@@ -49,9 +54,16 @@ Rows implementing `ITamperProofEntity` carry a `HashFirma` so direct edits in th
 
 ## Gotchas
 - The interceptor overrides **both** `SavingChanges` and `SavingChangesAsync`. Overriding only the sync one silently skips all auditing, since `IApplicationDbContext` exposes only `SaveChangesAsync`.
-- Business string columns are still `nvarchar(max)` (`Proveedor`, `NCF`, `CodigoSolicitud`, `Nombre`, …). Worth adding `HasMaxLength` before this hits production, but the lengths are business decisions — don't guess them.
-- No unique index on `SolicitudReposicion.CodigoSolicitud` / `ArqueoCaja.CodigoArqueo` / `Gasto.NCF`; add them once the uniqueness rules are confirmed.
+- Text columns are bounded in `ApplicationDbContext.ConfigurarLongitudesDeTexto`. DGII-driven ones: `NCF` 13 (11 for paper NCF, 13 for e-NCF), `RNCProveedor` 11 (9 RNC / 11 cédula). Every column holding an Identity user id is 450, matching `AspNetUsers.Id`.
+- `Gasto.NCF` has a **non-unique** index on purpose. An NCF is unique per issuing proveedor, not globally, and paper NCF coexist with e-NCF — a UNIQUE constraint here would reject legitimate invoices. Confirm the real rule with the business before tightening it.
+- `SolicitudReposicion.CodigoSolicitud` and `ArqueoCaja.CodigoArqueo` are **commented out** in the entities, not just unindexed: the format was never confirmed, so the columns were dropped rather than guessed.
 - `QuestPdfReporteService` sets the QuestPDF Community license in code.
+- PDF merging uses **PdfSharpCore**, which drags in `SixLabors.ImageSharp 1.0.4`. That version has known CVEs (NU1902/NU1903 warnings on every build) but was kept deliberately: ImageSharp 3.x/4.x switched to a commercial license. Our merge path (`PdfReader.Open` + `AddPage`) never calls ImageSharp's image APIs. Don't "fix" the warning by bumping the package without a licensing decision.
+- Page numbers in the consolidated PDF are stamped **after** merging, with `XGraphics.FromPdfPage(..., XGraphicsPdfPageOptions.Append)`. QuestPDF's footer can't do it: the expediente is assembled from several independent PDFs plus the comprobantes' own files, so each piece would restart at 1.
+- Runtime-uploaded files under `wwwroot/uploads` are **not** served by `MapStaticAssets` (it uses a build-time manifest). Serve them through an endpoint — see `Presentation/Endpoints/ReposicionEndpoints.cs`.
 - Self-registration (`Register.razor`) always assigns `RolesApp.RolPorDefecto` (= `Auditor`, read-only). An Administrador must promote users; nobody can self-assign fund access.
 - The `/Account` Razor pages are still the stock English template text; the rest of the app is Spanish.
+- **Login does not work end to end yet**: `RequireConfirmedAccount = true` plus `IdentityNoOpEmailSender` means a newly registered user can never confirm and therefore can never sign in. Because of that, none of the app pages carry `[Authorize]` and `ReposicionEndpoints` has no `RequireAuthorization()` — adding them today would lock everyone out. Wire the roles in as soon as login works.
+- `Fondos.razor` and `Categorias.razor` write through the repository + `SaveChangesAsync` directly instead of going through a handler. They are provisional admin screens that exist so there is data to test with; they should move to real Administrador commands.
+- In a `.razor` page, an `@inject` whose name equals the page's class name fails to compile (`CS0542`). That is why `Fondos.razor` injects `RepositorioFondos`, not `Fondos`.
 - No linters, formatters, or `opencode.json` config in the repo.

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "caja-chica",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "EDEEste.ControlCajaChica.Presentation", "--launch-profile", "http"],
+      "port": 5055
+    }
+  ]
+}

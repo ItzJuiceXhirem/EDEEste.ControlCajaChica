@@ -38,8 +38,15 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             ConfigurarBitacora(modelBuilder);
             ConfigurarBorradoLogico(modelBuilder);
             ConfigurarLongitudesDeTexto(modelBuilder);
+            ConfigurarIndices(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
+
+            // Usuario lo descubre base.OnModelCreating (viene de IdentityDbContext),
+            // asi que se configura despues.
+            modelBuilder.Entity<Identity.Usuario>()
+                .Property(u => u.Nombre)
+                .HasMaxLength(150);
 
             // Estas dos recorren el modelo completo, asi que van despues de que EF
             // termino de descubrir los tipos (incluidos los de Identity).
@@ -124,6 +131,30 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         }
 
         /// <summary>
+        /// Indices de consulta.
+        ///
+        /// El indice de NCF se deja <b>no unico</b> a proposito. Un NCF si es unico en
+        /// la practica, pero lo es por proveedor (la secuencia la emite cada proveedor
+        /// con su propio RNC), no a nivel global, y ademas conviven NCF de papel con
+        /// e-NCF. Poner UNIQUE aqui sin confirmar la regla real con negocio haria que
+        /// el sistema rechace facturas legitimas, asi que por ahora solo acelera las
+        /// busquedas por NCF, que es para lo que se usa hoy.
+        /// </summary>
+        private static void ConfigurarIndices(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Gasto>(gasto =>
+            {
+                gasto.HasIndex(g => g.NCF);
+
+                // Es la consulta que corre cada vez que se arma una reposicion.
+                gasto.HasIndex(g => new { g.FondoCajaChicaId, g.Estado });
+            });
+
+            modelBuilder.Entity<ComprobanteAdjunto>()
+                .HasIndex(c => c.GastoId);
+        }
+
+        /// <summary>
         /// Filtro global para que nunca traiga registros donde IsDeleted == true al
         /// hacer un query normal. Se aplica a todas las entidades auditables: si una
         /// quedara sin filtro, un registro "borrado" seguiria apareciendo a traves de
@@ -165,11 +196,94 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 gasto.Property(g => g.RNCProveedor).HasMaxLength(11);
             });
 
-            // Etiqueta corta que digita el custodio por archivo adjunto (no es una
-            // regla de negocio externa como NCF/RNC, es propia del sistema).
-            modelBuilder.Entity<ComprobanteAdjunto>()
-                .Property(c => c.Descripcion)
-                .HasMaxLength(200);
+            modelBuilder.Entity<Gasto>()
+                .Property(g => g.Concepto)
+                .HasMaxLength(500);
+
+            modelBuilder.Entity<ComprobanteAdjunto>(comprobante =>
+            {
+                // Etiqueta corta que digita el custodio por archivo adjunto (no es una
+                // regla de negocio externa como NCF/RNC, es propia del sistema).
+                comprobante.Property(c => c.Descripcion).HasMaxLength(200);
+
+                // 255 es el tope de nombre de archivo de NTFS y de la mayoria de los
+                // sistemas de archivos, asi que un nombre mas largo que esto no pudo
+                // haber llegado desde el disco de nadie.
+                comprobante.Property(c => c.NombreOriginal).HasMaxLength(255);
+                comprobante.Property(c => c.RutaArchivo).HasMaxLength(400);
+                comprobante.Property(c => c.TipoMime).HasMaxLength(100);
+
+                // SHA-256 en hexadecimal: siempre 64 caracteres.
+                comprobante.Property(c => c.HashSHA256).HasMaxLength(64);
+            });
+
+            modelBuilder.Entity<CategoriaGasto>(categoria =>
+            {
+                categoria.Property(c => c.Nombre).HasMaxLength(100);
+                categoria.Property(c => c.CuentaContable).HasMaxLength(50);
+            });
+
+            modelBuilder.Entity<SolicitudReposicion>(reposicion =>
+            {
+                reposicion.Property(r => r.ReferenciaPago).HasMaxLength(100);
+                reposicion.Property(r => r.RutaPdfConsolidado).HasMaxLength(400);
+            });
+
+            modelBuilder.Entity<ArqueoCaja>()
+                .Property(a => a.Observaciones)
+                .HasMaxLength(1000);
+
+            modelBuilder.Entity<LogAuditoria>(log =>
+            {
+                log.Property(l => l.TipoAccion).HasMaxLength(50);
+
+                // 128 es el maximo de un identificador de SQL Server, y esta columna
+                // guarda justamente un nombre de tabla.
+                log.Property(l => l.NombreTabla).HasMaxLength(128);
+                log.Property(l => l.RegistroId).HasMaxLength(100);
+                log.Property(l => l.UsuarioId).HasMaxLength(LongitudIdUsuario);
+            });
+
+            AplicarLongitudDeIdsDeUsuario(modelBuilder);
+        }
+
+        /// <summary>
+        /// Longitud de las columnas que guardan el Id de un usuario de Identity.
+        /// AspNetUsers.Id es nvarchar(450) (el maximo indexable de SQL Server), asi que
+        /// cualquier columna que lo referencie tiene que aguantar lo mismo.
+        /// </summary>
+        private const int LongitudIdUsuario = 450;
+
+        private static void AplicarLongitudDeIdsDeUsuario(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<FondoCajaChica>()
+                .Property(f => f.CustodioId).HasMaxLength(LongitudIdUsuario);
+
+            modelBuilder.Entity<Gasto>()
+                .Property(g => g.RegistradoPorUsuarioId).HasMaxLength(LongitudIdUsuario);
+
+            modelBuilder.Entity<ArqueoCaja>()
+                .Property(a => a.RealizadoPorUsuarioId).HasMaxLength(LongitudIdUsuario);
+
+            modelBuilder.Entity<SolicitudReposicion>(reposicion =>
+            {
+                reposicion.Property(r => r.SolicitoUsuarioId).HasMaxLength(LongitudIdUsuario);
+                reposicion.Property(r => r.GerenteUsuarioId).HasMaxLength(LongitudIdUsuario);
+                reposicion.Property(r => r.FinanzasUsuarioId).HasMaxLength(LongitudIdUsuario);
+            });
+
+            // CreadoPorId / ModificadoPorId estan en AuditableEntity, asi que en vez de
+            // repetirlos entidad por entidad se recorre el modelo: cualquier entidad
+            // auditable que se agregue despues los hereda ya configurados.
+            var tiposAuditables = modelBuilder.Model
+                .GetEntityTypes()
+                .Where(tipo => typeof(AuditableEntity).IsAssignableFrom(tipo.ClrType));
+
+            foreach (var tipo in tiposAuditables)
+            {
+                tipo.FindProperty(nameof(AuditableEntity.CreadoPorId))?.SetMaxLength(LongitudIdUsuario);
+                tipo.FindProperty(nameof(AuditableEntity.ModificadoPorId))?.SetMaxLength(LongitudIdUsuario);
+            }
         }
 
         /// <summary>

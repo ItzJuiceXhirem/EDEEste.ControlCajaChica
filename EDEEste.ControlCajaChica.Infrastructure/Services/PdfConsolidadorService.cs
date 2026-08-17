@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
 using PdfSharpCore.Pdf.IO;
 using QuestPDF.Fluent;
@@ -54,9 +55,44 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 }
             }
 
+            EstamparNumerosDePagina(documentoFinal);
+
             using var salida = new MemoryStream();
             documentoFinal.Save(salida, closeStream: false);
             return salida.ToArray();
+        }
+
+        /// <summary>
+        /// Numera el expediente completo al final, cuando ya se sabe cuantas paginas
+        /// tiene.
+        ///
+        /// No se puede hacer con el footer de QuestPDF: el documento se arma juntando
+        /// varios PDF chicos independientes (y los originales de los comprobantes, que
+        /// ni siquiera generamos nosotros), asi que cada pieza numeraria desde 1 por su
+        /// cuenta. Para un expediente contable la numeracion continua importa: es lo
+        /// que permite afirmar que no falta ninguna hoja.
+        /// </summary>
+        private static void EstamparNumerosDePagina(PdfDocument documento)
+        {
+            var fuente = new XFont("Arial", 8, XFontStyle.Regular);
+            var total = documento.PageCount;
+
+            for (var indice = 0; indice < total; indice++)
+            {
+                var pagina = documento.Pages[indice];
+
+                // Append dibuja encima del contenido que ya trae la pagina, sin
+                // reescribirlo: las paginas importadas de un PDF ajeno quedan intactas.
+                using var lienzo = XGraphics.FromPdfPage(pagina, XGraphicsPdfPageOptions.Append);
+
+                var area = new XRect(0, pagina.Height.Point - 25, pagina.Width.Point, 15);
+                lienzo.DrawString(
+                    $"Pagina {indice + 1} de {total}",
+                    fuente,
+                    XBrushes.Gray,
+                    area,
+                    XStringFormats.TopCenter);
+            }
         }
 
         private async Task<string> ResolverNombreCustodioAsync(string? custodioId)

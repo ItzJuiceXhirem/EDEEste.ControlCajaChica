@@ -1,10 +1,13 @@
 using EDEEste.ControlCajaChica.Presentation.Components;
 using EDEEste.ControlCajaChica.Presentation.Components.Account;
+using EDEEste.ControlCajaChica.Presentation.Endpoints;
 using EDEEste.ControlCajaChica.Presentation.Services;
 using EDEEste.ControlCajaChica.Infrastructure;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using EDEEste.ControlCajaChica.Infrastructure.Persistence;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Application.Features.Gastos;
+using EDEEste.ControlCajaChica.Application.Features.Reposiciones;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 
@@ -33,8 +36,15 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-// DbContext, interceptores de auditoria/integridad, criptografia e IIdentityService.
+// DbContext, interceptores de auditoria/integridad, criptografia, repositorios e
+// IIdentityService.
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Los casos de uso viven en Application, pero se registran aqui: Application no
+// referencia ningun paquete (ni siquiera el de DI) a proposito, y Presentation es el
+// composition root de la solucion.
+builder.Services.AddScoped<RegistrarGastoHandler>();
+builder.Services.AddScoped<CrearSolicitudReposicionHandler>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -74,6 +84,9 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+
+// Descarga del expediente PDF consolidado de una reposicion.
+app.MapReposicionEndpoints();
 
 // Los roles del catalogo se crean al arrancar si aun no existen (operacion idempotente).
 await using (var scope = app.Services.CreateAsyncScope())

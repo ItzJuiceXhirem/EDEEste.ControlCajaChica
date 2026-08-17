@@ -1,0 +1,122 @@
+@page "/gastos"
+@rendermode InteractiveServer
+
+@inject IFondoRepository Fondos
+@inject IGastoRepository RepositorioGastos
+
+<PageTitle>Gastos</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center">
+    <h1>Gastos</h1>
+    <a class="btn btn-primary" href="/gastos/registrar">Registrar gasto</a>
+</div>
+
+@if (fondos is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (fondos.Count == 0)
+{
+    <div class="alert alert-warning">Primero cree <a href="/fondos">un fondo</a>.</div>
+}
+else
+{
+    <div class="mb-3" style="max-width: 480px;">
+        <label class="form-label">Fondo</label>
+        <select class="form-select" value="@fondoSeleccionado" @onchange="CambiarFondoAsync">
+            @foreach (var fondo in fondos)
+            {
+                <option value="@fondo.Id">
+                    Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                    &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
+                </option>
+            }
+        </select>
+    </div>
+
+    @if (gastos is null)
+    {
+        <p><em>Cargando gastos...</em></p>
+    }
+    else if (gastos.Count == 0)
+    {
+        <p class="text-muted">Este fondo todavia no tiene gastos registrados.</p>
+    }
+    else
+    {
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>NCF</th>
+                    <th>Proveedor</th>
+                    <th>Categoria</th>
+                    <th>Concepto</th>
+                    <th class="text-center">Adjuntos</th>
+                    <th class="text-end">Monto</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var gasto in gastos)
+                {
+                    <tr>
+                        <td>@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
+                        <td>@gasto.NCF</td>
+                        <td>@gasto.Proveedor</td>
+                        <td>@(gasto.CategoriaGasto?.Nombre ?? "-")</td>
+                        <td>@(gasto.Concepto ?? "-")</td>
+                        <td class="text-center">@gasto.Comprobantes.Count</td>
+                        <td class="text-end">@gasto.MontoTotal.ToString("N2")</td>
+                        <td>
+                            <span class="badge @ClaseEstado(gasto.Estado)">@gasto.Estado</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr class="fw-bold">
+                    <td colspan="6" class="text-end">Total</td>
+                    <td class="text-end">@gastos.Sum(g => g.MontoTotal).ToString("N2")</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    }
+}
+
+@code {
+    private IReadOnlyList<FondoCajaChica>? fondos;
+    private IReadOnlyList<Gasto>? gastos;
+    private Guid fondoSeleccionado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        fondos = await Fondos.ListarAsync();
+
+        if (fondos.Count > 0)
+        {
+            fondoSeleccionado = fondos[0].Id;
+            gastos = await RepositorioGastos.ListarPorFondoAsync(fondoSeleccionado);
+        }
+    }
+
+    private async Task CambiarFondoAsync(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var id))
+        {
+            fondoSeleccionado = id;
+            gastos = null;
+            gastos = await RepositorioGastos.ListarPorFondoAsync(id);
+        }
+    }
+
+    private static string ClaseEstado(EstadoGasto estado) => estado switch
+    {
+        EstadoGasto.PendienteReposicion => "text-bg-warning",
+        EstadoGasto.EnProcesoReposicion => "text-bg-info",
+        EstadoGasto.Repuesto => "text-bg-success",
+        EstadoGasto.Rechazado or EstadoGasto.Anulado => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+}

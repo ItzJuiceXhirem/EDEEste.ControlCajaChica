@@ -20,17 +20,17 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
 
         public Guid? ReposicionId { get; set; }
         public SolicitudReposicion? Reposicion { get; set; }
-        public string Proveedor { get; set; } = string.Empty; //80-150 caracteres
+        public string Proveedor { get; set; } = string.Empty;
 
-        public string RNCProveedor { get; set; } = string.Empty; // RNC (empresas, 9 digitos) o cedula (persona fisica, 11 digitos) sin guiones
-        public string NCF { get; set; } = string.Empty; // NCF: 11 caracteres. e-NCF: 13 caracteres
+        public string RNCProveedor { get; set; } = string.Empty;
+        public string NCF { get; set; } = string.Empty; 
         public string? Concepto { get; set; }
         public decimal Subtotal { get; set; }
         public decimal MontoITBIS { get; set; }
         public decimal MontoTotal { get; set; }
         public DateTime FechaGasto { get; set; }
         public EstadoGasto Estado { get; set; }
-        public string RegistradoPorUsuarioId { get; set; } = string.Empty; //FK hacia Usuario (Identity)
+        public string RegistradoPorUsuarioId { get; set; } = string.Empty; // Identity
 
         // Navegación
         public ICollection<ComprobanteAdjunto> Comprobantes { get; set; } = new List<ComprobanteAdjunto>();

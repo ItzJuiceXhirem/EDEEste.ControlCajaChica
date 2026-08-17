@@ -1,0 +1,298 @@
+@page "/gastos/registrar"
+@rendermode InteractiveServer
+
+@inject IFondoRepository Fondos
+@inject ICategoriaGastoRepository Categorias
+@inject RegistrarGastoHandler Handler
+
+<PageTitle>Registrar gasto</PageTitle>
+
+<h1>Registrar gasto</h1>
+
+@if (errores.Count > 0)
+{
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach (var mensajeError in errores)
+            {
+                <li>@mensajeError</li>
+            }
+        </ul>
+    </div>
+}
+@if (exito is not null)
+{
+    <div class="alert alert-success">@exito</div>
+}
+
+@if (fondos is null || categorias is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (fondos.Count == 0 || categorias.Count == 0)
+{
+    <div class="alert alert-warning">
+        Antes de registrar un gasto hace falta al menos
+        <a href="/fondos">un fondo</a> y <a href="/categorias">una categoria activa</a>.
+    </div>
+}
+else
+{
+    <EditForm Model="entrada" OnValidSubmit="GuardarAsync" FormName="registrar-gasto">
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Fondo</label>
+                <InputSelect @bind-Value="entrada.FondoCajaChicaId" class="form-select">
+                    @foreach (var fondo in fondos)
+                    {
+                        <option value="@fondo.Id">
+                            Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                            &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
+                        </option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Categoria</label>
+                <InputSelect @bind-Value="entrada.CategoriaGastoId" class="form-select">
+                    @foreach (var categoria in categorias)
+                    {
+                        <option value="@categoria.Id">@categoria.Nombre</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Proveedor</label>
+                <InputText @bind-Value="entrada.Proveedor" class="form-control" maxlength="150" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">RNC / Cedula</label>
+                <InputText @bind-Value="entrada.RNCProveedor" class="form-control" maxlength="11" />
+                <div class="form-text">9 digitos (RNC) u 11 (cedula).</div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">NCF</label>
+                <InputText @bind-Value="entrada.NCF" class="form-control" maxlength="13" />
+                <div class="form-text">11 (NCF) o 13 (e-NCF).</div>
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <label class="form-label">Concepto</label>
+            <InputText @bind-Value="entrada.Concepto" class="form-control" maxlength="500" />
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Subtotal</label>
+                <InputNumber @bind-Value="entrada.Subtotal" class="form-control" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">ITBIS</label>
+                <InputNumber @bind-Value="entrada.MontoITBIS" class="form-control" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Monto total</label>
+                <InputNumber @bind-Value="entrada.MontoTotal" class="form-control" />
+                <div class="form-text">Subtotal + ITBIS debe cuadrar con este total.</div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Fecha del gasto</label>
+                <InputDate @bind-Value="entrada.FechaGasto" class="form-control" />
+            </div>
+        </div>
+
+        <hr />
+
+        <h2 class="h5">Comprobantes</h2>
+        <p class="text-muted small">
+            Acepta PDF, JPG, JPEG y PNG. La transcripcion que escriba aqui es la que
+            aparecera en la portada de ese comprobante dentro del expediente PDF, para
+            que gerencia y finanzas puedan leer los datos aunque la foto salga borrosa.
+        </p>
+
+        <div class="mb-2">
+            <InputFile OnChange="SeleccionarArchivos" multiple accept=".pdf,.jpg,.jpeg,.png" class="form-control" />
+        </div>
+
+        @if (adjuntos.Count > 0)
+        {
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Archivo</th>
+                        <th>Transcripcion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var adjunto in adjuntos)
+                    {
+                        <tr>
+                            <td>
+                                @adjunto.Archivo.Name
+                                <div class="text-muted small">@(adjunto.Archivo.Size / 1024) KB</div>
+                            </td>
+                            <td>
+                                <input class="form-control" maxlength="200"
+                                       placeholder="Ej: Factura de la ferreteria / Autorizacion por correo - Juan Perez"
+                                       value="@adjunto.Descripcion"
+                                       @oninput="e => adjunto.Descripcion = e.Value?.ToString() ?? string.Empty" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <button type="submit" class="btn btn-primary" disabled="@guardando">
+            @(guardando ? "Guardando..." : "Registrar gasto")
+        </button>
+    </EditForm>
+}
+
+@code {
+    // Los adjuntos de una factura son fotos o PDF de pocas paginas; 10 MB deja
+    // holgura de sobra y evita que el limite de 512 KB que trae InputFile por
+    // defecto corte una foto de celular.
+    private const long TamanoMaximoArchivo = 10 * 1024 * 1024;
+
+    private IReadOnlyList<FondoCajaChica>? fondos;
+    private IReadOnlyList<CategoriaGasto>? categorias;
+
+    private readonly EntradaGasto entrada = new();
+    private readonly List<AdjuntoSeleccionado> adjuntos = new();
+    private readonly List<string> errores = new();
+
+    private bool guardando;
+    private string? exito;
+
+    protected override async Task OnInitializedAsync()
+    {
+        fondos = await Fondos.ListarAsync();
+        categorias = await Categorias.ListarActivasAsync();
+
+        entrada.FondoCajaChicaId = fondos.FirstOrDefault()?.Id ?? Guid.Empty;
+        entrada.CategoriaGastoId = categorias.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private void SeleccionarArchivos(InputFileChangeEventArgs e)
+    {
+        errores.Clear();
+        adjuntos.Clear();
+
+        foreach (var archivo in e.GetMultipleFiles(maximumFileCount: 20))
+        {
+            adjuntos.Add(new AdjuntoSeleccionado(archivo));
+        }
+    }
+
+    private async Task GuardarAsync()
+    {
+        errores.Clear();
+        exito = null;
+        guardando = true;
+
+        // Los streams de IBrowserFile se abren aqui, dentro del envio, y se cierran al
+        // terminar: no se pueden guardar abiertos entre interacciones.
+        var abiertos = new List<Stream>();
+
+        try
+        {
+            var comando = new RegistrarGastoCommand
+            {
+                FondoCajaChicaId = entrada.FondoCajaChicaId,
+                CategoriaGastoId = entrada.CategoriaGastoId,
+                Proveedor = entrada.Proveedor ?? string.Empty,
+                RNCProveedor = entrada.RNCProveedor ?? string.Empty,
+                NCF = entrada.NCF ?? string.Empty,
+                Concepto = entrada.Concepto,
+                Subtotal = entrada.Subtotal,
+                MontoITBIS = entrada.MontoITBIS,
+                MontoTotal = entrada.MontoTotal,
+                FechaGasto = entrada.FechaGasto
+            };
+
+            foreach (var adjunto in adjuntos)
+            {
+                var stream = adjunto.Archivo.OpenReadStream(TamanoMaximoArchivo);
+                abiertos.Add(stream);
+
+                comando.Comprobantes.Add(new RegistrarGastoCommand.ComprobanteEntrada
+                {
+                    NombreOriginal = adjunto.Archivo.Name,
+                    TipoMime = adjunto.Archivo.ContentType,
+                    TamanoBytes = adjunto.Archivo.Size,
+                    Descripcion = adjunto.Descripcion,
+                    Contenido = stream
+                });
+            }
+
+            var resultado = await Handler.EjecutarAsync(comando);
+
+            if (!resultado.Exitoso)
+            {
+                errores.AddRange(resultado.Errores);
+                return;
+            }
+
+            exito = "Gasto registrado correctamente.";
+            entrada.Limpiar(fondos!.FirstOrDefault()?.Id ?? Guid.Empty, categorias!.FirstOrDefault()?.Id ?? Guid.Empty);
+            adjuntos.Clear();
+
+            // El balance del fondo cambio, hay que releerlo para el proximo registro.
+            fondos = await Fondos.ListarAsync();
+        }
+        catch (Exception ex)
+        {
+            errores.Add(ex.Message);
+        }
+        finally
+        {
+            foreach (var stream in abiertos)
+            {
+                await stream.DisposeAsync();
+            }
+
+            guardando = false;
+        }
+    }
+
+    private sealed class AdjuntoSeleccionado
+    {
+        public AdjuntoSeleccionado(IBrowserFile archivo) => Archivo = archivo;
+
+        public IBrowserFile Archivo { get; }
+        public string Descripcion { get; set; } = string.Empty;
+    }
+
+    private sealed class EntradaGasto
+    {
+        public Guid FondoCajaChicaId { get; set; }
+        public Guid CategoriaGastoId { get; set; }
+        public string? Proveedor { get; set; }
+        public string? RNCProveedor { get; set; }
+        public string? NCF { get; set; }
+        public string? Concepto { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal MontoITBIS { get; set; }
+        public decimal MontoTotal { get; set; }
+        public DateTime FechaGasto { get; set; } = DateTime.Today;
+
+        public void Limpiar(Guid fondoId, Guid categoriaId)
+        {
+            FondoCajaChicaId = fondoId;
+            CategoriaGastoId = categoriaId;
+            Proveedor = null;
+            RNCProveedor = null;
+            NCF = null;
+            Concepto = null;
+            Subtotal = 0;
+            MontoITBIS = 0;
+            MontoTotal = 0;
+            FechaGasto = DateTime.Today;
+        }
+    }
+}

@@ -4,6 +4,7 @@ using EDEEste.ControlCajaChica.Infrastructure.Configuration;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using EDEEste.ControlCajaChica.Infrastructure.Persistence;
 using EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors;
+using EDEEste.ControlCajaChica.Infrastructure.Repositories;
 using EDEEste.ControlCajaChica.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,7 +29,22 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             services.AddScoped<IPdfConsolidadorService, PdfConsolidadorService>();
             services.AddScoped<InicializadorIdentidad>();
 
+            AgregarRepositorios(services);
+
             return services;
+        }
+
+        /// <summary>
+        /// Los repositorios comparten el mismo ApplicationDbContext con scope que usan
+        /// los casos de uso, asi que lo que marcan queda pendiente en el mismo
+        /// ChangeTracker y se confirma con un unico SaveChangesAsync.
+        /// </summary>
+        private static void AgregarRepositorios(IServiceCollection services)
+        {
+            services.AddScoped<IFondoRepository, FondoRepository>();
+            services.AddScoped<ICategoriaGastoRepository, CategoriaGastoRepository>();
+            services.AddScoped<IGastoRepository, GastoRepository>();
+            services.AddScoped<IReposicionRepository, ReposicionRepository>();
         }
 
         private static void AgregarCriptografia(IServiceCollection services, IConfiguration configuration)

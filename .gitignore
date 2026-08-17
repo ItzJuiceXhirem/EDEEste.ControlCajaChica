@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Archivos que sube o genera la aplicacion en tiempo de ejecucion (comprobantes de
+# gastos y expedientes PDF de reposiciones). Son datos, no codigo, y pueden contener
+# informacion fiscal real: nunca deben viajar en el repositorio.
+EDEEste.ControlCajaChica.Presentation/wwwroot/uploads/
+
+# Estado local de la sesion de Claude Code (launch.json si se comparte a proposito).
+.claude/scheduled_tasks.lock

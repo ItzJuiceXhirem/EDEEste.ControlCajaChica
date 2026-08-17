@@ -1,0 +1,150 @@
+@page "/categorias"
+@rendermode InteractiveServer
+
+@inject ICategoriaGastoRepository RepositorioCategorias
+@inject IApplicationDbContext Contexto
+
+<PageTitle>Categorias de gasto</PageTitle>
+
+<h1>Categorias de gasto</h1>
+
+@* Igual que Fondos: pantalla provisional de administracion para poder tener con que
+   clasificar los gastos mientras no exista el caso de uso del Administrador. *@
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <h2 class="h5">Categorias registradas</h2>
+
+        @if (categorias is null)
+        {
+            <p><em>Cargando...</em></p>
+        }
+        else if (categorias.Count == 0)
+        {
+            <p class="text-muted">Todavia no hay categorias.</p>
+        }
+        else
+        {
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Cuenta contable</th>
+                        <th>Exige NCF</th>
+                        <th>Activa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var categoria in categorias)
+                    {
+                        <tr>
+                            <td>@categoria.Nombre</td>
+                            <td>@categoria.CuentaContable</td>
+                            <td>@(categoria.RequiereNCF ? "Si" : "No")</td>
+                            <td>@(categoria.Activo ? "Si" : "No")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        <h2 class="h5">Nueva categoria</h2>
+        <EditForm Model="entrada" OnValidSubmit="CrearAsync" FormName="nueva-categoria">
+            <div class="mb-2">
+                <label class="form-label">Nombre</label>
+                <InputText @bind-Value="entrada.Nombre" class="form-control" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Cuenta contable</label>
+                <InputText @bind-Value="entrada.CuentaContable" class="form-control" />
+            </div>
+            <div class="form-check mb-2">
+                <InputCheckbox @bind-Value="entrada.RequiereNCF" class="form-check-input" id="requiere-ncf" />
+                <label class="form-check-label" for="requiere-ncf">Exige NCF</label>
+            </div>
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="entrada.Activo" class="form-check-input" id="activa" />
+                <label class="form-check-label" for="activa">Activa</label>
+            </div>
+            <button type="submit" class="btn btn-primary" disabled="@guardando">
+                @(guardando ? "Guardando..." : "Crear categoria")
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<CategoriaGasto>? categorias;
+    private readonly EntradaCategoria entrada = new();
+    private bool guardando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await RecargarAsync();
+
+    private async Task RecargarAsync() => categorias = await RepositorioCategorias.ListarAsync();
+
+    private async Task CrearAsync()
+    {
+        mensaje = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(entrada.Nombre))
+        {
+            error = "El nombre es obligatorio.";
+            return;
+        }
+
+        guardando = true;
+        try
+        {
+            await RepositorioCategorias.AgregarAsync(new CategoriaGasto
+            {
+                Nombre = entrada.Nombre!.Trim(),
+                CuentaContable = entrada.CuentaContable?.Trim() ?? string.Empty,
+                RequiereNCF = entrada.RequiereNCF,
+                Activo = entrada.Activo
+            });
+            await Contexto.SaveChangesAsync();
+
+            mensaje = $"Categoria '{entrada.Nombre}' creada.";
+            entrada.Limpiar();
+            await RecargarAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private sealed class EntradaCategoria
+    {
+        public string? Nombre { get; set; }
+        public string? CuentaContable { get; set; }
+        public bool RequiereNCF { get; set; } = true;
+        public bool Activo { get; set; } = true;
+
+        public void Limpiar()
+        {
+            Nombre = null;
+            CuentaContable = null;
+            RequiereNCF = true;
+            Activo = true;
+        }
+    }
+}

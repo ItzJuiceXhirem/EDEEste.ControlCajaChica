@@ -1,7 +1,73 @@
-﻿@page "/"
+@page "/"
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+@inject IFondoRepository Fondos
 
-<h1>Hello, world!</h1>
+<PageTitle>Control de Caja Chica</PageTitle>
 
-Welcome to your new app.
+<h1>Control de Caja Chica</h1>
+
+@if (fondos is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (fondos.Count == 0)
+{
+    <div class="alert alert-info">
+        <p class="mb-2">Todavia no hay nada configurado. Para empezar a probar el flujo completo:</p>
+        <ol class="mb-0">
+            <li>Cree <a href="/fondos">un fondo de caja chica</a>.</li>
+            <li>Cree <a href="/categorias">al menos una categoria de gasto</a>.</li>
+            <li>Registre gastos con sus comprobantes y luego genere la reposicion.</li>
+        </ol>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var fondo in fondos)
+        {
+            var porcentaje = fondo.MontoFijo > 0 ? fondo.BalanceActual / fondo.MontoFijo * 100m : 0m;
+            var alerta = PorcentajeAlerta(fondo);
+
+            <div class="col-md-6 col-xl-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h2 class="h6 text-muted">
+                            Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                        </h2>
+                        <p class="display-6 mb-0">RD$ @fondo.BalanceActual.ToString("N2")</p>
+                        <p class="text-muted">de RD$ @fondo.MontoFijo.ToString("N2") &mdash; @porcentaje.ToString("N1")% disponible</p>
+
+                        <div class="progress mb-3" role="progressbar" aria-label="Balance del fondo"
+                             aria-valuenow="@((double)porcentaje)" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar @(porcentaje <= alerta ? "bg-warning" : "bg-success")"
+                                 style="width: @porcentaje.ToString("N0")%"></div>
+                        </div>
+
+                        @if (porcentaje <= alerta)
+                        {
+                            <p class="text-warning mb-2">
+                                El fondo bajo del @alerta.ToString("N0")%: toca solicitar reposicion.
+                            </p>
+                        }
+
+                        <a class="btn btn-sm btn-outline-primary" href="/gastos">Ver gastos</a>
+                        <a class="btn btn-sm btn-outline-secondary" href="/reposiciones">Reposiciones</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private const decimal PorcentajeAlertaPorDefecto = 30m;
+
+    private IReadOnlyList<FondoCajaChica>? fondos;
+
+    protected override async Task OnInitializedAsync() => fondos = await Fondos.ListarAsync();
+
+    private static decimal PorcentajeAlerta(FondoCajaChica fondo) =>
+        fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : PorcentajeAlertaPorDefecto;
+}

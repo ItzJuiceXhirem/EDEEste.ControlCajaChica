@@ -11,7 +11,7 @@ namespace EDEEste.ControlCajaChica.Application.DTOs
         public string TipoMime { get; set; } = string.Empty;
         public long TamanoBytes { get; set; }
 
-        // Se utiliza Stream para manejar archivos grandes sin saturar la RAM del servidor.
+        // Se utiliza Stream para manejar archivos grandes sin saturar la RAM del servidor
         public Stream ContenidoArchivo { get; set; } = Stream.Null;
     }
 }
