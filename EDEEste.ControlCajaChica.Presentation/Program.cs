@@ -1,7 +1,10 @@
+using EDEEste.ControlCajaChica.Presentation.Authorization;
 using EDEEste.ControlCajaChica.Presentation.Components;
 using EDEEste.ControlCajaChica.Presentation.Components.Account;
 using EDEEste.ControlCajaChica.Presentation.Endpoints;
 using EDEEste.ControlCajaChica.Presentation.Services;
+using EDEEste.ControlCajaChica.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using EDEEste.ControlCajaChica.Infrastructure;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using EDEEste.ControlCajaChica.Infrastructure.Persistence;
@@ -28,7 +31,18 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
-builder.Services.AddAuthorization();
+// Una politica por permiso del catalogo. Las paginas se protegen siempre por
+// permiso ([Authorize(Policy = Permisos.X)]) y nunca por rol, para que la matriz de
+// accesos viva en un unico sitio: Domain/Constants/PermisosPorRol.cs.
+builder.Services.AddAuthorization(opciones =>
+{
+    foreach (var permiso in Permisos.Todos)
+    {
+        opciones.AddPolicy(permiso, politica => politica.AddRequirements(new PermisoRequirement(permiso)));
+    }
+});
+
+builder.Services.AddScoped<IAuthorizationHandler, PermisoAuthorizationHandler>();
 
 // Quien es el usuario actual solo se sabe desde la capa web (HttpContext / circuito
 // de Blazor), asi que la implementacion de ICurrentUserService se registra aqui y no
@@ -53,6 +67,9 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 // arriba, lo que revienta el arranque con "Scheme already exists: Identity.Application".
 builder.Services.AddIdentityCore<Usuario>(options =>
     {
+        // Se mantiene activo, pero ya no significa "confirmo su correo": lo que
+        // decide es ConfirmacionAccesoUsuario, es decir que un Administrador haya
+        // aprobado la cuenta. Ver esa clase para el porque.
         options.SignIn.RequireConfirmedAccount = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
@@ -61,8 +78,9 @@ builder.Services.AddIdentityCore<Usuario>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddSingleton<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, IdentityNoOpEmailSender>();
-builder.Services.AddSingleton<IEmailSender<Usuario>, IdentityNoOpEmailSender>();
+// Va despues de AddIdentityCore a proposito: este registro sustituye al que aquel
+// agrega por defecto (que solo mira si el correo esta confirmado).
+builder.Services.AddScoped<IUserConfirmation<Usuario>, ConfirmacionAccesoUsuario>();
 
 var app = builder.Build();
 

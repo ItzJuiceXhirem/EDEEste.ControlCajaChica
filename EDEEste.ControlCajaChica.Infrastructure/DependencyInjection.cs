@@ -7,6 +7,7 @@ using EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors;
 using EDEEste.ControlCajaChica.Infrastructure.Repositories;
 using EDEEste.ControlCajaChica.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -89,14 +90,25 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             var connectionString = configuration.GetSection("ConnectionStrings")["DefaultConnection"]
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-            services.AddScoped<AuditoriaInterceptor>();
-            services.AddScoped<IntegridadInterceptor>();
+            // Los interceptores se registran como IInterceptor y NO se pasan por
+            // options.AddInterceptors(...).
+            //
+            // Pasarlos explicitamente obligaba a resolverlos dentro del lambda de
+            // AddDbContext, lo que entregaba instancias distintas en cada scope. EF
+            // usa las opciones como clave de cache de su proveedor de servicios
+            // interno, asi que cada peticion le parecia una configuracion nueva y
+            // construia otro proveedor; pasadas 20 peticiones reventaba con
+            // ManyServiceProvidersCreatedWarning.
+            //
+            // Registrandolos asi, EF los descubre desde el contenedor de la
+            // aplicacion: las opciones quedan identicas entre peticiones (un solo
+            // proveedor interno) y los interceptores siguen siendo Scoped, que es lo
+            // que necesitan para ver el usuario actual de esa peticion.
+            services.AddScoped<IInterceptor, AuditoriaInterceptor>();
+            services.AddScoped<IInterceptor, IntegridadInterceptor>();
 
-            services.AddDbContext<ApplicationDbContext>((sp, options) =>
-                options.UseSqlServer(connectionString)
-                       .AddInterceptors(
-                           sp.GetRequiredService<AuditoriaInterceptor>(),
-                           sp.GetRequiredService<IntegridadInterceptor>()));
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(connectionString));
 
             services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
         }

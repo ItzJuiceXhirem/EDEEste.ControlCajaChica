@@ -1,7 +1,8 @@
 @page "/"
 @rendermode InteractiveServer
-
-@inject IFondoRepository Fondos
+@* Sin permiso concreto: el panel lo ve cualquier cuenta aprobada, y cada tarjeta
+   enlaza a pantallas que si estan protegidas por su permiso. *@
+@attribute [Authorize]
 
 <PageTitle>Control de Caja Chica</PageTitle>
 
@@ -52,37 +53,18 @@ else
                             </p>
                         }
 
-                        <a class="btn btn-sm btn-outline-primary" href="/gastos">Ver gastos</a>
-                        <a class="btn btn-sm btn-outline-secondary" href="/reposiciones">Reposiciones</a>
+                        @* Condicionados por permiso: un Administrador no tiene acceso
+                           operativo, asi que ofrecerle estos botones solo lo mandaria
+                           a una pantalla que no puede abrir. *@
+                        <AuthorizeView Policy="@Permisos.VerGastos">
+                            <a class="btn btn-sm btn-outline-primary" href="/gastos">Ver gastos</a>
+                        </AuthorizeView>
+                        <AuthorizeView Policy="@Permisos.VerReposiciones">
+                            <a class="btn btn-sm btn-outline-secondary" href="/reposiciones">Reposiciones</a>
+                        </AuthorizeView>
                     </div>
                 </div>
             </div>
         }
     </div>
-}
-
-@code {
-    private const decimal PorcentajeAlertaPorDefecto = 30m;
-
-    private IReadOnlyList<FondoCajaChica>? fondos;
-
-    protected override async Task OnInitializedAsync() => fondos = await Fondos.ListarAsync();
-
-    private static decimal PorcentajeAlerta(FondoCajaChica fondo) =>
-        fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : PorcentajeAlertaPorDefecto;
-
-    /// <summary>
-    /// Semaforo del efectivo disponible: verde desde 50%, amarillo entre 30% y 49%,
-    /// rojo en 29% o menos.
-    ///
-    /// Es a proposito independiente de PorcentajeAlertaReposicion: el color da una
-    /// lectura uniforme de todos los fondos de un vistazo, mientras que el aviso de
-    /// "toca solicitar reposicion" si respeta el umbral configurado de cada fondo.
-    /// </summary>
-    private static string ClaseBarra(decimal porcentaje) => porcentaje switch
-    {
-        >= 50m => "bg-success",
-        >= 30m => "bg-warning",
-        _ => "bg-danger"
-    };
 }

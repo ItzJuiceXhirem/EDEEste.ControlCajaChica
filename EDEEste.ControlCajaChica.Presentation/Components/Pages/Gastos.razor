@@ -1,8 +1,6 @@
 @page "/gastos"
 @rendermode InteractiveServer
-
-@inject IFondoRepository Fondos
-@inject IGastoRepository RepositorioGastos
+@attribute [Authorize(Policy = Permisos.VerGastos)]
 
 <PageTitle>Gastos</PageTitle>
 
@@ -83,40 +81,4 @@ else
             </tfoot>
         </table>
     }
-}
-
-@code {
-    private IReadOnlyList<FondoCajaChica>? fondos;
-    private IReadOnlyList<Gasto>? gastos;
-    private Guid fondoSeleccionado;
-
-    protected override async Task OnInitializedAsync()
-    {
-        fondos = await Fondos.ListarAsync();
-
-        if (fondos.Count > 0)
-        {
-            fondoSeleccionado = fondos[0].Id;
-            gastos = await RepositorioGastos.ListarPorFondoAsync(fondoSeleccionado);
-        }
-    }
-
-    private async Task CambiarFondoAsync(ChangeEventArgs e)
-    {
-        if (Guid.TryParse(e.Value?.ToString(), out var id))
-        {
-            fondoSeleccionado = id;
-            gastos = null;
-            gastos = await RepositorioGastos.ListarPorFondoAsync(id);
-        }
-    }
-
-    private static string ClaseEstado(EstadoGasto estado) => estado switch
-    {
-        EstadoGasto.PendienteReposicion => "text-bg-warning",
-        EstadoGasto.EnProcesoReposicion => "text-bg-info",
-        EstadoGasto.Repuesto => "text-bg-success",
-        EstadoGasto.Rechazado or EstadoGasto.Anulado => "text-bg-danger",
-        _ => "text-bg-secondary"
-    };
 }

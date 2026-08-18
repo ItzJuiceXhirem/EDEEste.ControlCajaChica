@@ -1,8 +1,6 @@
 @page "/categorias"
 @rendermode InteractiveServer
-
-@inject ICategoriaGastoRepository RepositorioCategorias
-@inject IApplicationDbContext Contexto
+@attribute [Authorize(Policy = Permisos.ConfigurarCategorias)]
 
 <PageTitle>Categorias de gasto</PageTitle>
 
@@ -92,98 +90,3 @@
         </EditForm>
     </div>
 </div>
-
-@code {
-    private IReadOnlyList<CategoriaGasto>? categorias;
-    private readonly EntradaCategoria entrada = new();
-    private bool guardando;
-    private Guid? cambiandoId;
-    private string? mensaje;
-    private string? error;
-
-    protected override async Task OnInitializedAsync() => await RecargarAsync();
-
-    /// <summary>
-    /// La categoria viene rastreada por el mismo DbContext con scope que usa el
-    /// repositorio, asi que basta con cambiar la propiedad y guardar.
-    /// </summary>
-    private async Task CambiarActivoAsync(CategoriaGasto categoria, bool activo)
-    {
-        mensaje = null;
-        error = null;
-        cambiandoId = categoria.Id;
-
-        try
-        {
-            categoria.Activo = activo;
-            await Contexto.SaveChangesAsync();
-            mensaje = $"Categoria '{categoria.Nombre}' {(activo ? "activada" : "desactivada")}.";
-        }
-        catch (Exception ex)
-        {
-            // Si no se pudo guardar, se devuelve el check a como estaba para que la
-            // pantalla no muestre un estado que la BDD no tiene.
-            categoria.Activo = !activo;
-            error = ex.Message;
-        }
-        finally
-        {
-            cambiandoId = null;
-        }
-    }
-
-    private async Task RecargarAsync() => categorias = await RepositorioCategorias.ListarAsync();
-
-    private async Task CrearAsync()
-    {
-        mensaje = null;
-        error = null;
-
-        if (string.IsNullOrWhiteSpace(entrada.Nombre))
-        {
-            error = "El nombre es obligatorio.";
-            return;
-        }
-
-        guardando = true;
-        try
-        {
-            await RepositorioCategorias.AgregarAsync(new CategoriaGasto
-            {
-                Nombre = entrada.Nombre!.Trim(),
-                CuentaContable = entrada.CuentaContable?.Trim() ?? string.Empty,
-                RequiereNCF = entrada.RequiereNCF,
-                Activo = entrada.Activo
-            });
-            await Contexto.SaveChangesAsync();
-
-            mensaje = $"Categoria '{entrada.Nombre}' creada.";
-            entrada.Limpiar();
-            await RecargarAsync();
-        }
-        catch (Exception ex)
-        {
-            error = ex.Message;
-        }
-        finally
-        {
-            guardando = false;
-        }
-    }
-
-    private sealed class EntradaCategoria
-    {
-        public string? Nombre { get; set; }
-        public string? CuentaContable { get; set; }
-        public bool RequiereNCF { get; set; } = true;
-        public bool Activo { get; set; } = true;
-
-        public void Limpiar()
-        {
-            Nombre = null;
-            CuentaContable = null;
-            RequiereNCF = true;
-            Activo = true;
-        }
-    }
-}

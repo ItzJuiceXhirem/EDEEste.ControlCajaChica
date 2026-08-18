@@ -18,29 +18,48 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="gastos">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Gastos
-            </NavLink>
-        </div>
+        @* Cada opcion se muestra solo si el rol la puede abrir. El AuthorizeView es
+           cosmetico: quien escriba la URL a mano igual choca con el [Authorize] de
+           la pagina. *@
+        <AuthorizeView Policy="@Permisos.VerGastos">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="gastos">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Gastos
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reposiciones">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Reposiciones
-            </NavLink>
-        </div>
+        <AuthorizeView Policy="@Permisos.VerReposiciones">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="reposiciones">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Reposiciones
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fondos">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Fondos
-            </NavLink>
-        </div>
+        <AuthorizeView Policy="@Permisos.ConfigurarFondos">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="fondos">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Fondos
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="categorias">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Categorias
-            </NavLink>
-        </div>
+        <AuthorizeView Policy="@Permisos.ConfigurarCategorias">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="categorias">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Categorias
+                </NavLink>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@Permisos.AdministrarUsuarios">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="usuarios">
+                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Usuarios
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
         <AuthorizeView>
             <Authorized>

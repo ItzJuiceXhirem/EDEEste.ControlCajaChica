@@ -1,149 +1,49 @@
 @page "/Account/Register"
 
-@using System.ComponentModel.DataAnnotations
-@using System.Text
-@using System.Text.Encodings.Web
-@using Microsoft.AspNetCore.Identity
-@using EDEEste.ControlCajaChica.Application.Common.Interfaces
-@using EDEEste.ControlCajaChica.Domain.Constants
+<PageTitle>Solicitar acceso</PageTitle>
 
-@inject IIdentityService IdentityService
-@inject SignInManager<Usuario> SignInManager
-@inject IEmailSender<Usuario> EmailSender
-@inject ILogger<Register> Logger
-@inject NavigationManager NavigationManager
-@inject IdentityRedirectManager RedirectManager
-
-<PageTitle>Register</PageTitle>
-
-<h1>Register</h1>
+<h1>Solicitar acceso</h1>
 
 <div class="row">
     <div class="col-lg-6">
         <StatusMessage Message="@Message" />
         <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
             <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
+            <h2 class="h5">Cree su cuenta con el usuario que utiliza en la empresa.</h2>
+            <p class="text-muted small">
+                Crear la cuenta no da acceso al sistema: un Administrador revisa la
+                solicitud y le asigna el rol que le corresponda.
+            </p>
             <hr />
             <ValidationSummary class="text-danger" role="alert" />
+
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control" autocomplete="name" aria-required="true" placeholder="Juan Perez" />
-                <label for="Input.Nombre">Full name</label>
+                <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
+                           autocomplete="username" aria-required="true" placeholder="nombre.apellido" />
+                <label for="Input.Usuario">Usuario</label>
+                <div class="form-text">El mismo con el que inicia sesion en Windows, en formato nombre.apellido</div>
+                <ValidationMessage For="() => Input.Usuario" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control"
+                           autocomplete="name" aria-required="true" placeholder="Juan Perez" />
+                <label for="Input.Nombre">Nombre completo</label>
                 <ValidationMessage For="() => Input.Nombre" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password">Password</label>
+                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
+                           autocomplete="new-password" aria-required="true" placeholder="contrasena" />
+                <label for="Input.Password">Contrasena</label>
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control"
+                           autocomplete="new-password" aria-required="true" placeholder="contrasena" />
+                <label for="Input.ConfirmPassword">Confirmar contrasena</label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Solicitar acceso</button>
         </EditForm>
     </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div>
 </div>
-
-@code {
-    private IEnumerable<string>? errores;
-
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
-
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
-
-    private string? Message => errores is null ? null : $"Error: {string.Join(", ", errores)}";
-
-    protected override void OnInitialized()
-    {
-        Input ??= new();
-    }
-
-    public async Task RegisterUser(EditContext editContext)
-    {
-        // Toda la creacion pasa por IIdentityService: esta pagina ya no conoce
-        // UserManager ni IUserStore. Se registra con el rol de menor privilegio;
-        // un Administrador asigna despues el rol real (Custodio, Finanzas, etc.).
-        var resultado = await IdentityService.CrearUsuarioAsync(
-            Input.Email,
-            Input.Password,
-            Input.Nombre,
-            RolesApp.RolPorDefecto);
-
-        if (!resultado.Exitoso)
-        {
-            errores = resultado.Errores;
-            return;
-        }
-
-        Logger.LogInformation("User created a new account with password.");
-
-        var userId = resultado.UsuarioId!;
-        var code = await IdentityService.GenerarTokenConfirmacionEmailAsync(userId);
-        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
-
-        // El envio del correo y el inicio de sesion si son responsabilidad de la capa
-        // web (plantilla del mensaje y cookie), por eso siguen resolviendose aqui.
-        var usuario = await SignInManager.UserManager.FindByIdAsync(userId);
-        if (usuario is null)
-        {
-            errores = new[] { "No se pudo cargar el usuario recien creado." };
-            return;
-        }
-
-        await EmailSender.SendConfirmationLinkAsync(usuario, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-
-        if (IdentityService.RequiereCuentaConfirmada)
-        {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
-        }
-        else
-        {
-            await SignInManager.SignInAsync(usuario, isPersistent: false);
-            RedirectManager.RedirectTo(ReturnUrl);
-        }
-    }
-
-    private sealed class InputModel
-    {
-        [Required]
-        [StringLength(150, MinimumLength = 3)]
-        [Display(Name = "Full name")]
-        public string Nombre { get; set; } = "";
-
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
-        public string Email { get; set; } = "";
-
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "Password")]
-        public string Password { get; set; } = "";
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; } = "";
-    }
-}

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Domain.Constants;
 
 namespace EDEEste.ControlCajaChica.Presentation.Endpoints
 {
@@ -37,11 +38,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 }
 
                 return Results.File(contenido, "application/pdf", $"reposicion-{id}.pdf");
-            });
-
-            // PENDIENTE: cuando el login este funcionando hay que exigir aqui los roles
-            // que corresponden (Custodio, Gerente, Finanzas y Auditor). Hoy queda
-            // abierto porque no hay forma de iniciar sesion todavia.
+            })
+            .RequireAuthorization(Permisos.DescargarExpediente);
 
             return endpoints;
         }

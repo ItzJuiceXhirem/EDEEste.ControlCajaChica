@@ -1,4 +1,5 @@
 using System;
+using EDEEste.ControlCajaChica.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 
 namespace EDEEste.ControlCajaChica.Infrastructure.Identity
@@ -20,9 +21,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
         public string Nombre { get; set; } = string.Empty;
 
         /// <summary>
-        /// Baja logica del usuario. Es independiente de LockoutEnd: Activo lo maneja
-        /// el Administrador, el lockout lo maneja Identity por intentos fallidos.
+        /// Si esta cuenta puede entrar al sistema. Nace <see cref="EstadoAccesoUsuario.Pendiente"/>:
+        /// registrarse no da acceso, un Administrador tiene que revisar quien es y
+        /// asignarle un rol. Es independiente de LockoutEnd, que lo maneja Identity
+        /// por intentos fallidos de contrasena.
         /// </summary>
-        public bool Activo { get; set; } = true;
+        public EstadoAccesoUsuario EstadoAcceso { get; set; } = EstadoAccesoUsuario.Pendiente;
     }
 }
