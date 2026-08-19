@@ -2,11 +2,11 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Permisos.ConfigurarCategorias)]
 
-<PageTitle>Categorias de gasto</PageTitle>
+<PageTitle>Categorías de gasto</PageTitle>
 
-<h1>Categorias de gasto</h1>
+<h1>Categorías de gasto</h1>
 
-@* Igual que Fondos: pantalla provisional de administracion para poder tener con que
+@* Igual que Fondos: pantalla provisional de administración para poder tener con qué
    clasificar los gastos mientras no exista el caso de uso del Administrador. *@
 
 @if (mensaje is not null)
@@ -20,7 +20,7 @@
 
 <div class="row">
     <div class="col-lg-7">
-        <h2 class="h5">Categorias registradas</h2>
+        <h2 class="h5">Categorías registradas</h2>
 
         @if (categorias is null)
         {
@@ -28,7 +28,7 @@
         }
         else if (categorias.Count == 0)
         {
-            <p class="text-muted">Todavia no hay categorias.</p>
+            <p class="text-muted">Todavía no hay categorías.</p>
         }
         else
         {
@@ -50,11 +50,11 @@
                             <td>@(categoria.RequiereNCF ? "Si" : "No")</td>
                             <td>
                                 @* El check no es solo indicador: marcarlo activa o
-                                   desactiva la categoria en el momento. *@
+                                   desactiva la categoría en el momento. *@
                                 <input type="checkbox" class="form-check-input"
                                        checked="@categoria.Activo"
                                        disabled="@(cambiandoId == categoria.Id)"
-                                       title="@(categoria.Activo ? "Desactivar" : "Activar") esta categoria"
+                                       title="@(categoria.Activo ? "Desactivar" : "Activar") esta categoría"
                                        aria-label="@(categoria.Activo ? "Desactivar" : "Activar") @categoria.Nombre"
                                        @onchange="e => CambiarActivoAsync(categoria, e.Value is true)" />
                             </td>
@@ -66,7 +66,7 @@
     </div>
 
     <div class="col-lg-5">
-        <h2 class="h5">Nueva categoria</h2>
+        <h2 class="h5">Nueva categoría</h2>
         <EditForm Model="entrada" OnValidSubmit="CrearAsync" FormName="nueva-categoria">
             <div class="mb-2">
                 <label class="form-label">Nombre</label>
@@ -85,7 +85,7 @@
                 <label class="form-check-label" for="activa">Activa</label>
             </div>
             <button type="submit" class="btn btn-primary" disabled="@guardando">
-                @(guardando ? "Guardando..." : "Crear categoria")
+                @(guardando ? "Guardando..." : "Crear categoría")
             </button>
         </EditForm>
     </div>

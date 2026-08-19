@@ -12,9 +12,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Authorization
     /// Resuelve un permiso a partir del rol que trae la cookie, consultando el mapa
     /// <see cref="PermisosPorRol"/>.
     ///
-    /// Los permisos no se guardan como claims a proposito: si se hornearan en la
-    /// cookie, cambiar la matriz de accesos obligaria a que todos vuelvan a iniciar
-    /// sesion para que surta efecto. Leyendo el mapa en cada comprobacion, el cambio
+    /// Los permisos no se guardan como claims a propósito: si se hornearan en la
+    /// cookie, cambiar la matriz de accesos obligaría a que todos vuelvan a iniciar
+    /// sesión para que surta efecto. Leyendo el mapa en cada comprobación, el cambio
     /// aplica al instante y la matriz sigue viviendo en un solo lugar.
     /// </summary>
     public sealed class PermisoAuthorizationHandler : AuthorizationHandler<PermisoRequirement>
@@ -33,7 +33,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Authorization
             }
 
             // Hoy cada cuenta tiene un solo rol, pero se recorren todos por si en el
-            // futuro se permite mas de uno: basta con que alguno otorgue el permiso.
+            // futuro se permite más de uno: basta con que alguno otorgue el permiso.
             var roles = context.User.FindAll(_tipoClaimRol)
                 .Concat(context.User.FindAll(ClaimTypes.Role))
                 .Select(c => c.Value);

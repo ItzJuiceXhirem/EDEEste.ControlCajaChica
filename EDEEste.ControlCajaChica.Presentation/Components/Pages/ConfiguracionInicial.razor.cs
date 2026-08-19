@@ -12,10 +12,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
     /// <summary>
     /// Arranque del sistema: crea el primer Administrador.
     ///
-    /// Es la unica pantalla sin [Authorize], y tiene que serlo: nadie puede iniciar
-    /// sesion todavia cuando se usa. Lo que la protege no es la autenticacion sino
+    /// Es la única pantalla sin [Authorize], y tiene que serlo: nadie puede iniciar
+    /// sesión todavía cuando se usa. Lo que la protege no es la autenticación sino
     /// que se autoinvalida — en cuanto existe un Administrador deja de mostrar el
-    /// formulario y redirige, asi que la ventana en la que es util se cierra sola.
+    /// formulario y redirige, así que la ventana en la que es útil se cierra sola.
     /// </summary>
     public partial class ConfiguracionInicial
     {
@@ -46,8 +46,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             errores.Clear();
 
             // Se vuelve a comprobar justo antes de crear, no solo al cargar: entre
-            // que se abrio la pantalla y se envio el formulario pudo crearse un
-            // Administrador desde otra pestana o dispositivo.
+            // que se abrió la pantalla y se envió el formulario pudo crearse un
+            // Administrador desde otra pestaña o dispositivo.
             if (await IdentityService.ExisteAdministradorAsync())
             {
                 yaHayAdministrador = true;
@@ -71,11 +71,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 }
 
                 Logger.LogInformation(
-                    "Se creo el Administrador inicial del sistema: {Usuario}.", Input.Usuario);
+                    "Se creó el Administrador inicial del sistema: {Usuario}.", Input.Usuario);
 
-                // Se manda al login en vez de iniciar sesion aqui: emitir la cookie
-                // requiere el HttpContext de una peticion, y esta pagina ya esta en
-                // un circuito interactivo cuando se envia el formulario.
+                // Se manda al login en vez de iniciar sesión aquí: emitir la cookie
+                // requiere el HttpContext de una petición, y esta página ya está en
+                // un circuito interactivo cuando se envía el formulario.
                 RedirectManager.RedirectTo("Account/Login");
             }
             finally
@@ -99,15 +99,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             [Display(Name = "Nombre completo")]
             public string Nombre { get; set; } = "";
 
-            [Required(ErrorMessage = "Indique una contrasena.")]
+            [Required(ErrorMessage = "Indique una contraseña.")]
             [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 6)]
             [DataType(DataType.Password)]
-            [Display(Name = "Contrasena")]
+            [Display(Name = "Contraseña")]
             public string Password { get; set; } = "";
 
             [DataType(DataType.Password)]
-            [Display(Name = "Confirmar contrasena")]
-            [Compare(nameof(Password), ErrorMessage = "Las contrasenas no coinciden.")]
+            [Display(Name = "Confirmar contraseña")]
+            [Compare(nameof(Password), ErrorMessage = "Las contraseñas no coinciden.")]
             public string ConfirmPassword { get; set; } = "";
         }
     }

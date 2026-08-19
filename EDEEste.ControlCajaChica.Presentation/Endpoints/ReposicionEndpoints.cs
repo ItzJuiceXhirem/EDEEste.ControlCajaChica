@@ -7,12 +7,12 @@ using EDEEste.ControlCajaChica.Domain.Constants;
 namespace EDEEste.ControlCajaChica.Presentation.Endpoints
 {
     /// <summary>
-    /// Descarga del expediente PDF de una reposicion.
+    /// Descarga del expediente PDF de una reposición.
     ///
     /// Hace falta un endpoint propio porque los archivos que sube o genera la
-    /// aplicacion en tiempo de ejecucion no los sirve MapStaticAssets: ese trabaja
-    /// con un manifiesto que se arma al compilar. Servirlos por aqui tambien es lo
-    /// correcto en seguridad, porque deja un unico lugar donde exigir permisos.
+    /// aplicación en tiempo de ejecución no los sirve MapStaticAssets: ese trabaja
+    /// con un manifiesto que se arma al compilar. Servirlos por aquí también es lo
+    /// correcto en seguridad, porque deja un único lugar donde exigir permisos.
     /// </summary>
     public static class ReposicionEndpoints
     {

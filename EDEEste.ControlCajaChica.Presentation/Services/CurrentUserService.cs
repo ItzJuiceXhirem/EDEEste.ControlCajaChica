@@ -11,12 +11,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Services
     /// <summary>
     /// Resuelve el usuario autenticado. Vive en Presentation porque depende del
     /// HttpContext y del AuthenticationStateProvider de Blazor, que son detalles de
-    /// la capa web; Infrastructure no deberia (ni podia) referenciarlos.
+    /// la capa web; Infrastructure no debería (ni podía) referenciarlos.
     ///
     /// Se consultan las dos fuentes porque ninguna sirve sola:
-    ///  - Durante el render estatico y en los endpoints de /Account hay HttpContext.
+    ///  - Durante el render estático y en los endpoints de /Account hay HttpContext.
     ///  - Dentro de un circuito interactivo el HttpContext ya no existe y el estado
-    ///    solo esta en el AuthenticationStateProvider.
+    ///    solo está en el AuthenticationStateProvider.
     /// </summary>
     public sealed class CurrentUserService : ICurrentUserService
     {

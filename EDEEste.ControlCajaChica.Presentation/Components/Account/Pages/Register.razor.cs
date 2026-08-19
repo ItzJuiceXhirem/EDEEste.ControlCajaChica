@@ -10,7 +10,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
     {
         /// <summary>
         /// Formato de usuario de la empresa: exactamente un punto, y ni al principio
-        /// ni al final. Al exigir que no haya puntos a cada lado, un solo patron
+        /// ni al final. Al exigir que no haya puntos a cada lado, un solo patrón
         /// cubre las tres reglas a la vez.
         /// </summary>
         internal const string PatronUsuario = @"^[^.\s]+\.[^.\s]+$";
@@ -65,15 +65,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
             [Display(Name = "Nombre completo")]
             public string Nombre { get; set; } = "";
 
-            [Required(ErrorMessage = "Indique una contrasena.")]
+            [Required(ErrorMessage = "Indique una contraseña.")]
             [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 6)]
             [DataType(DataType.Password)]
-            [Display(Name = "Contrasena")]
+            [Display(Name = "Contraseña")]
             public string Password { get; set; } = "";
 
             [DataType(DataType.Password)]
-            [Display(Name = "Confirmar contrasena")]
-            [Compare(nameof(Password), ErrorMessage = "Las contrasenas no coinciden.")]
+            [Display(Name = "Confirmar contraseña")]
+            [Compare(nameof(Password), ErrorMessage = "Las contraseñas no coinciden.")]
             public string ConfirmPassword { get; set; } = "";
         }
     }

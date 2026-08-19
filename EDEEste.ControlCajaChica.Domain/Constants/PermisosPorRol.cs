@@ -4,20 +4,20 @@ using System.Collections.Generic;
 namespace EDEEste.ControlCajaChica.Domain.Constants
 {
     /// <summary>
-    /// Que permisos trae cada rol. Es la unica fuente de verdad de la matriz de
-    /// accesos, y vive en Domain porque es una regla de negocio (segregacion de
+    /// Qué permisos trae cada rol. Es la única fuente de verdad de la matriz de
+    /// accesos, y vive en Domain porque es una regla de negocio (segregación de
     /// funciones), no un detalle de la capa web.
     ///
     /// Dos criterios que explican el reparto:
     ///
-    /// 1. "Ver" viene con la accion: quien registra gastos necesita la pantalla de
-    ///    gastos para trabajar. El historial ademas lo ven Custodio y Gerente por
-    ///    transparencia, para que puedan comprobar algo sin pedirselo al Auditor.
+    /// 1. "Ver" viene con la acción: quien registra gastos necesita la pantalla de
+    ///    gastos para trabajar. El historial además lo ven Custodio y Gerente por
+    ///    transparencia, para que puedan comprobar algo sin pedírselo al Auditor.
     ///
-    /// 2. El Administrador NO tiene permisos operativos. Configura fondos, limites,
-    ///    categorias y usuarios, pero no registra gastos ni aprueba reposiciones:
-    ///    quien fija el limite no debe poder gastarse el fondo. Es lo que exige una
-    ///    auditoria de caja chica y por eso el Auditor tampoco tiene ninguna accion,
+    /// 2. El Administrador NO tiene permisos operativos. Configura fondos, límites,
+    ///    categorías y usuarios, pero no registra gastos ni aprueba reposiciones:
+    ///    quien fija el límite no debe poder gastarse el fondo. Es lo que exige una
+    ///    auditoría de caja chica y por eso el Auditor tampoco tiene ninguna acción,
     ///    solo lectura.
     /// </summary>
     public static class PermisosPorRol
@@ -73,8 +73,8 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
             };
 
         /// <summary>
-        /// Un rol desconocido (o vacio) no otorga nada. Es deliberado: un usuario sin
-        /// rol asignado todavia no fue aprobado por un Administrador, y lo correcto
+        /// Un rol desconocido (o vacío) no otorga nada. Es deliberado: un usuario sin
+        /// rol asignado todavía no fue aprobado por un Administrador, y lo correcto
         /// mientras tanto es que no pueda hacer nada.
         /// </summary>
         public static bool RolTienePermiso(string? rol, string permiso) =>

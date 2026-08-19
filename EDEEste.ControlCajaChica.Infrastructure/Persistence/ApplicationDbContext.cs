@@ -31,6 +31,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         public DbSet<DetalleArqueoDenominacion> DetallesArqueo { get; set; }
         public DbSet<ComprobanteAdjunto> Comprobantes { get; set; }
         public DbSet<LogAuditoria> LogsAuditoria { get; set; }
+        public DbSet<Identity.SolicitudPasswordReset> SolicitudesPasswordReset { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -152,6 +153,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
             modelBuilder.Entity<ComprobanteAdjunto>()
                 .HasIndex(c => c.GastoId);
+
+            // Es la consulta del sondeo de la pantalla de espera y la que evita
+            // duplicar una solicitud Pendiente del mismo usuario.
+            modelBuilder.Entity<Identity.SolicitudPasswordReset>()
+                .HasIndex(s => new { s.UsuarioId, s.Estado });
         }
 
         /// <summary>
@@ -170,6 +176,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             modelBuilder.Entity<ArqueoCaja>().HasQueryFilter(a => !a.IsDeleted);
             modelBuilder.Entity<DetalleArqueoDenominacion>().HasQueryFilter(d => !d.IsDeleted);
             modelBuilder.Entity<ComprobanteAdjunto>().HasQueryFilter(c => !c.IsDeleted);
+            modelBuilder.Entity<Identity.SolicitudPasswordReset>().HasQueryFilter(s => !s.IsDeleted);
         }
 
         /// <summary>
@@ -244,6 +251,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 log.Property(l => l.UsuarioId).HasMaxLength(LongitudIdUsuario);
             });
 
+            modelBuilder.Entity<Identity.SolicitudPasswordReset>()
+                .Property(s => s.TokenReseteo)
+                // Los tokens de DataProtection que emite Identity son base64 y no
+                // tienen un tope documentado, pero en la practica no pasan de unos
+                // pocos cientos de caracteres; 1000 deja margen sin dejarlo en
+                // nvarchar(max).
+                .HasMaxLength(1000);
+
             AplicarLongitudDeIdsDeUsuario(modelBuilder);
         }
 
@@ -270,6 +285,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 reposicion.Property(r => r.SolicitoUsuarioId).HasMaxLength(LongitudIdUsuario);
                 reposicion.Property(r => r.GerenteUsuarioId).HasMaxLength(LongitudIdUsuario);
                 reposicion.Property(r => r.FinanzasUsuarioId).HasMaxLength(LongitudIdUsuario);
+            });
+
+            modelBuilder.Entity<Identity.SolicitudPasswordReset>(solicitud =>
+            {
+                solicitud.Property(s => s.UsuarioId).HasMaxLength(LongitudIdUsuario);
+                solicitud.Property(s => s.ResueltaPorUsuarioId).HasMaxLength(LongitudIdUsuario);
             });
 
             // CreadoPorId / ModificadoPorId estan en AuditableEntity, asi que en vez de

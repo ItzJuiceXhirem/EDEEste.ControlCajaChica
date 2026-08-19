@@ -15,11 +15,11 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public Guid FondoCajaChicaId { get; set; }
         public FondoCajaChica? FondoCajaChica { get; set; }
 
-        // Codigo interno de la solicitud (no es un identificador de la DGII, es
-        // correlativo propio del sistema). Aun no se ha confirmado el formato ni la
-        // longitud con negocio, asi que por ahora no se le fija MaxLength en
-        // ApplicationDbContext -- se deja en nvarchar(max) a proposito para no
-        // truncar en produccion antes de tener la regla real.
+        // Código interno de la solicitud (no es un identificador de la DGII, es
+        // correlativo propio del sistema). Aún no se ha confirmado el formato ni la
+        // longitud con negocio, así que por ahora no se le fija MaxLength en
+        // ApplicationDbContext -- se deja en nvarchar(max) a propósito para no
+        // truncar en producción antes de tener la regla real.
 
         //public string CodigoSolicitud { get; set; } = string.Empty;
         public decimal MontoReclamado { get; set; }
@@ -33,7 +33,7 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public string? RutaPdfConsolidado { get; set; }
         public EstadoReposicion Estado { get; set; }
 
-        // Gastos que entran en esta reposicion; es lo que alimenta el PDF consolidado
+        // Gastos que entran en esta reposición; es lo que alimenta el PDF consolidado
         public ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();
 
         public string HashFirma { get; set; } = string.Empty;
@@ -41,8 +41,8 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         [NotMapped]
         public bool IntegridadVerificada { get; set; } = true;
 
-        /* Se firma toda la cadena de aprobacion (quien solicito, quien aprobo, quien
-           pago y cuando) porque es justo lo que un fraude querria reescribir */
+        /* Se firma toda la cadena de aprobación (quien solicitó, quien aprobó, quien
+           pagó y cuándo) porque es justo lo que un fraude querría reescribir */
         public string ObtenerCadenaParaHash() =>
             new ConstructorFirma(nameof(SolicitudReposicion))
                 .Agregar(Id)

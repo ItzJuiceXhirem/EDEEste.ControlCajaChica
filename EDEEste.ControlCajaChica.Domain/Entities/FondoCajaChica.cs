@@ -18,7 +18,7 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public string CustodioId { get; set; } = string.Empty; //FK hacia Usuario (Identity)
 
         // Antes era string libre teniendo el enum EstadoFondo ya definido y sin usar:
-        // con texto suelto nada impedia guardar "activo", "ACTIVO" o un valor invalido.
+        // con texto suelto nada impedía guardar "activo", "ACTIVO" o un valor inválido.
         public EstadoFondo Estado { get; set; } = EstadoFondo.Activo;
 
         // Navegación

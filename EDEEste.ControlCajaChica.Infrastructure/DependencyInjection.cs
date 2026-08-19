@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace EDEEste.ControlCajaChica.Infrastructure
 {
@@ -23,8 +24,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure
         {
             AgregarCriptografia(services, configuration);
             AgregarPersistencia(services, configuration);
+            AgregarAutenticacion(services, configuration);
 
             services.AddScoped<IIdentityService, IdentityService>();
+            services.AddScoped<IPasswordResetService, PasswordResetService>();
             services.AddScoped<IReporteGastosService, QuestPdfReporteService>();
             services.AddScoped<IFileStorageService, FileStorageService>();
             services.AddScoped<IPdfConsolidadorService, PdfConsolidadorService>();
@@ -47,6 +50,98 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             services.AddScoped<IGastoRepository, GastoRepository>();
             services.AddScoped<IReposicionRepository, ReposicionRepository>();
         }
+
+        /// <summary>
+        /// Elige de donde salen las contrasenas segun <c>Autenticacion:Modo</c>.
+        ///
+        /// El cliente del APICommon se registra SIEMPRE, incluso en modo Local:
+        /// consultar la ficha de alguien en el directorio es util por si solo y no
+        /// depende de que las contrasenas se validen alli.
+        /// </summary>
+        private static void AgregarAutenticacion(IServiceCollection services, IConfiguration configuration)
+        {
+            var seccion = configuration.GetSection(OpcionesAutenticacion.Seccion);
+            var modoTexto = seccion["Modo"];
+
+            var modo = ModoAutenticacion.Local;
+            if (!string.IsNullOrWhiteSpace(modoTexto) && !Enum.TryParse(modoTexto, ignoreCase: true, out modo))
+            {
+                throw new InvalidOperationException(
+                    $"El valor '{modoTexto}' de '{OpcionesAutenticacion.Seccion}:Modo' no es valido. " +
+                    $"Use '{nameof(ModoAutenticacion.Local)}' o '{nameof(ModoAutenticacion.ActiveDirectory)}'.");
+            }
+
+            services.Configure<OpcionesAutenticacion>(opciones => opciones.Modo = modo);
+
+            var apiCommon = configuration.GetSection(OpcionesApiCommon.Seccion);
+            var urlBase = apiCommon["UrlBase"];
+            var apiKey = apiCommon["ApiKey"];
+
+            // Solo se exige la configuracion del APICommon si de verdad se va a
+            // depender de el para entrar. En modo Local, que falte la API Key es lo
+            // normal (todavia no la tenemos) y no debe impedir arrancar.
+            if (modo == ModoAutenticacion.ActiveDirectory)
+            {
+                if (string.IsNullOrWhiteSpace(urlBase))
+                {
+                    throw new InvalidOperationException(
+                        $"Falta '{OpcionesApiCommon.Seccion}:UrlBase' y '{OpcionesAutenticacion.Seccion}:Modo' " +
+                        $"esta en {nameof(ModoAutenticacion.ActiveDirectory)}. Configurela, por ejemplo en appsettings.json:\r\n" +
+                        "  \"ApiCommon\": { \"UrlBase\": \"http://inapprueba/apicommon\" }");
+                }
+
+                if (string.IsNullOrWhiteSpace(apiKey))
+                {
+                    throw new InvalidOperationException(
+                        $"Falta la clave '{OpcionesApiCommon.Seccion}:ApiKey' y '{OpcionesAutenticacion.Seccion}:Modo' " +
+                        $"esta en {nameof(ModoAutenticacion.ActiveDirectory)}. Guardela fuera del control de versiones:\r\n" +
+                        "  dotnet user-secrets set \"ApiCommon:ApiKey\" \"<clave>\" --project EDEEste.ControlCajaChica.Presentation\r\n" +
+                        $"Mientras no la tenga, deje '{OpcionesAutenticacion.Seccion}:Modo' en {nameof(ModoAutenticacion.Local)}.");
+                }
+            }
+
+            services.Configure<OpcionesApiCommon>(opciones =>
+            {
+                opciones.UrlBase = urlBase ?? string.Empty;
+                opciones.ApiKey = apiKey ?? string.Empty;
+
+                var cabecera = apiCommon["NombreCabeceraApiKey"];
+                if (!string.IsNullOrWhiteSpace(cabecera))
+                {
+                    opciones.NombreCabeceraApiKey = cabecera;
+                }
+            });
+
+            ConfigurarClienteApiCommon(services.AddHttpClient<IDirectorioActivoService, DirectorioActivoApiCommon>());
+
+            if (modo == ModoAutenticacion.ActiveDirectory)
+            {
+                ConfigurarClienteApiCommon(
+                    services.AddHttpClient<IAutenticadorCredenciales, AutenticacionActiveDirectory>());
+            }
+            else
+            {
+                services.AddScoped<IAutenticadorCredenciales, AutenticacionLocal>();
+            }
+        }
+
+        private static IHttpClientBuilder ConfigurarClienteApiCommon(IHttpClientBuilder builder) =>
+            builder.ConfigureHttpClient((sp, http) =>
+            {
+                var opciones = sp.GetRequiredService<IOptions<OpcionesApiCommon>>().Value;
+
+                if (!string.IsNullOrWhiteSpace(opciones.UrlBase))
+                {
+                    // La barra final importa: sin ella, Uri descarta el ultimo
+                    // segmento de la ruta base al combinarla con la relativa.
+                    http.BaseAddress = new Uri(opciones.UrlBase.TrimEnd('/') + "/");
+                }
+
+                if (!string.IsNullOrWhiteSpace(opciones.ApiKey))
+                {
+                    http.DefaultRequestHeaders.Add(opciones.NombreCabeceraApiKey, opciones.ApiKey);
+                }
+            });
 
         private static void AgregarCriptografia(IServiceCollection services, IConfiguration configuration)
         {

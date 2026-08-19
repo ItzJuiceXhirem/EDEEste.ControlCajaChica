@@ -4,14 +4,14 @@ using System.Collections.Generic;
 namespace EDEEste.ControlCajaChica.Domain.Constants
 {
     /// <summary>
-    /// Catalogo de permisos del sistema.
+    /// Catálogo de permisos del sistema.
     ///
-    /// Un rol dice quien es alguien; un permiso dice que puede hacer. Las pantallas y
-    /// endpoints se protegen siempre por permiso, nunca por rol: asi, si manana cambia
-    /// quien aprueba una reposicion, se toca solo el mapa de <see cref="PermisosPorRol"/>
+    /// Un rol dice quién es alguien; un permiso dice qué puede hacer. Las pantallas y
+    /// endpoints se protegen siempre por permiso, nunca por rol: así, si mañana cambia
+    /// quién aprueba una reposición, se toca solo el mapa de <see cref="PermisosPorRol"/>
     /// y no hay que salir a buscar atributos [Authorize(Roles = ...)] regados.
     ///
-    /// El texto de cada constante es tambien el nombre de la politica de autorizacion
+    /// El texto de cada constante es también el nombre de la política de autorización
     /// que se registra en Program.cs.
     /// </summary>
     public static class Permisos
@@ -33,14 +33,14 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         public const string AprobarReposicion = "reposiciones.aprobar";
         public const string PagarReposicion = "reposiciones.pagar";
 
-        /// <summary>Descargar el expediente PDF consolidado de una reposicion.</summary>
+        /// <summary>Descargar el expediente PDF consolidado de una reposición.</summary>
         public const string DescargarExpediente = "reposiciones.expediente";
 
-        // --- Auditoria ---
+        // --- Auditoría ---
         /// <summary>Historial de reposiciones, arqueos y reportes de descuadres.</summary>
         public const string ConsultarHistorial = "auditoria.historial";
 
-        // --- Configuracion ---
+        // --- Configuración ---
         public const string ConfigurarFondos = "config.fondos";
         public const string ConfigurarCategorias = "config.categorias";
         public const string AdministrarUsuarios = "config.usuarios";

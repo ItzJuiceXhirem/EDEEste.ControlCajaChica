@@ -88,7 +88,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                     return;
                 }
 
-                exito = "Solicitud creada. El expediente PDF ya esta disponible para descargar.";
+                exito = "Solicitud creada. El expediente PDF ya está disponible para descargar.";
                 await CargarFondoAsync(fondoSeleccionado);
             }
             catch (Exception ex)

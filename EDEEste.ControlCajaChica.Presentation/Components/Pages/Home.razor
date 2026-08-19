@@ -1,7 +1,7 @@
 @page "/"
 @rendermode InteractiveServer
 @* Sin permiso concreto: el panel lo ve cualquier cuenta aprobada, y cada tarjeta
-   enlaza a pantallas que si estan protegidas por su permiso. *@
+   enlaza a pantallas que sí están protegidas por su permiso. *@
 @attribute [Authorize]
 
 <PageTitle>Control de Caja Chica</PageTitle>
@@ -15,11 +15,11 @@
 else if (fondos.Count == 0)
 {
     <div class="alert alert-info">
-        <p class="mb-2">Todavia no hay nada configurado. Para empezar a probar el flujo completo:</p>
+        <p class="mb-2">Todavía no hay nada configurado. Para empezar a probar el flujo completo:</p>
         <ol class="mb-0">
             <li>Cree <a href="/fondos">un fondo de caja chica</a>.</li>
-            <li>Cree <a href="/categorias">al menos una categoria de gasto</a>.</li>
-            <li>Registre gastos con sus comprobantes y luego genere la reposicion.</li>
+            <li>Cree <a href="/categorias">al menos una categoría de gasto</a>.</li>
+            <li>Registre gastos con sus comprobantes y luego genere la reposición.</li>
         </ol>
     </div>
 }
@@ -49,12 +49,12 @@ else
                         @if (porcentaje <= alerta)
                         {
                             <p class="text-warning mb-2">
-                                El fondo bajo del @alerta.ToString("N0")%: toca solicitar reposicion.
+                                El fondo bajo del @alerta.ToString("N0")%: toca solicitar reposición.
                             </p>
                         }
 
                         @* Condicionados por permiso: un Administrador no tiene acceso
-                           operativo, asi que ofrecerle estos botones solo lo mandaria
+                           operativo, así que ofrecerle estos botones solo lo mandaría
                            a una pantalla que no puede abrir. *@
                         <AuthorizeView Policy="@Permisos.VerGastos">
                             <a class="btn btn-sm btn-outline-primary" href="/gastos">Ver gastos</a>

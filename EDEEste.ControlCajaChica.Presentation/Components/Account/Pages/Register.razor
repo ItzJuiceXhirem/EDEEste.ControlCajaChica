@@ -21,25 +21,25 @@
                 <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
                            autocomplete="username" aria-required="true" placeholder="nombre.apellido" />
                 <label for="Input.Usuario">Usuario</label>
-                <div class="form-text">El mismo con el que inicia sesion en Windows, en formato nombre.apellido</div>
+                <div class="form-text">El mismo con el que inicia sesión en Windows, en formato nombre.apellido</div>
                 <ValidationMessage For="() => Input.Usuario" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control"
-                           autocomplete="name" aria-required="true" placeholder="Juan Perez" />
+                           autocomplete="name" aria-required="true" placeholder="Juan Pérez" />
                 <label for="Input.Nombre">Nombre completo</label>
                 <ValidationMessage For="() => Input.Nombre" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
-                           autocomplete="new-password" aria-required="true" placeholder="contrasena" />
-                <label for="Input.Password">Contrasena</label>
+                           autocomplete="new-password" aria-required="true" placeholder="contraseña" />
+                <label for="Input.Password">Contraseña</label>
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control"
-                           autocomplete="new-password" aria-required="true" placeholder="contrasena" />
-                <label for="Input.ConfirmPassword">Confirmar contrasena</label>
+                           autocomplete="new-password" aria-required="true" placeholder="contraseña" />
+                <label for="Input.ConfirmPassword">Confirmar contraseña</label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
 

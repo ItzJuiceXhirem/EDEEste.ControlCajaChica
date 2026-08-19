@@ -13,8 +13,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 {
     public partial class RegistrarGasto
     {
-        // Los adjuntos de una factura son fotos o PDF de pocas paginas; 10 MB deja
-        // holgura de sobra y evita que el limite de 512 KB que trae InputFile por
+        // Los adjuntos de una factura son fotos o PDF de pocas páginas; 10 MB deja
+        // holgura de sobra y evita que el límite de 512 KB que trae InputFile por
         // defecto corte una foto de celular.
         private const long TamanoMaximoArchivo = 10 * 1024 * 1024;
 
@@ -64,9 +64,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         }
 
         /// <summary>
-        /// Deja solo digitos y, cuando llegan a 11 (una cedula), los muestra como
-        /// XXX-XXXXXXX-X. Un RNC de empresa (9 digitos) se deja sin guiones. Lo que se
-        /// envia al handler se vuelve a limpiar alli, asi que en BDD solo entran digitos.
+        /// Deja solo dígitos y, cuando llegan a 11 (una cédula), los muestra como
+        /// XXX-XXXXXXX-X. Un RNC de empresa (9 dígitos) se deja sin guiones. Lo que se
+        /// envía al handler se vuelve a limpiar allí, así que en BDD solo entran dígitos.
         /// </summary>
         private void FormatearRnc(ChangeEventArgs e)
         {
@@ -88,7 +88,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             exito = null;
             guardando = true;
 
-            // Los streams de IBrowserFile se abren aqui, dentro del envio, y se cierran al
+            // Los streams de IBrowserFile se abren aquí, dentro del envío, y se cierran al
             // terminar: no se pueden guardar abiertos entre interacciones.
             var abiertos = new List<Stream>();
 
@@ -135,7 +135,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 entrada.Limpiar(fondos!.FirstOrDefault()?.Id ?? Guid.Empty, categorias!.FirstOrDefault()?.Id ?? Guid.Empty);
                 adjuntos.Clear();
 
-                // El balance del fondo cambio, hay que releerlo para el proximo registro.
+                // El balance del fondo cambió, hay que releerlo para el próximo registro.
                 fondos = await Fondos.ListarAsync();
             }
             catch (Exception ex)
@@ -170,7 +170,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             public string? NCF { get; set; }
             public string? Concepto { get; set; }
 
-            // Nullables para que el campo salga vacio y se vea el placeholder "0" en vez
+            // Nullables para que el campo salga vacío y se vea el placeholder "0" en vez
             // de un cero escrito que el usuario tiene que borrar antes de teclear.
             public decimal? Subtotal { get; set; }
             public decimal? MontoITBIS { get; set; }

@@ -6,9 +6,9 @@
 
 <h1>Fondos de caja chica</h1>
 
-@* Pantalla provisional de administracion: existe para poder crear el fondo con el
+@* Pantalla provisional de administración: existe para poder crear el fondo con el
    que se prueban los gastos y las reposiciones. Cuando se implemente el caso de uso
-   del Administrador (configurar fondos, limites y custodios) esta pagina deberia
+   del Administrador (configurar fondos, límites y custodios) esta página debería
    pasar a llamar ese comando en vez de escribir por el repositorio. *@
 
 @if (mensaje is not null)
@@ -30,7 +30,7 @@
         }
         else if (fondos.Count == 0)
         {
-            <p class="text-muted">Todavia no hay fondos. Cree uno con el formulario de la derecha.</p>
+            <p class="text-muted">Todavía no hay fondos. Cree uno con el formulario de la derecha.</p>
         }
         else
         {
@@ -41,7 +41,7 @@
                         <th class="text-end">Fondo fijo</th>
                         <th class="text-end">Balance</th>
                         <th class="text-end">% restante</th>
-                        <th class="text-end">Limite/gasto</th>
+                        <th class="text-end">Límite/gasto</th>
                         <th>Estado</th>
                     </tr>
                 </thead>
@@ -71,22 +71,22 @@
                 <InputNumber @bind-Value="entrada.MontoFijo" class="form-control" />
             </div>
             <div class="mb-2">
-                <label class="form-label">Limite por gasto (RD$)</label>
+                <label class="form-label">Límite por gasto (RD$)</label>
                 <InputNumber @bind-Value="entrada.LimitePorGasto" class="form-control" />
                 <div class="form-text">
-                    Dejelo en 0 para usar el tope reglamentario (2.5% del fondo fijo).
-                    Un valor mayor a ese tope no surte efecto: siempre manda el mas estricto.
+                    Déjelo en 0 para usar el tope reglamentario (2.5% del fondo fijo).
+                    Un valor mayor a ese tope no surte efecto: siempre manda el más estricto.
                 </div>
             </div>
             <div class="mb-2">
-                <label class="form-label">% de alerta para reposicion</label>
+                <label class="form-label">% de alerta para reposición</label>
                 <InputNumber @bind-Value="entrada.PorcentajeAlertaReposicion" class="form-control" />
-                <div class="form-text">La reposicion se habilita cuando el balance baja de este porcentaje.</div>
+                <div class="form-text">La reposición se habilita cuando el balance baja de este porcentaje.</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Id del custodio</label>
                 <InputText @bind-Value="entrada.CustodioId" class="form-control" />
-                <div class="form-text">Provisional: se escribe a mano hasta que exista la pantalla de asignacion de usuarios.</div>
+                <div class="form-text">Provisional: se escribe a mano hasta que exista la pantalla de asignación de usuarios.</div>
             </div>
             <button type="submit" class="btn btn-primary" disabled="@guardando">
                 @(guardando ? "Guardando..." : "Crear fondo")

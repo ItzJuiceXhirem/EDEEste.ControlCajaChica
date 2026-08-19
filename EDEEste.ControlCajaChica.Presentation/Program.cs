@@ -31,9 +31,9 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
-// Una politica por permiso del catalogo. Las paginas se protegen siempre por
+// Una política por permiso del catálogo. Las páginas se protegen siempre por
 // permiso ([Authorize(Policy = Permisos.X)]) y nunca por rol, para que la matriz de
-// accesos viva en un unico sitio: Domain/Constants/PermisosPorRol.cs.
+// accesos viva en un único sitio: Domain/Constants/PermisosPorRol.cs.
 builder.Services.AddAuthorization(opciones =>
 {
     foreach (var permiso in Permisos.Todos)
@@ -45,31 +45,31 @@ builder.Services.AddAuthorization(opciones =>
 builder.Services.AddScoped<IAuthorizationHandler, PermisoAuthorizationHandler>();
 
 // Quien es el usuario actual solo se sabe desde la capa web (HttpContext / circuito
-// de Blazor), asi que la implementacion de ICurrentUserService se registra aqui y no
+// de Blazor), así que la implementación de ICurrentUserService se registra aquí y no
 // en Infrastructure.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-// DbContext, interceptores de auditoria/integridad, criptografia, repositorios e
+// DbContext, interceptores de auditoría/integridad, criptografía, repositorios e
 // IIdentityService.
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Los casos de uso viven en Application, pero se registran aqui: Application no
-// referencia ningun paquete (ni siquiera el de DI) a proposito, y Presentation es el
-// composition root de la solucion.
+// Los casos de uso viven en Application, pero se registran aquí: Application no
+// referencia ningún paquete (ni siquiera el de DI) a propósito, y Presentation es el
+// composition root de la solución.
 builder.Services.AddScoped<RegistrarGastoHandler>();
 builder.Services.AddScoped<CrearSolicitudReposicionHandler>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // AddIdentityCore (no AddIdentity): AddIdentity vuelve a llamar AddAuthentication y
-// registra de nuevo los esquemas de cookie que ya agrego AddIdentityCookies mas
+// registra de nuevo los esquemas de cookie que ya agregó AddIdentityCookies más
 // arriba, lo que revienta el arranque con "Scheme already exists: Identity.Application".
 builder.Services.AddIdentityCore<Usuario>(options =>
     {
-        // Se mantiene activo, pero ya no significa "confirmo su correo": lo que
+        // Se mantiene activo, pero ya no significa "confirmó su correo": lo que
         // decide es ConfirmacionAccesoUsuario, es decir que un Administrador haya
-        // aprobado la cuenta. Ver esa clase para el porque.
+        // aprobado la cuenta. Ver esa clase para el porqué.
         options.SignIn.RequireConfirmedAccount = true;
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
@@ -78,8 +78,8 @@ builder.Services.AddIdentityCore<Usuario>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-// Va despues de AddIdentityCore a proposito: este registro sustituye al que aquel
-// agrega por defecto (que solo mira si el correo esta confirmado).
+// Va después de AddIdentityCore a propósito: este registro sustituye al que aquel
+// agrega por defecto (que solo mira si el correo está confirmado).
 builder.Services.AddScoped<IUserConfirmation<Usuario>, ConfirmacionAccesoUsuario>();
 
 var app = builder.Build();
@@ -103,10 +103,10 @@ app.MapRazorComponents<App>()
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
-// Descarga del expediente PDF consolidado de una reposicion.
+// Descarga del expediente PDF consolidado de una reposición.
 app.MapReposicionEndpoints();
 
-// Los roles del catalogo se crean al arrancar si aun no existen (operacion idempotente).
+// Los roles del catálogo se crean al arrancar si aún no existen (operación idempotente).
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var inicializador = scope.ServiceProvider.GetRequiredService<InicializadorIdentidad>();

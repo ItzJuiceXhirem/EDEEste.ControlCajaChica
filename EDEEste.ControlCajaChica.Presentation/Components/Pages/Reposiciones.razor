@@ -4,7 +4,7 @@
 
 <PageTitle>Reposiciones</PageTitle>
 
-<h1>Solicitudes de reposicion</h1>
+<h1>Solicitudes de reposición</h1>
 
 @if (errores.Count > 0)
 {
@@ -52,7 +52,7 @@ else
 
         <div class="card mb-4">
             <div class="card-body">
-                <h2 class="h5">Gastos pendientes de reposicion</h2>
+                <h2 class="h5">Gastos pendientes de reposición</h2>
 
                 @if (pendientes is null)
                 {
@@ -98,7 +98,7 @@ else
                     {
                         <div class="alert alert-warning">
                             Quedan RD$ @fondoActual.BalanceActual.ToString("N2") en el fondo.
-                            La reposicion se habilita al bajar de RD$ @umbral.ToString("N2")
+                            La reposición se habilita al bajar de RD$ @umbral.ToString("N2")
                             (@PorcentajeAlerta(fondoActual).ToString("N0")% del fondo fijo).
                         </div>
                     }
@@ -118,7 +118,7 @@ else
     }
     else if (solicitudes.Count == 0)
     {
-        <p class="text-muted">Este fondo no tiene solicitudes todavia.</p>
+        <p class="text-muted">Este fondo no tiene solicitudes todavía.</p>
     }
     else
     {

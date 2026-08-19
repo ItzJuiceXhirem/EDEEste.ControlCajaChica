@@ -14,6 +14,21 @@
 {
     <div class="alert alert-danger">@error</div>
 }
+@if (urlResetGenerada is not null)
+{
+    <div class="alert alert-info">
+        <p class="mb-2">
+            Solicitud aprobada. Mande este enlace por Teams a la persona que lo pidió
+            (solo funciona una vez):
+        </p>
+        <div class="input-group">
+            <input class="form-control" readonly value="@urlResetGenerada" />
+            <button class="btn btn-outline-secondary" type="button" @onclick="CopiarUrlAsync">
+                @(copiadoAlPortapapeles ? "Copiado" : "Copiar")
+            </button>
+        </div>
+    </div>
+}
 
 @if (usuarios is null)
 {
@@ -25,7 +40,7 @@ else
         <h2 class="h5">Solicitudes de acceso</h2>
         <p class="text-muted small">
             Personas que crearon su cuenta y esperan que se les asigne un rol. Mientras
-            esten aqui no pueden entrar al sistema.
+            estén aquí no pueden entrar al sistema.
         </p>
         @if (Filtrar(EstadoAccesoUsuario.Pendiente).Count == 0)
         {
@@ -77,7 +92,7 @@ else
         <h2 class="h5">Usuarios con acceso</h2>
         @if (Filtrar(EstadoAccesoUsuario.Aprobado).Count == 0)
         {
-            <p class="text-muted">Todavia no hay usuarios aprobados.</p>
+            <p class="text-muted">Todavía no hay usuarios aprobados.</p>
         }
         else
         {
@@ -124,8 +139,8 @@ else
     <section>
         <h2 class="h5">Acceso denegado</h2>
         <p class="text-muted small">
-            Cuentas a las que se les nego el acceso. Se conserva el rol que tenian por
-            si hay que devolverles el acceso mas adelante.
+            Cuentas a las que se les negó el acceso. Se conserva el rol que tenían por
+            si hay que devolverles el acceso más adelante.
         </p>
         @if (Filtrar(EstadoAccesoUsuario.Denegado).Count == 0)
         {
@@ -159,6 +174,57 @@ else
                                         <option value="@rol">@rol</option>
                                     }
                                 </select>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <section class="mb-5">
+        <h2 class="h5">Solicitudes de restablecimiento de contraseña</h2>
+        <p class="text-muted small">
+            Personas que ya tienen acceso pero olvidaron su contraseña. Aceptar genera
+            un enlace de un solo uso; Ignorar deja la contraseña como estaba.
+        </p>
+        @if (solicitudesReset is null)
+        {
+            <p><em>Cargando...</em></p>
+        }
+        else if (solicitudesReset.Count == 0)
+        {
+            <p class="text-muted">No hay solicitudes de restablecimiento pendientes.</p>
+        }
+        else
+        {
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Solicitada</th>
+                        <th style="width: 220px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var solicitud in solicitudesReset)
+                    {
+                        <tr>
+                            <td><code>@solicitud.Usuario</code></td>
+                            <td>@solicitud.Nombre</td>
+                            <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary me-1"
+                                        disabled="@(procesandoResetId == solicitud.Id)"
+                                        @onclick="() => IgnorarResetAsync(solicitud)">
+                                    Ignorar
+                                </button>
+                                <button class="btn btn-sm btn-primary"
+                                        disabled="@(procesandoResetId == solicitud.Id)"
+                                        @onclick="() => AceptarResetAsync(solicitud)">
+                                    Aceptar
+                                </button>
                             </td>
                         </tr>
                     }

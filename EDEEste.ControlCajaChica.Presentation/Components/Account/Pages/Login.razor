@@ -1,8 +1,8 @@
 @page "/Account/Login"
 
-<PageTitle>Iniciar sesion</PageTitle>
+<PageTitle>Iniciar sesión</PageTitle>
 
-<h1>Iniciar sesion</h1>
+<h1>Iniciar sesión</h1>
 
 <div class="row">
     <div class="col-lg-6">
@@ -12,7 +12,7 @@
             @if (sinAdministrador)
             {
                 <div class="alert alert-info">
-                    Este sistema todavia no tiene un Administrador configurado.
+                    Este sistema todavía no tiene un Administrador configurado.
                     <a href="/configuracion-inicial">Configurar el primer Administrador</a>.
                 </div>
             }
@@ -30,8 +30,8 @@
                 </div>
                 <div class="form-floating mb-3">
                     <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
-                               autocomplete="current-password" aria-required="true" placeholder="contrasena" />
-                    <label for="Input.Password" class="form-label">Contrasena</label>
+                               autocomplete="current-password" aria-required="true" placeholder="contraseña" />
+                    <label for="Input.Password" class="form-label">Contraseña</label>
                     <ValidationMessage For="() => Input.Password" class="text-danger" />
                 </div>
                 <div class="checkbox mb-3">
@@ -41,11 +41,11 @@
                     </label>
                 </div>
                 <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Iniciar sesion</button>
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Iniciar sesión</button>
                 </div>
                 <hr />
                 <div>
-                    <p><a href="Account/ForgotPassword">Olvide mi contrasena</a></p>
+                    <p><a href="Account/ForgotPassword">Olvidé mi contraseña</a></p>
                     <p>
                         <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">
                             Solicitar acceso al sistema

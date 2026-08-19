@@ -1,8 +1,8 @@
 @page "/configuracion-inicial"
 
-<PageTitle>Configuracion inicial</PageTitle>
+<PageTitle>Configuración inicial</PageTitle>
 
-<h1>Configuracion inicial</h1>
+<h1>Configuración inicial</h1>
 
 @if (yaHayAdministrador)
 {
@@ -13,8 +13,8 @@ else
     <div class="row">
         <div class="col-lg-6">
             <p class="text-muted">
-                El sistema todavia no tiene ningun Administrador. Cree el primero para
-                poder aprobar los accesos del resto del equipo. Esta pantalla dejara de
+                El sistema todavía no tiene ningún Administrador. Cree el primero para
+                poder aprobar los accesos del resto del equipo. Esta pantalla dejará de
                 estar disponible en cuanto exista un Administrador.
             </p>
 
@@ -43,20 +43,20 @@ else
                 </div>
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control"
-                               autocomplete="name" placeholder="Juan Perez" />
+                               autocomplete="name" placeholder="Juan Pérez" />
                     <label for="Input.Nombre">Nombre completo</label>
                     <ValidationMessage For="() => Input.Nombre" class="text-danger" />
                 </div>
                 <div class="form-floating mb-3">
                     <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
-                               autocomplete="new-password" placeholder="contrasena" />
-                    <label for="Input.Password">Contrasena</label>
+                               autocomplete="new-password" placeholder="contraseña" />
+                    <label for="Input.Password">Contraseña</label>
                     <ValidationMessage For="() => Input.Password" class="text-danger" />
                 </div>
                 <div class="form-floating mb-3">
                     <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control"
-                               autocomplete="new-password" placeholder="contrasena" />
-                    <label for="Input.ConfirmPassword">Confirmar contrasena</label>
+                               autocomplete="new-password" placeholder="contraseña" />
+                    <label for="Input.ConfirmPassword">Confirmar contraseña</label>
                     <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
                 </div>
 

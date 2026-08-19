@@ -25,8 +25,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         protected override async Task OnInitializedAsync() => await RecargarAsync();
 
         /// <summary>
-        /// La categoria viene rastreada por el mismo DbContext con scope que usa el
-        /// repositorio, asi que basta con cambiar la propiedad y guardar.
+        /// La categoría viene rastreada por el mismo DbContext con scope que usa el
+        /// repositorio, así que basta con cambiar la propiedad y guardar.
         /// </summary>
         private async Task CambiarActivoAsync(CategoriaGasto categoria, bool activo)
         {
@@ -38,7 +38,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             {
                 categoria.Activo = activo;
                 await Contexto.SaveChangesAsync();
-                mensaje = $"Categoria '{categoria.Nombre}' {(activo ? "activada" : "desactivada")}.";
+                mensaje = $"Categoría '{categoria.Nombre}' {(activo ? "activada" : "desactivada")}.";
             }
             catch (Exception ex)
             {
@@ -78,7 +78,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 });
                 await Contexto.SaveChangesAsync();
 
-                mensaje = $"Categoria '{entrada.Nombre}' creada.";
+                mensaje = $"Categoría '{entrada.Nombre}' creada.";
                 entrada.Limpiar();
                 await RecargarAsync();
             }

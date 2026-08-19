@@ -1,6 +1,8 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Application.Common.Models;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using Microsoft.AspNetCore.Components;
@@ -13,6 +15,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
     {
         [Inject] private UserManager<Usuario> UserManager { get; set; } = default!;
         [Inject] private SignInManager<Usuario> SignInManager { get; set; } = default!;
+        [Inject] private IAutenticadorCredenciales Autenticador { get; set; } = default!;
         [Inject] private IIdentityService IdentityService { get; set; } = default!;
         [Inject] private ILogger<Login> Logger { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -33,21 +36,26 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
             Input ??= new();
             editContext = new EditContext(Input);
 
-            // El aviso de "falta configurar el Administrador" va aqui y no en Home
-            // porque a Home no llega nadie sin sesion: el sitio entero redirige a
-            // esta pantalla, asi que es el unico lugar donde se puede ver.
+            // El aviso de "falta configurar el Administrador" va aquí y no en Home
+            // porque a Home no llega nadie sin sesión: el sitio entero redirige a
+            // esta pantalla, así que es el único lugar donde se puede ver.
             sinAdministrador = !await IdentityService.ExisteAdministradorAsync();
         }
 
         /// <summary>
-        /// El orden importa por seguridad. Primero se comprueba la contrasena y solo
-        /// despues el estado de la cuenta.
+        /// El orden importa por seguridad. Primero se comprueba la contraseña y solo
+        /// después el estado de la cuenta.
         ///
         /// No se usa PasswordSignInAsync porque internamente llama a CanSignInAsync
-        /// ANTES de verificar la contrasena: con eso, cualquiera que escribiera un
-        /// usuario existente veria si esa cuenta esta denegada o pendiente sin
-        /// conocer la contrasena. Verificando primero, el estado solo se le revela a
-        /// quien ya demostro ser el dueno de la cuenta.
+        /// ANTES de verificar la contraseña: con eso, cualquiera que escribiera un
+        /// usuario existente vería si esa cuenta está denegada o pendiente sin
+        /// conocer la contraseña. Verificando primero, el estado solo se le revela a
+        /// quien ya demostró ser el dueño de la cuenta.
+        ///
+        /// La contraseña la verifica IAutenticadorCredenciales y no UserManager
+        /// directamente: así, cuando se active el modo ActiveDirectory, esta pantalla
+        /// no cambia. El registro local (Usuario) se sigue necesitando en los dos
+        /// modos, porque es donde viven el estado de acceso y el rol.
         /// </summary>
         public async Task LoginUser()
         {
@@ -58,11 +66,27 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 
             var usuario = await UserManager.FindByNameAsync(Input.Usuario);
 
-            if (usuario is null || !await UserManager.CheckPasswordAsync(usuario, Input.Password))
+            ResultadoAutenticacion credenciales;
+            try
             {
-                // Mismo mensaje para "no existe" y "contrasena incorrecta": no hay
-                // razon para ayudar a alguien a averiguar que cuentas existen.
-                errorMessage = "Error: usuario o contrasena invalidos.";
+                credenciales = await Autenticador.ValidarAsync(Input.Usuario, Input.Password);
+            }
+            catch (NotSupportedException ex)
+            {
+                // Modo ActiveDirectory sin implementar: es un fallo de configuración,
+                // no de credenciales, y se muestra tal cual en vez de disfrazarlo de
+                // "contraseña inválida", que mandaría a buscar el problema al lugar
+                // equivocado.
+                Logger.LogError(ex, "Modo de autenticación no soportado al intentar iniciar sesión.");
+                errorMessage = $"Error: {ex.Message}";
+                return;
+            }
+
+            if (usuario is null || !credenciales.Exitoso)
+            {
+                // Mismo mensaje para "no existe" y "contraseña incorrecta": no hay
+                // razón para ayudar a alguien a averiguar qué cuentas existen.
+                errorMessage = "Error: usuario o contraseña inválidos.";
                 return;
             }
 
@@ -78,7 +102,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
             }
 
             await SignInManager.SignInAsync(usuario, Input.RememberMe);
-            Logger.LogInformation("El usuario {Usuario} inicio sesion.", usuario.UserName);
+            Logger.LogInformation("El usuario {Usuario} inició sesión.", usuario.UserName);
             RedirectManager.RedirectTo(ReturnUrl);
         }
 
@@ -88,7 +112,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
             [Display(Name = "Usuario")]
             public string Usuario { get; set; } = "";
 
-            [Required(ErrorMessage = "Indique su contrasena.")]
+            [Required(ErrorMessage = "Indique su contraseña.")]
             [DataType(DataType.Password)]
             public string Password { get; set; } = "";
 
