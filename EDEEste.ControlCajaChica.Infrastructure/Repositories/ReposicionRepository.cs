@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Domain.Enums;
 using EDEEste.ControlCajaChica.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
 
         public async Task<IReadOnlyList<SolicitudReposicion>> ListarPorFondoAsync(Guid fondoId, CancellationToken cancellationToken = default) =>
             await _context.Reposiciones
+                .Include(r => r.Gastos)
                 .Where(r => r.FondoCajaChicaId == fondoId)
                 .OrderByDescending(r => r.FechaSolicitud)
                 .ToListAsync(cancellationToken);
@@ -32,6 +34,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
             await _context.Reposiciones
                 .Include(r => r.Gastos)
                 .OrderByDescending(r => r.FechaSolicitud)
+                .ToListAsync(cancellationToken);
+
+        public async Task<IReadOnlyList<SolicitudReposicion>> ListarPorEstadoAsync(EstadoReposicion estado, CancellationToken cancellationToken = default) =>
+            await _context.Reposiciones
+                .Include(r => r.FondoCajaChica)
+                .Include(r => r.Gastos)
+                .Where(r => r.Estado == estado)
+                .OrderBy(r => r.FechaSolicitud)
                 .ToListAsync(cancellationToken);
 
         public async Task AgregarAsync(SolicitudReposicion solicitud, CancellationToken cancellationToken = default) =>

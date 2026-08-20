@@ -42,6 +42,28 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
                 .OrderBy(g => g.FechaGasto)
                 .ToListAsync(cancellationToken);
 
+        public async Task<IReadOnlyList<Gasto>> ListarPorEstadoAsync(Guid fondoId, EstadoGasto estado, CancellationToken cancellationToken = default) =>
+            await _context.Gastos
+                .Include(g => g.CategoriaGasto)
+                .Where(g => g.FondoCajaChicaId == fondoId && g.Estado == estado)
+                .OrderBy(g => g.FechaGasto)
+                .ToListAsync(cancellationToken);
+
+        // Se filtra por FechaModificacion porque es cuando el interceptor sella la
+        // anulacion. No hay columna FechaAnulacion a proposito: seria una segunda
+        // columna nueva y nada vuelve a tocar un gasto ya anulado, asi que la fecha de
+        // modificacion ES la de la anulacion. FechaModificacion no entra en la firma
+        // HMAC (esta en AuditableEntity), asi que filtrar por ella no tiene efecto
+        // sobre el sello.
+        public async Task<IReadOnlyList<Gasto>> ListarAnuladosAsync(Guid fondoId, DateTime? desde, CancellationToken cancellationToken = default) =>
+            await _context.Gastos
+                .Include(g => g.CategoriaGasto)
+                .Where(g => g.FondoCajaChicaId == fondoId
+                            && g.Estado == EstadoGasto.Anulado
+                            && (desde == null || g.FechaModificacion >= desde))
+                .OrderByDescending(g => g.FechaModificacion)
+                .ToListAsync(cancellationToken);
+
         public async Task AgregarAsync(Gasto gasto, CancellationToken cancellationToken = default) =>
             await _context.Gastos.AddAsync(gasto, cancellationToken);
     }

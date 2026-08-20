@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors;
 using Microsoft.AspNetCore.Components.Authorization;
 
 namespace EDEEste.ControlCajaChica.Presentation.Services
@@ -42,13 +43,20 @@ namespace EDEEste.ControlCajaChica.Presentation.Services
 
             if (principal?.Identity is not { IsAuthenticated: true } identidad)
             {
+                AmbientUsuarioActual.UsuarioId = null;
                 return UsuarioActual.Anonimo;
             }
 
-            return new UsuarioActual(
-                principal.FindFirstValue(ClaimTypes.NameIdentifier),
-                identidad.Name,
-                EstaAutenticado: true);
+            var id = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Deja el id disponible para AuditoriaInterceptor (ver AmbientUsuarioActual):
+            // es Singleton y no puede pedir este servicio, que es Scoped, por
+            // constructor. Como todo handler llama ObtenerAsync justo antes de guardar,
+            // el AsyncLocal sigue viendose correcto cuando el interceptor corre despues
+            // en el mismo flujo.
+            AmbientUsuarioActual.UsuarioId = id;
+
+            return new UsuarioActual(id, identidad.Name, EstaAutenticado: true);
         }
 
         private async Task<ClaimsPrincipal?> ObtenerDesdeProveedorAsync()

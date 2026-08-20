@@ -2,8 +2,21 @@
 <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
-            <NotAuthorized>
-                <RedirectToLogin />
+            <NotAuthorized Context="estadoAutenticacion">
+                @* NotAuthorized se dispara por dos motivos distintos: no estar
+                   autenticado, o estarlo pero no cumplir la politica de la pagina
+                   (falta el permiso). Sin distinguirlos, un usuario ya logueado que
+                   solo le falta un permiso terminaba viendo la pantalla de login (sin
+                   que se le cerrara la sesion de verdad) en vez de un aviso de acceso
+                   denegado. *@
+                @if (estadoAutenticacion.User.Identity?.IsAuthenticated == true)
+                {
+                    <RedirectToAccessDenied />
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
             </NotAuthorized>
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />

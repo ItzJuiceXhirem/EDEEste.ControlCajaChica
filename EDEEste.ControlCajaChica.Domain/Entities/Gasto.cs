@@ -30,6 +30,11 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public decimal MontoTotal { get; set; }
         public DateTime FechaGasto { get; set; }
         public EstadoGasto Estado { get; set; }
+
+        // Por que se anulo el gasto. Lo escribe quien pide la anulacion (custodio) o
+        // quien la ejecuta (gerente), y se limpia si la anulacion se revierte.
+        public string? MotivoAnulacion { get; set; }
+
         public string RegistradoPorUsuarioId { get; set; } = string.Empty; // Identity
 
         // Navegación
@@ -50,6 +55,7 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
                 .Agregar(RNCProveedor)
                 .Agregar(NCF)
                 .Agregar(Concepto)
+                .Agregar(MotivoAnulacion)
                 .Agregar(Subtotal)
                 .Agregar(MontoITBIS)
                 .Agregar(MontoTotal)

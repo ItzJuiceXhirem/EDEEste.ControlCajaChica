@@ -58,7 +58,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // referencia ningún paquete (ni siquiera el de DI) a propósito, y Presentation es el
 // composition root de la solución.
 builder.Services.AddScoped<RegistrarGastoHandler>();
+builder.Services.AddScoped<SolicitarAnulacionGastoHandler>();
+builder.Services.AddScoped<AnularGastoHandler>();
+builder.Services.AddScoped<RevertirAnulacionGastoHandler>();
 builder.Services.AddScoped<CrearSolicitudReposicionHandler>();
+builder.Services.AddScoped<AprobarReposicionHandler>();
+builder.Services.AddScoped<ProcesarPagoReposicionHandler>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 

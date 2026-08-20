@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -14,10 +16,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 {
     public class ApplicationDbContext : IdentityDbContext<Usuario>, IApplicationDbContext
     {
-        // Los interceptores ya no se reciben por constructor: se registran al
-        // configurar las opciones en DependencyInjection.AddInfrastructure. Asi el
-        // contexto sigue teniendo la firma que esperan las herramientas de EF
-        // (dotnet ef migrations) y se pueden sumar interceptores sin tocar esta clase.
+        // Los interceptores se registran en DependencyInjection.AgregarPersistencia
+        // (AddInterceptors sobre instancias Singleton) y no se reciben aqui por
+        // constructor. Ver el comentario de AuditoriaInterceptor: con instancias
+        // Scoped, cualquier forma de conectarlas -- por aqui o por el lambda de
+        // AddDbContext -- revienta con ManyServiceProvidersCreatedWarning pasadas ~20
+        // peticiones, porque EF ve una instancia de interceptor distinta cada vez.
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -33,6 +37,28 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         public DbSet<LogAuditoria> LogsAuditoria { get; set; }
         public DbSet<Identity.SolicitudPasswordReset> SolicitudesPasswordReset { get; set; }
 
+        /// <summary>
+        /// Ver <see cref="IApplicationDbContext.IntentarGuardarCambiosAsync"/>.
+        ///
+        /// El ChangeTracker.Clear() no es opcional: en Blazor Server el contexto vive
+        /// todo el circuito, no la interaccion, asi que si se deja sucio despues de un
+        /// fallo, el siguiente clic del usuario -- aunque sea sobre otra pantalla --
+        /// arrastra las entidades del intento fallido y vuelve a intentar escribirlas.
+        /// </summary>
+        public async Task<bool> IntentarGuardarCambiosAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await SaveChangesAsync(cancellationToken);
+                return true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                ChangeTracker.Clear();
+                return false;
+            }
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             ConfigurarRelaciones(modelBuilder);
@@ -40,6 +66,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             ConfigurarBorradoLogico(modelBuilder);
             ConfigurarLongitudesDeTexto(modelBuilder);
             ConfigurarIndices(modelBuilder);
+            ConfigurarConcurrencia(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
 
@@ -141,6 +168,43 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         /// el sistema rechace facturas legitimas, asi que por ahora solo acelera las
         /// busquedas por NCF, que es para lo que se usa hoy.
         /// </summary>
+        /// <summary>
+        /// Control de concurrencia optimista sobre tres propiedades que ya existen.
+        ///
+        /// Re-chequear el estado dentro del handler es necesario pero no basta: dos
+        /// usuarios pueden leer la misma solicitud "Aprobada", pasar los dos la
+        /// validacion y abonar el fondo dos veces. Marcando estas propiedades, el
+        /// UPDATE pasa a llevar "AND columna = @valorOriginal": el segundo en llegar
+        /// afecta cero filas, EF lanza DbUpdateConcurrencyException y toda la
+        /// transaccion revierte.
+        ///
+        /// Se usan columnas existentes y NO un rowversion a proposito: la BDD asigna
+        /// el rowversion despues de que el interceptor calcula el HMAC, asi que
+        /// entrarlo en la firma daria falso positivo de manipulacion en cada relectura,
+        /// y dejarlo fuera de la firma obliga a explicar por que una columna del
+        /// registro no esta sellada. Con columnas ya firmadas no hay conflicto: el
+        /// token compara el valor original, el hash se calcula sobre el actual.
+        ///
+        /// - FondoCajaChica.BalanceActual sostiene la invariante del dinero.
+        /// - SolicitudReposicion.Estado impide aprobar/rechazar/pagar por duplicado.
+        /// - Gasto.Estado impide que una anulacion y una reposicion se pisen, y de
+        ///   paso que dos reposiciones simultaneas reclamen los mismos gastos.
+        /// </summary>
+        private static void ConfigurarConcurrencia(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<FondoCajaChica>()
+                .Property(f => f.BalanceActual)
+                .IsConcurrencyToken();
+
+            modelBuilder.Entity<SolicitudReposicion>()
+                .Property(r => r.Estado)
+                .IsConcurrencyToken();
+
+            modelBuilder.Entity<Gasto>()
+                .Property(g => g.Estado)
+                .IsConcurrencyToken();
+        }
+
         private static void ConfigurarIndices(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Gasto>(gasto =>
@@ -205,6 +269,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
             modelBuilder.Entity<Gasto>()
                 .Property(g => g.Concepto)
+                .HasMaxLength(500);
+
+            // Texto libre del mismo tenor que Concepto, asi que se le da la misma cota.
+            modelBuilder.Entity<Gasto>()
+                .Property(g => g.MotivoAnulacion)
                 .HasMaxLength(500);
 
             modelBuilder.Entity<ComprobanteAdjunto>(comprobante =>

@@ -22,6 +22,106 @@
     <div class="alert alert-success">@exito</div>
 }
 
+@if (porAprobar is { Count: > 0 })
+{
+    <AuthorizeView Policy="@Permisos.AprobarReposicion" Context="autorizacionAprobar">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">Solicitudes pendientes de aprobación</h2>
+                <div class="alert alert-warning">
+                    Al rechazar, los gastos vuelven a quedar pendientes de reposición y podrán entrar en una
+                    nueva solicitud. El expediente PDF se conserva en el historial.
+                </div>
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Fondo</th>
+                            <th class="text-end">Monto reclamado</th>
+                            <th>Expediente</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var solicitud in porAprobar)
+                        {
+                            <tr>
+                                <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(solicitud.FondoCajaChica?.CustodioId is { Length: > 0 } custodioId ? custodioId : "(sin asignar)")</td>
+                                <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-secondary" href="/reposiciones/@solicitud.Id/pdf" target="_blank">
+                                        Descargar PDF
+                                    </a>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-success" disabled="@(procesando is not null)"
+                                            @onclick="() => AprobarAsync(solicitud.Id, true)">
+                                        Aprobar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" disabled="@(procesando is not null)"
+                                            @onclick="() => AprobarAsync(solicitud.Id, false)">
+                                        Rechazar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </AuthorizeView>
+}
+
+@if (porPagar is { Count: > 0 })
+{
+    <AuthorizeView Policy="@Permisos.PagarReposicion" Context="autorizacionPagar">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">Aprobadas pendientes de pago</h2>
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Fondo</th>
+                            <th class="text-end">Monto a pagar</th>
+                            <th>Expediente</th>
+                            <th style="min-width: 220px;">Referencia de pago</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var solicitud in porPagar)
+                        {
+                            <tr>
+                                <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(solicitud.FondoCajaChica?.CustodioId is { Length: > 0 } custodioId ? custodioId : "(sin asignar)")</td>
+                                <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-secondary" href="/reposiciones/@solicitud.Id/pdf" target="_blank">
+                                        Descargar PDF
+                                    </a>
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" placeholder="N.º de transferencia, cheque o asiento"
+                                           value="@(referencias.TryGetValue(solicitud.Id, out var referenciaActual) ? referenciaActual : string.Empty)"
+                                           @onchange="e => referencias[solicitud.Id] = e.Value?.ToString() ?? string.Empty" />
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" disabled="@(procesando is not null)"
+                                            @onclick="() => PagarAsync(solicitud.Id)">
+                                        Registrar pago
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </AuthorizeView>
+}
+
 @if (fondos is null)
 {
     <p><em>Cargando...</em></p>
@@ -129,6 +229,11 @@ else
                     <th>Solicitud</th>
                     <th class="text-end">Monto reclamado</th>
                     <th>Estado</th>
+                    <th>Gerente</th>
+                    <th>Fecha aprobación</th>
+                    <th>Finanzas</th>
+                    <th>Fecha pago</th>
+                    <th>Referencia</th>
                     <th>Expediente</th>
                 </tr>
             </thead>
@@ -140,6 +245,11 @@ else
                         <td><code>@solicitud.Id.ToString()[..8]</code></td>
                         <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
                         <td>@solicitud.Estado</td>
+                        <td>@(solicitud.GerenteUsuarioId ?? "-")</td>
+                        <td>@(solicitud.FechaAprobacion?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>@(solicitud.FinanzasUsuarioId ?? "-")</td>
+                        <td>@(solicitud.FechaPago?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>@(solicitud.ReferenciaPago ?? "-")</td>
                         <td>
                             @if (string.IsNullOrWhiteSpace(solicitud.RutaPdfConsolidado))
                             {

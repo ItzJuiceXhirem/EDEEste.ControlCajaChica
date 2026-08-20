@@ -19,6 +19,12 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
     ///    quien fija el límite no debe poder gastarse el fondo. Es lo que exige una
     ///    auditoría de caja chica y por eso el Auditor tampoco tiene ninguna acción,
     ///    solo lectura.
+    ///
+    /// 3. Anular un gasto son dos permisos y no uno: el Custodio solo puede
+    ///    <see cref="Permisos.SolicitarAnulacionGasto"/> (deja el gasto pendiente, sin
+    ///    devolver el dinero) y el Gerente tiene <see cref="Permisos.AnularGasto"/>,
+    ///    que es el que efectivamente devuelve el efectivo al fondo. Con un solo
+    ///    permiso, quien registra el gasto podría deshacerlo sin que nadie lo revise.
     /// </summary>
     public static class PermisosPorRol
     {
@@ -29,6 +35,7 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
                 {
                     Permisos.VerGastos,
                     Permisos.RegistrarGasto,
+                    Permisos.SolicitarAnulacionGasto,
                     Permisos.VerArqueos,
                     Permisos.EjecutarArqueo,
                     Permisos.VerReposiciones,
@@ -48,6 +55,7 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
                 {
                     Permisos.VerGastos,
                     Permisos.RevisarGastos,
+                    Permisos.AnularGasto,
                     Permisos.VerArqueos,
                     Permisos.VerReposiciones,
                     Permisos.AprobarReposicion,

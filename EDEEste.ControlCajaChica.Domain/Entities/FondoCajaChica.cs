@@ -14,6 +14,16 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public decimal BalanceActual { get; set; }
         public required decimal MontoFijo { get; set; }
         public decimal LimitePorGasto { get; set; }
+
+        /// <summary>
+        /// Tope por gasto expresado como porcentaje del monto fijo. El README fija
+        /// 2.5% como punto de partida, pero el Administrador lo ajusta por fondo: un
+        /// fondo de operaciones y uno de caja menuda no se rigen por el mismo numero.
+        /// Se guarda como porcentaje (2.5), no como fraccion, igual que
+        /// PorcentajeAlertaReposicion.
+        /// </summary>
+        public decimal PorcentajeMaximoPorGasto { get; set; } = 2.5m;
+
         public decimal PorcentajeAlertaReposicion { get; set; }
         public string CustodioId { get; set; } = string.Empty; //FK hacia Usuario (Identity)
 
@@ -37,6 +47,7 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
                 .Agregar(BalanceActual)
                 .Agregar(MontoFijo)
                 .Agregar(LimitePorGasto)
+                .Agregar(PorcentajeMaximoPorGasto)
                 .Agregar(PorcentajeAlertaReposicion)
                 .Agregar(CustodioId)
                 .Agregar((long)Estado)

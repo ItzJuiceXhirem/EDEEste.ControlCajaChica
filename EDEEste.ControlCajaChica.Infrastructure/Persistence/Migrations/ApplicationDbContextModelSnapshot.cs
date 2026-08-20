@@ -255,6 +255,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("BalanceActual")
+                        .IsConcurrencyToken()
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
@@ -301,6 +302,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<decimal>("PorcentajeMaximoPorGasto")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Fondos");
@@ -325,6 +330,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Estado")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<DateTime>("FechaCreacion")
@@ -358,6 +364,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("MontoTotal")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("NCF")
                         .IsRequired()
@@ -470,6 +480,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Estado")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("FechaAprobacion")

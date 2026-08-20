@@ -177,7 +177,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             }
 
             services.Configure<OpcionesCriptografia>(opciones => opciones.ClaveHmac = claveHmac);
-            services.AddScoped<ICriptografiaService, CriptografiaService>();
+
+            // Singleton a proposito: solo envuelve la clave HMAC ya leida de
+            // configuracion (inmutable durante la vida de la app) y no tiene ningun
+            // estado por peticion. Los interceptores de EF (AuditoriaInterceptor,
+            // IntegridadInterceptor) dependen de que este servicio sea Singleton para
+            // poder serlo ellos tambien -- ver el comentario en AgregarPersistencia.
+            services.AddSingleton<ICriptografiaService, CriptografiaService>();
         }
 
         private static void AgregarPersistencia(IServiceCollection services, IConfiguration configuration)
@@ -185,25 +191,19 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             var connectionString = configuration.GetSection("ConnectionStrings")["DefaultConnection"]
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-            // Los interceptores se registran como IInterceptor y NO se pasan por
-            // options.AddInterceptors(...).
-            //
-            // Pasarlos explicitamente obligaba a resolverlos dentro del lambda de
-            // AddDbContext, lo que entregaba instancias distintas en cada scope. EF
-            // usa las opciones como clave de cache de su proveedor de servicios
-            // interno, asi que cada peticion le parecia una configuracion nueva y
-            // construia otro proveedor; pasadas 20 peticiones reventaba con
-            // ManyServiceProvidersCreatedWarning.
-            //
-            // Registrandolos asi, EF los descubre desde el contenedor de la
-            // aplicacion: las opciones quedan identicas entre peticiones (un solo
-            // proveedor interno) y los interceptores siguen siendo Scoped, que es lo
-            // que necesitan para ver el usuario actual de esa peticion.
-            services.AddScoped<IInterceptor, AuditoriaInterceptor>();
-            services.AddScoped<IInterceptor, IntegridadInterceptor>();
+            // Los interceptores son Singleton -- EF los guarda como parte de la clave
+            // de cache de su proveedor de servicios interno, asi que necesitan ser
+            // SIEMPRE la misma instancia o revienta con ManyServiceProvidersCreated
+            // Warning pasadas ~20 peticiones (se probo con instancias Scoped, por dos
+            // caminos distintos, y las dos lo dispararon). AuditoriaInterceptor no
+            // puede entonces recibir ICurrentUserService (Scoped) por constructor; lee
+            // el usuario actual de AmbientUsuarioActual en su lugar -- ver ese archivo.
+            services.AddSingleton<IInterceptor, AuditoriaInterceptor>();
+            services.AddSingleton<IInterceptor, IntegridadInterceptor>();
 
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
+            services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+                options.UseSqlServer(connectionString)
+                       .AddInterceptors(serviceProvider.GetServices<IInterceptor>()));
 
             services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
         }

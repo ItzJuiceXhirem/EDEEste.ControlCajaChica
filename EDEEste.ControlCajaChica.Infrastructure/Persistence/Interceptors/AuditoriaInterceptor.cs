@@ -20,22 +20,31 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
     /// Corre en cada SaveChanges: rellena los campos de auditoria, convierte los
     /// borrados fisicos en logicos, sella con HMAC las entidades firmadas y escribe
     /// la bitacora encadenada, todo dentro de la misma transaccion del guardado.
+    ///
+    /// Se registra Singleton (ver DependencyInjection.AgregarPersistencia) para que
+    /// EF vea siempre la MISMA instancia y no reconstruya su proveedor de servicios
+    /// interno en cada peticion (se probaron dos formas de pasar un interceptor Scoped
+    /// -- por el lambda de AddDbContext, y por constructor de ApplicationDbContext +
+    /// OnConfiguring -- y las dos revientan con ManyServiceProvidersCreatedWarning
+    /// pasadas ~20 peticiones, porque en ambas EF ve una instancia distinta cada vez).
+    ///
+    /// Por ser Singleton, NO puede recibir ICurrentUserService (Scoped) por
+    /// constructor. En su lugar lee AmbientUsuarioActual, un AsyncLocal que
+    /// ICurrentUserService.ObtenerAsync() deja puesto -- ver ese archivo y el
+    /// comentario de AmbientUsuarioActual para el porque esto es seguro.
     /// </summary>
     public class AuditoriaInterceptor : SaveChangesInterceptor
     {
         private const string UsuarioSistema = "Sistema";
 
         private readonly ICriptografiaService _criptografiaService;
-        private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<AuditoriaInterceptor> _logger;
 
         public AuditoriaInterceptor(
             ICriptografiaService criptografiaService,
-            ICurrentUserService currentUserService,
             ILogger<AuditoriaInterceptor> logger)
         {
             _criptografiaService = criptografiaService;
-            _currentUserService = currentUserService;
             _logger = logger;
         }
 
@@ -48,9 +57,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
         {
             if (eventData.Context is not null)
             {
-                // En ASP.NET Core no hay SynchronizationContext, asi que bloquear aqui
-                // no produce deadlock. Es la ruta excepcional; la normal es la async.
-                var usuarioId = ResolverUsuarioAsync(CancellationToken.None).GetAwaiter().GetResult();
+                var usuarioId = ResolverUsuario();
                 var logs = PrepararEntidades(eventData.Context, usuarioId);
 
                 if (logs.Count > 0)
@@ -76,7 +83,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
         {
             if (eventData.Context is not null)
             {
-                var usuarioId = await ResolverUsuarioAsync(cancellationToken);
+                var usuarioId = ResolverUsuario();
                 var logs = PrepararEntidades(eventData.Context, usuarioId);
 
                 if (logs.Count > 0)
@@ -95,11 +102,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             return await base.SavingChangesAsync(eventData, result, cancellationToken);
         }
 
-        private async Task<string> ResolverUsuarioAsync(CancellationToken cancellationToken)
-        {
-            var usuario = await _currentUserService.ObtenerAsync(cancellationToken);
-            return usuario.Id ?? UsuarioSistema;
-        }
+        private static string ResolverUsuario() => AmbientUsuarioActual.UsuarioId ?? UsuarioSistema;
 
         /// <summary>
         /// Recorre el ChangeTracker aplicando auditoria y firma, y devuelve los logs

@@ -22,13 +22,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
     /// </summary>
     public sealed class RegistrarGastoHandler
     {
-        /// <summary>
-        /// Tope duro del README: ningun gasto puede superar el 2.5% del fondo fijo.
-        /// El LimitePorGasto que configura el Administrador solo puede ser mas
-        /// estricto que esto, nunca mas permisivo.
-        /// </summary>
-        private const decimal PorcentajeMaximoPorGasto = 0.025m;
-
         private static readonly HashSet<string> TiposMimePermitidos = new(StringComparer.OrdinalIgnoreCase)
         {
             "application/pdf",
@@ -253,12 +246,16 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 : new string(valor.Where(char.IsDigit).ToArray());
 
         /// <summary>
-        /// El limite efectivo es el mas estricto entre el 2.5% del fondo fijo (tope
-        /// del README) y el LimitePorGasto configurado por el Administrador.
+        /// El limite efectivo es el mas estricto entre el tope porcentual que el
+        /// Administrador fijo para este fondo (2.5% por defecto, el valor del README)
+        /// y el LimitePorGasto absoluto, si lo definio.
+        ///
+        /// Son dos perillas distintas a proposito: el porcentaje escala con el fondo,
+        /// mientras que el limite en pesos no se mueve aunque el fondo crezca.
         /// </summary>
         private static decimal CalcularLimitePorGasto(FondoCajaChica fondo)
         {
-            var topeReglamentario = fondo.MontoFijo * PorcentajeMaximoPorGasto;
+            var topeReglamentario = fondo.MontoFijo * (fondo.PorcentajeMaximoPorGasto / 100m);
 
             return fondo.LimitePorGasto > 0
                 ? Math.Min(fondo.LimitePorGasto, topeReglamentario)

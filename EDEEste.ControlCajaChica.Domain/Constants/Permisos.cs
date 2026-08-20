@@ -23,6 +23,19 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         /// <summary>Revisar el gasto e inspeccionar sus comprobantes (Gerente).</summary>
         public const string RevisarGastos = "gastos.revisar";
 
+        /// <summary>
+        /// Pedir la anulación de un gasto. No la ejecuta: lo deja pendiente de que el
+        /// Gerente la confirme (Custodio).
+        /// </summary>
+        public const string SolicitarAnulacionGasto = "gastos.anular.solicitar";
+
+        /// <summary>
+        /// Anular un gasto, confirmar una anulación que pidió el Custodio, o
+        /// revertirla. Es la misma decisión sobre el mismo expediente, así que es un
+        /// solo permiso (Gerente).
+        /// </summary>
+        public const string AnularGasto = "gastos.anular";
+
         // --- Arqueos ---
         public const string VerArqueos = "arqueos.ver";
         public const string EjecutarArqueo = "arqueos.ejecutar";
@@ -50,6 +63,8 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
             VerGastos,
             RegistrarGasto,
             RevisarGastos,
+            SolicitarAnulacionGasto,
+            AnularGasto,
             VerArqueos,
             EjecutarArqueo,
             VerReposiciones,

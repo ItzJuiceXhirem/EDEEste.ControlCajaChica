@@ -6,8 +6,26 @@
 
 <div class="d-flex justify-content-between align-items-center">
     <h1>Gastos</h1>
-    <a class="btn btn-primary" href="/gastos/registrar">Registrar gasto</a>
+    <AuthorizeView Policy="@Permisos.RegistrarGasto" Context="autorizacionRegistrar">
+        <a class="btn btn-primary" href="/gastos/registrar">Registrar gasto</a>
+    </AuthorizeView>
 </div>
+
+@if (errores.Count > 0)
+{
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach (var error in errores)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+@if (exito is not null)
+{
+    <div class="alert alert-success">@exito</div>
+}
 
 @if (fondos is null)
 {
@@ -53,6 +71,7 @@ else
                     <th class="text-center">Adjuntos</th>
                     <th class="text-end">Monto</th>
                     <th>Estado</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -67,18 +86,164 @@ else
                         <td class="text-center">@gasto.Comprobantes.Count</td>
                         <td class="text-end">@gasto.MontoTotal.ToString("N2")</td>
                         <td>
-                            <span class="badge @ClaseEstado(gasto.Estado)">@gasto.Estado</span>
+                            <span class="badge @ClaseEstado(gasto.Estado)">@EtiquetaEstado(gasto.Estado)</span>
+                        </td>
+                        <td>
+                            @if (gasto.Estado == EstadoGasto.PendienteReposicion)
+                            {
+                                <AuthorizeView Policy="@Permisos.SolicitarAnulacionGasto" Context="autorizacionSolicitar">
+                                    <button class="btn btn-sm btn-outline-warning" disabled="@(procesando is not null)"
+                                            @onclick="() => AbrirFormularioAnulacion(gasto.Id, false)">
+                                        Solicitar anulación
+                                    </button>
+                                </AuthorizeView>
+                                <AuthorizeView Policy="@Permisos.AnularGasto" Context="autorizacionAnular">
+                                    <button class="btn btn-sm btn-outline-danger" disabled="@(procesando is not null)"
+                                            @onclick="() => AbrirFormularioAnulacion(gasto.Id, true)">
+                                        Anular
+                                    </button>
+                                </AuthorizeView>
+                            }
                         </td>
                     </tr>
+                    @if (gastoEnAnulacion == gasto.Id)
+                    {
+                        <tr>
+                            <td colspan="9">
+                                <div class="card card-body">
+                                    <label class="form-label">
+                                        Motivo de la anulación
+                                        @if (!anulacionDirectaEnCurso)
+                                        {
+                                            <span class="text-muted">(obligatorio)</span>
+                                        }
+                                    </label>
+                                    <textarea class="form-control mb-2" rows="2" maxlength="500" @bind="motivoAnulacion"></textarea>
+                                    <div>
+                                        <button class="btn btn-sm btn-primary" disabled="@(procesando is not null)"
+                                                @onclick="ConfirmarFormularioAnulacionAsync">
+                                            Confirmar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="CancelarFormularioAnulacion">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
                 }
             </tbody>
             <tfoot>
                 <tr class="fw-bold">
                     <td colspan="6" class="text-end">Total</td>
                     <td class="text-end">@gastos.Sum(g => g.MontoTotal).ToString("N2")</td>
-                    <td></td>
+                    <td colspan="2"></td>
                 </tr>
             </tfoot>
         </table>
     }
+
+    <AuthorizeView Policy="@Permisos.AnularGasto" Context="autorizacionConfirmar">
+        @if (anulacionesPendientes is { Count: > 0 })
+        {
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="h5">Anulaciones pendientes de confirmación</h2>
+                    <div class="alert alert-info">Al confirmar, el monto vuelve al fondo.</div>
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>NCF</th>
+                                <th>Proveedor</th>
+                                <th class="text-end">Monto</th>
+                                <th>Motivo</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var gasto in anulacionesPendientes)
+                            {
+                                <tr>
+                                    <td>@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
+                                    <td>@gasto.NCF</td>
+                                    <td>@gasto.Proveedor</td>
+                                    <td class="text-end">@gasto.MontoTotal.ToString("N2")</td>
+                                    <td>@gasto.MotivoAnulacion</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" disabled="@(procesando is not null)"
+                                                @onclick="() => ConfirmarAnulacionAsync(gasto.Id)">
+                                            Confirmar anulación
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled="@(procesando is not null)"
+                                                @onclick="() => RevertirAnulacionAsync(gasto.Id)">
+                                            Devolver a pendiente
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </AuthorizeView>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h2 class="h5 mb-0">Gastos anulados</h2>
+                <div class="d-flex gap-2">
+                    <select class="form-select form-select-sm" style="width: auto;" @onchange="CambiarVentanaAnuladosAsync">
+                        <option value="30" selected="@(diasAnulados == 30)">Últimos 30 días</option>
+                        <option value="60" selected="@(diasAnulados == 60)">Últimos 60 días</option>
+                        <option value="90" selected="@(diasAnulados == 90)">Últimos 90 días</option>
+                        <option value="" selected="@(diasAnulados == null)">Todo el historial</option>
+                    </select>
+                    <input type="search" class="form-control form-control-sm" style="width: 240px;"
+                           placeholder="Buscar por proveedor, NCF, motivo..." @bind="busquedaAnulados" @bind:event="oninput" />
+                </div>
+            </div>
+
+            @if (anulados is null)
+            {
+                <p><em>Cargando...</em></p>
+            }
+            else if (anulados.Count == 0)
+            {
+                <p class="text-muted mb-0">No hay gastos anulados en esta ventana.</p>
+            }
+            else if (!AnuladosFiltrados.Any())
+            {
+                <p class="text-muted mb-0">Ningún gasto anulado coincide con la búsqueda.</p>
+            }
+            else
+            {
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>NCF</th>
+                            <th>Proveedor</th>
+                            <th class="text-end">Monto</th>
+                            <th>Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var gasto in AnuladosFiltrados)
+                        {
+                            <tr>
+                                <td>@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
+                                <td>@gasto.NCF</td>
+                                <td>@gasto.Proveedor</td>
+                                <td class="text-end">@gasto.MontoTotal.ToString("N2")</td>
+                                <td>@gasto.MotivoAnulacion</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
 }
