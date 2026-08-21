@@ -1,10 +1,10 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 @inject NavigationManager NavigationManager
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">EDEEste.ControlCajaChica.Presentation</a>
+        <a class="navbar-brand" href="">Control de Caja Chica</a>
     </div>
 </div>
 
@@ -14,27 +14,52 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Inicio
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
+        @* Cada opción se muestra solo si el rol la puede abrir. El AuthorizeView es
+           cosmético: quien escriba la URL a mano igual choca con el [Authorize] de
+           la página. *@
+        <AuthorizeView Policy="@Permisos.VerGastos">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="gastos">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Gastos
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+        <AuthorizeView Policy="@Permisos.VerReposiciones">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="reposiciones">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Reposiciones
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="auth">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Auth Required
-            </NavLink>
-        </div>
+        <AuthorizeView Policy="@Permisos.ConfigurarFondos">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="fondos">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Fondos
+                </NavLink>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@Permisos.ConfigurarCategorias">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="categorias">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Categorías
+                </NavLink>
+            </div>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@Permisos.AdministrarUsuarios">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="usuarios">
+                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Usuarios
+                </NavLink>
+            </div>
+        </AuthorizeView>
 
         <AuthorizeView>
             <Authorized>
@@ -48,7 +73,7 @@
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />
                         <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Cerrar sesión
                         </button>
                     </form>
                 </div>
@@ -56,12 +81,12 @@
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Registrarse
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Iniciar sesión
                     </NavLink>
                 </div>
             </NotAuthorized>
@@ -89,4 +114,3 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
-

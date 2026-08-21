@@ -1,0 +1,69 @@
+@page "/configuracion-inicial"
+
+<PageTitle>Configuración inicial</PageTitle>
+
+<h1>Configuración inicial</h1>
+
+@if (yaHayAdministrador)
+{
+    <p><em>Redirigiendo...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-lg-6">
+            <p class="text-muted">
+                El sistema todavía no tiene ningún Administrador. Cree el primero para
+                poder aprobar los accesos del resto del equipo. Esta pantalla dejará de
+                estar disponible en cuanto exista un Administrador.
+            </p>
+
+            @if (errores.Count > 0)
+            {
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach (var error in errores)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <EditForm Model="Input" method="post" OnValidSubmit="CrearAdministradorAsync" FormName="config-inicial">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" role="alert" />
+
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
+                               autocomplete="username" placeholder="nombre.apellido" />
+                    <label for="Input.Usuario">Usuario</label>
+                    <div class="form-text">Formato nombre.apellido, igual que en Windows.</div>
+                    <ValidationMessage For="() => Input.Usuario" class="text-danger" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control"
+                               autocomplete="name" placeholder="Juan Pérez" />
+                    <label for="Input.Nombre">Nombre completo</label>
+                    <ValidationMessage For="() => Input.Nombre" class="text-danger" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
+                               autocomplete="new-password" placeholder="contraseña" />
+                    <label for="Input.Password">Contraseña</label>
+                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control"
+                               autocomplete="new-password" placeholder="contraseña" />
+                    <label for="Input.ConfirmPassword">Confirmar contraseña</label>
+                    <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+                </div>
+
+                <button type="submit" class="w-100 btn btn-lg btn-primary" disabled="@creando">
+                    @(creando ? "Creando..." : "Crear Administrador")
+                </button>
+            </EditForm>
+        </div>
+    </div>
+}

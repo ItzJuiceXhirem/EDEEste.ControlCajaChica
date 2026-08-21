@@ -1,0 +1,271 @@
+@page "/reposiciones"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permisos.VerReposiciones)]
+
+<PageTitle>Reposiciones</PageTitle>
+
+<h1>Solicitudes de reposición</h1>
+
+@if (errores.Count > 0)
+{
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach (var error in errores)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+@if (exito is not null)
+{
+    <div class="alert alert-success">@exito</div>
+}
+
+@if (porAprobar is { Count: > 0 })
+{
+    <AuthorizeView Policy="@Permisos.AprobarReposicion" Context="autorizacionAprobar">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">Solicitudes pendientes de aprobación</h2>
+                <div class="alert alert-warning">
+                    Al rechazar, los gastos vuelven a quedar pendientes de reposición y podrán entrar en una
+                    nueva solicitud. El expediente PDF se conserva en el historial.
+                </div>
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Fondo</th>
+                            <th class="text-end">Monto reclamado</th>
+                            <th>Expediente</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var solicitud in porAprobar)
+                        {
+                            <tr>
+                                <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(solicitud.FondoCajaChica?.CustodioId is { Length: > 0 } custodioId ? custodioId : "(sin asignar)")</td>
+                                <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-secondary" href="/reposiciones/@solicitud.Id/pdf" target="_blank">
+                                        Descargar PDF
+                                    </a>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-success" disabled="@(procesando is not null)"
+                                            @onclick="() => AprobarAsync(solicitud.Id, true)">
+                                        Aprobar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" disabled="@(procesando is not null)"
+                                            @onclick="() => AprobarAsync(solicitud.Id, false)">
+                                        Rechazar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </AuthorizeView>
+}
+
+@if (porPagar is { Count: > 0 })
+{
+    <AuthorizeView Policy="@Permisos.PagarReposicion" Context="autorizacionPagar">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">Aprobadas pendientes de pago</h2>
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Fondo</th>
+                            <th class="text-end">Monto a pagar</th>
+                            <th>Expediente</th>
+                            <th style="min-width: 220px;">Referencia de pago</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var solicitud in porPagar)
+                        {
+                            <tr>
+                                <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(solicitud.FondoCajaChica?.CustodioId is { Length: > 0 } custodioId ? custodioId : "(sin asignar)")</td>
+                                <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-secondary" href="/reposiciones/@solicitud.Id/pdf" target="_blank">
+                                        Descargar PDF
+                                    </a>
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" placeholder="N.º de transferencia, cheque o asiento"
+                                           value="@(referencias.TryGetValue(solicitud.Id, out var referenciaActual) ? referenciaActual : string.Empty)"
+                                           @onchange="e => referencias[solicitud.Id] = e.Value?.ToString() ?? string.Empty" />
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" disabled="@(procesando is not null)"
+                                            @onclick="() => PagarAsync(solicitud.Id)">
+                                        Registrar pago
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </AuthorizeView>
+}
+
+@if (fondos is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (fondos.Count == 0)
+{
+    <div class="alert alert-warning">Primero cree <a href="/fondos">un fondo</a>.</div>
+}
+else
+{
+    <div class="mb-3" style="max-width: 480px;">
+        <label class="form-label">Fondo</label>
+        <select class="form-select" value="@fondoSeleccionado" @onchange="CambiarFondoAsync">
+            @foreach (var fondo in fondos)
+            {
+                <option value="@fondo.Id">
+                    Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                    &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
+                </option>
+            }
+        </select>
+    </div>
+
+    @if (fondoActual is not null)
+    {
+        var umbral = fondoActual.MontoFijo * (PorcentajeAlerta(fondoActual) / 100m);
+        var habilitada = fondoActual.BalanceActual <= umbral;
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">Gastos pendientes de reposición</h2>
+
+                @if (pendientes is null)
+                {
+                    <p><em>Cargando...</em></p>
+                }
+                else if (pendientes.Count == 0)
+                {
+                    <p class="text-muted mb-0">No hay gastos pendientes en este fondo.</p>
+                }
+                else
+                {
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>NCF</th>
+                                <th>Proveedor</th>
+                                <th class="text-center">Adjuntos</th>
+                                <th class="text-end">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var gasto in pendientes)
+                            {
+                                <tr>
+                                    <td>@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
+                                    <td>@gasto.NCF</td>
+                                    <td>@gasto.Proveedor</td>
+                                    <td class="text-center">@gasto.Comprobantes.Count</td>
+                                    <td class="text-end">@gasto.MontoTotal.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td colspan="4" class="text-end">Total a reponer</td>
+                                <td class="text-end">@pendientes.Sum(g => g.MontoTotal).ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    @if (!habilitada)
+                    {
+                        <div class="alert alert-warning">
+                            Quedan RD$ @fondoActual.BalanceActual.ToString("N2") en el fondo.
+                            La reposición se habilita al bajar de RD$ @umbral.ToString("N2")
+                            (@PorcentajeAlerta(fondoActual).ToString("N0")% del fondo fijo).
+                        </div>
+                    }
+
+                    <button class="btn btn-primary" disabled="@(generando || !habilitada)" @onclick="GenerarAsync">
+                        @(generando ? "Generando expediente..." : "Generar solicitud y expediente PDF")
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <h2 class="h5">Solicitudes del fondo</h2>
+    @if (solicitudes is null)
+    {
+        <p><em>Cargando...</em></p>
+    }
+    else if (solicitudes.Count == 0)
+    {
+        <p class="text-muted">Este fondo no tiene solicitudes todavía.</p>
+    }
+    else
+    {
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Solicitud</th>
+                    <th class="text-end">Monto reclamado</th>
+                    <th>Estado</th>
+                    <th>Gerente</th>
+                    <th>Fecha aprobación</th>
+                    <th>Finanzas</th>
+                    <th>Fecha pago</th>
+                    <th>Referencia</th>
+                    <th>Expediente</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var solicitud in solicitudes)
+                {
+                    <tr>
+                        <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><code>@solicitud.Id.ToString()[..8]</code></td>
+                        <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
+                        <td>@solicitud.Estado</td>
+                        <td>@(solicitud.GerenteUsuarioId ?? "-")</td>
+                        <td>@(solicitud.FechaAprobacion?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>@(solicitud.FinanzasUsuarioId ?? "-")</td>
+                        <td>@(solicitud.FechaPago?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                        <td>@(solicitud.ReferenciaPago ?? "-")</td>
+                        <td>
+                            @if (string.IsNullOrWhiteSpace(solicitud.RutaPdfConsolidado))
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                            else
+                            {
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   href="/reposiciones/@solicitud.Id/pdf" target="_blank">
+                                    Descargar PDF
+                                </a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}

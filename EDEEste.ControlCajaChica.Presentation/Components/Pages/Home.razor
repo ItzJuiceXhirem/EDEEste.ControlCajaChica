@@ -1,7 +1,70 @@
-﻿@page "/"
+@page "/"
+@rendermode InteractiveServer
+@* Sin permiso concreto: el panel lo ve cualquier cuenta aprobada, y cada tarjeta
+   enlaza a pantallas que sí están protegidas por su permiso. *@
+@attribute [Authorize]
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Control de Caja Chica</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Control de Caja Chica</h1>
 
-Welcome to your new app.
+@if (fondos is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (fondos.Count == 0)
+{
+    <div class="alert alert-info">
+        <p class="mb-2">Todavía no hay nada configurado. Para empezar a probar el flujo completo:</p>
+        <ol class="mb-0">
+            <li>Cree <a href="/fondos">un fondo de caja chica</a>.</li>
+            <li>Cree <a href="/categorias">al menos una categoría de gasto</a>.</li>
+            <li>Registre gastos con sus comprobantes y luego genere la reposición.</li>
+        </ol>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var fondo in fondos)
+        {
+            var porcentaje = fondo.MontoFijo > 0 ? fondo.BalanceActual / fondo.MontoFijo * 100m : 0m;
+            var alerta = PorcentajeAlerta(fondo);
+
+            <div class="col-md-6 col-xl-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h2 class="h6 text-muted">
+                            Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                        </h2>
+                        <p class="display-6 mb-0">RD$ @fondo.BalanceActual.ToString("N2")</p>
+                        <p class="text-muted">de RD$ @fondo.MontoFijo.ToString("N2") &mdash; @porcentaje.ToString("N1")% disponible</p>
+
+                        <div class="progress mb-3" role="progressbar" aria-label="Balance del fondo"
+                             aria-valuenow="@((double)porcentaje)" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar @ClaseBarra(porcentaje)"
+                                 style="width: @porcentaje.ToString("N0")%"></div>
+                        </div>
+
+                        @if (porcentaje <= alerta)
+                        {
+                            <p class="text-warning mb-2">
+                                El fondo bajo del @alerta.ToString("N0")%: toca solicitar reposición.
+                            </p>
+                        }
+
+                        @* Condicionados por permiso: un Administrador no tiene acceso
+                           operativo, así que ofrecerle estos botones solo lo mandaría
+                           a una pantalla que no puede abrir. *@
+                        <AuthorizeView Policy="@Permisos.VerGastos">
+                            <a class="btn btn-sm btn-outline-primary" href="/gastos">Ver gastos</a>
+                        </AuthorizeView>
+                        <AuthorizeView Policy="@Permisos.VerReposiciones">
+                            <a class="btn btn-sm btn-outline-secondary" href="/reposiciones">Reposiciones</a>
+                        </AuthorizeView>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

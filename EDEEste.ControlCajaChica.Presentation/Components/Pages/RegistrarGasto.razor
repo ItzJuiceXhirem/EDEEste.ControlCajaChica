@@ -1,0 +1,165 @@
+@page "/gastos/registrar"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permisos.RegistrarGasto)]
+
+<PageTitle>Registrar gasto</PageTitle>
+
+<h1>Registrar gasto</h1>
+
+@if (errores.Count > 0)
+{
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach (var mensajeError in errores)
+            {
+                <li>@mensajeError</li>
+            }
+        </ul>
+    </div>
+}
+@if (exito is not null)
+{
+    <div class="alert alert-success">@exito</div>
+}
+
+@if (fondos is null || categorias is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (fondos.Count == 0 || categorias.Count == 0)
+{
+    <div class="alert alert-warning">
+        Antes de registrar un gasto hace falta al menos
+        <a href="/fondos">un fondo</a> y <a href="/categorias">una categoría activa</a>.
+    </div>
+}
+else
+{
+    <EditForm Model="entrada" OnValidSubmit="GuardarAsync" FormName="registrar-gasto">
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Fondo</label>
+                <InputSelect @bind-Value="entrada.FondoCajaChicaId" class="form-select">
+                    @foreach (var fondo in fondos)
+                    {
+                        <option value="@fondo.Id">
+                            Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                            &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
+                        </option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Categoría</label>
+                <InputSelect @bind-Value="entrada.CategoriaGastoId" class="form-select">
+                    @foreach (var categoria in categorias)
+                    {
+                        <option value="@categoria.Id">@categoria.Nombre</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Proveedor</label>
+                <InputText @bind-Value="entrada.Proveedor" class="form-control" maxlength="150" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">RNC / Cédula</label>
+                @* Input plano en vez de InputText: el valor se reescribe en cada
+                   pulsación para insertar los guiones de la cédula. *@
+                <input class="form-control" maxlength="13" inputmode="numeric"
+                       value="@entrada.RNCProveedor" @oninput="FormatearRnc" />
+                <div class="form-text">9 dígitos (RNC) u 11 (cédula).</div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">NCF</label>
+                <InputText @bind-Value="entrada.NCF" class="form-control" maxlength="13" />
+                <div class="form-text">11 (NCF) o 13 (e-NCF).</div>
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <label class="form-label">Concepto</label>
+            <InputText @bind-Value="entrada.Concepto" class="form-control" maxlength="500" />
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Subtotal</label>
+                <InputNumber @bind-Value="entrada.Subtotal" class="form-control" min="0" step="0.01" placeholder="0" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">ITBIS</label>
+                <InputNumber @bind-Value="entrada.MontoITBIS" class="form-control" min="0" step="0.01" placeholder="0" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Monto total</label>
+                <InputNumber @bind-Value="entrada.MontoTotal" class="form-control" min="0" step="0.01" placeholder="0" />
+                <div class="form-text">Subtotal + ITBIS debe cuadrar con este total.</div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Fecha del gasto</label>
+                @* Un gasto no puede haber ocurrido todavía: el selector no ofrece
+                   fechas futuras y el handler vuelve a comprobarlo. *@
+                <InputDate @bind-Value="entrada.FechaGasto" class="form-control"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+        </div>
+
+        <hr />
+
+        <h2 class="h5">Comprobantes</h2>
+        <p class="text-muted small">
+            Acepta PDF, JPG, JPEG y PNG. La transcripción que escriba aquí es la que
+            aparecerá en la portada de ese comprobante dentro del expediente PDF, para
+            que gerencia y finanzas puedan leer los datos aunque la foto salga borrosa.
+        </p>
+
+        <div class="mb-2">
+            <InputFile OnChange="SeleccionarArchivos" multiple accept=".pdf,.jpg,.jpeg,.png" class="form-control" />
+        </div>
+
+        @if (adjuntos.Count > 0)
+        {
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Archivo</th>
+                        <th>Transcripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var adjunto in adjuntos)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        @adjunto.Archivo.Name
+                                        <div class="text-muted small">@(adjunto.Archivo.Size / 1024) KB</div>
+                                    </div>
+                                    <button type="button" class="btn-close mt-1"
+                                            title="Quitar este archivo"
+                                            aria-label="Quitar @adjunto.Archivo.Name"
+                                            @onclick="() => QuitarAdjunto(adjunto)"></button>
+                                </div>
+                            </td>
+                            <td>
+                                <input class="form-control" maxlength="200"
+                                       placeholder="Ej: Factura de la ferretería / Autorización por correo - Juan Pérez"
+                                       value="@adjunto.Descripcion"
+                                       @oninput="e => adjunto.Descripcion = e.Value?.ToString() ?? string.Empty" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <button type="submit" class="btn btn-primary" disabled="@guardando">
+            @(guardando ? "Guardando..." : "Registrar gasto")
+        </button>
+    </EditForm>
+}

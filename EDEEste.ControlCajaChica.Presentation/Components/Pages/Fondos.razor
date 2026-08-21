@@ -1,0 +1,96 @@
+@page "/fondos"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permisos.ConfigurarFondos)]
+
+<PageTitle>Fondos de caja chica</PageTitle>
+
+<h1>Fondos de caja chica</h1>
+
+@* Pantalla provisional de administración: existe para poder crear el fondo con el
+   que se prueban los gastos y las reposiciones. Cuando se implemente el caso de uso
+   del Administrador (configurar fondos, límites y custodios) esta página debería
+   pasar a llamar ese comando en vez de escribir por el repositorio. *@
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <h2 class="h5">Fondos registrados</h2>
+
+        @if (fondos is null)
+        {
+            <p><em>Cargando...</em></p>
+        }
+        else if (fondos.Count == 0)
+        {
+            <p class="text-muted">Todavía no hay fondos. Cree uno con el formulario de la derecha.</p>
+        }
+        else
+        {
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Custodio</th>
+                        <th class="text-end">Fondo fijo</th>
+                        <th class="text-end">Balance</th>
+                        <th class="text-end">% restante</th>
+                        <th class="text-end">Límite/gasto</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fondo in fondos)
+                    {
+                        var porcentaje = fondo.MontoFijo > 0 ? fondo.BalanceActual / fondo.MontoFijo * 100m : 0m;
+                        <tr>
+                            <td>@(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)</td>
+                            <td class="text-end">@fondo.MontoFijo.ToString("N2")</td>
+                            <td class="text-end">@fondo.BalanceActual.ToString("N2")</td>
+                            <td class="text-end">@porcentaje.ToString("N1")%</td>
+                            <td class="text-end">@LimiteEfectivo(fondo).ToString("N2")</td>
+                            <td>@fondo.Estado</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        <h2 class="h5">Nuevo fondo</h2>
+        <EditForm Model="entrada" OnValidSubmit="CrearAsync" FormName="nuevo-fondo">
+            <div class="mb-2">
+                <label class="form-label">Monto fijo (RD$)</label>
+                <InputNumber @bind-Value="entrada.MontoFijo" class="form-control" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Límite por gasto (RD$)</label>
+                <InputNumber @bind-Value="entrada.LimitePorGasto" class="form-control" />
+                <div class="form-text">
+                    Déjelo en 0 para usar el tope reglamentario (2.5% del fondo fijo).
+                    Un valor mayor a ese tope no surte efecto: siempre manda el más estricto.
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">% de alerta para reposición</label>
+                <InputNumber @bind-Value="entrada.PorcentajeAlertaReposicion" class="form-control" />
+                <div class="form-text">La reposición se habilita cuando el balance baja de este porcentaje.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Id del custodio</label>
+                <InputText @bind-Value="entrada.CustodioId" class="form-control" />
+                <div class="form-text">Provisional: se escribe a mano hasta que exista la pantalla de asignación de usuarios.</div>
+            </div>
+            <button type="submit" class="btn btn-primary" disabled="@guardando">
+                @(guardando ? "Guardando..." : "Crear fondo")
+            </button>
+        </EditForm>
+    </div>
+</div>

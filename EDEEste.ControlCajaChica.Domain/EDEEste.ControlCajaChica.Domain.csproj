@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,8 +6,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!--
+    Domain no referencia ningun paquete a proposito: es la capa mas interna de la
+    arquitectura y no debe conocer ASP.NET Identity, EF Core ni ningun framework.
+    La entidad de identidad (Usuario) vive en Infrastructure/Identity.
+  -->
+
   <ItemGroup>
-    <Folder Include="Exceptions\" />
     <Folder Include="ValueObjects\" />
   </ItemGroup>
 
