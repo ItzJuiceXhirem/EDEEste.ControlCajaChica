@@ -35,7 +35,7 @@ else
                 <div class="card h-100">
                     <div class="card-body">
                         <h2 class="h6 text-muted">
-                            Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                            Custodio @NombreCustodio(fondo.CustodioId)
                         </h2>
                         <p class="display-6 mb-0">RD$ @fondo.BalanceActual.ToString("N2")</p>
                         <p class="text-muted">de RD$ @fondo.MontoFijo.ToString("N2") &mdash; @porcentaje.ToString("N1")% disponible</p>

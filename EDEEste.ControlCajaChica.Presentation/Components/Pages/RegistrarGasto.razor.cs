@@ -25,10 +25,17 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private ICategoriaGastoRepository Categorias { get; set; } = default!;
 
         [Inject]
+        private IIdentityService Identidad { get; set; } = default!;
+
+        [Inject]
         private RegistrarGastoHandler Handler { get; set; } = default!;
 
         private IReadOnlyList<FondoCajaChica>? fondos;
         private IReadOnlyList<CategoriaGasto>? categorias;
+
+        // CustodioId guarda el Id de Identity (un GUID), no un nombre: sin este mapa,
+        // el desplegable de fondos mostraria el GUID crudo en vez del nombre de usuario.
+        private Dictionary<string, string> nombresDeCustodio = new();
 
         private readonly EntradaGasto entrada = new();
         private readonly List<AdjuntoSeleccionado> adjuntos = new();
@@ -41,10 +48,25 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             fondos = await Fondos.ListarAsync();
             categorias = await Categorias.ListarActivasAsync();
+            await ResolverNombresDeCustodioAsync();
 
             entrada.FondoCajaChicaId = fondos.FirstOrDefault()?.Id ?? Guid.Empty;
             entrada.CategoriaGastoId = categorias.FirstOrDefault()?.Id ?? Guid.Empty;
         }
+
+        private async Task ResolverNombresDeCustodioAsync()
+        {
+            var mapa = new Dictionary<string, string>();
+            foreach (var id in fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+            {
+                mapa[id] = await Identidad.ObtenerNombreUsuarioAsync(id) ?? id;
+            }
+
+            nombresDeCustodio = mapa;
+        }
+
+        private string NombreCustodio(string custodioId) =>
+            string.IsNullOrWhiteSpace(custodioId) ? "(sin asignar)" : nombresDeCustodio.GetValueOrDefault(custodioId, custodioId);
 
         private void SeleccionarArchivos(InputFileChangeEventArgs e)
         {
@@ -64,13 +86,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         }
 
         /// <summary>
-        /// Deja solo dígitos y, cuando llegan a 11 (una cédula), los muestra como
-        /// XXX-XXXXXXX-X. Un RNC de empresa (9 dígitos) se deja sin guiones. Lo que se
-        /// envía al handler se vuelve a limpiar allí, así que en BDD solo entran dígitos.
+        /// Corre despues de cada pulsacion (via @bind-Value:after). Deja solo dígitos
+        /// (descarta letras y símbolos) y, cuando llegan a 11 (una cédula), los
+        /// muestra como XXX-XXXXXXX-X. Un RNC de empresa (9 dígitos) se deja sin
+        /// guiones. Lo que se envía al handler se limpia de guiones otra vez allí, así
+        /// que en BDD solo entran dígitos.
         /// </summary>
-        private void FormatearRnc(ChangeEventArgs e)
+        private void FormatearRnc()
         {
-            var digitos = new string((e.Value?.ToString() ?? string.Empty).Where(char.IsDigit).ToArray());
+            var digitos = new string((entrada.RNCProveedor ?? string.Empty).Where(char.IsDigit).ToArray());
 
             if (digitos.Length > 11)
             {
@@ -80,6 +104,19 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             entrada.RNCProveedor = digitos.Length == 11
                 ? $"{digitos[..3]}-{digitos[3..10]}-{digitos[10]}"
                 : digitos;
+        }
+
+        /// <summary>
+        /// Corre despues de cada pulsacion (via @bind-Value:after). Descarta símbolos
+        /// y espacios y normaliza a mayúsculas; no fuerza el formato completo mientras
+        /// se escribe (un NCF a medio teclear no calza con el patrón todavía). El
+        /// handler valida el formato exacto al guardar.
+        /// </summary>
+        private void FiltrarNcf()
+        {
+            var texto = (entrada.NCF ?? string.Empty).ToUpperInvariant();
+            var filtrado = texto.Where(char.IsLetterOrDigit).ToArray();
+            entrada.NCF = new string(filtrado, 0, Math.Min(filtrado.Length, 13));
         }
 
         private async Task GuardarAsync()

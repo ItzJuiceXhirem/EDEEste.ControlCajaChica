@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
@@ -34,6 +35,10 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         {
             ".pdf", ".jpg", ".jpeg", ".png"
         };
+
+        // 'B' + 0/1 + 9 digitos (NCF de papel, 11 caracteres) o 'E' + 3/4 + 11 digitos
+        // (e-NCF, 13 caracteres). Nada mas pasa: ni espacios, ni guiones, ni otras letras.
+        private static readonly Regex PatronNcf = new("^(B[01][0-9]{9}|E[34][0-9]{11})$", RegexOptions.Compiled);
 
         private readonly IFondoRepository _fondos;
         private readonly ICategoriaGastoRepository _categorias;
@@ -87,10 +92,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 FondoCajaChicaId = fondo.Id,
                 CategoriaGastoId = categoria.Id,
                 Proveedor = comando.Proveedor.Trim(),
-                // Se guarda canonico (solo digitos): la columna es nvarchar(11) y con
-                // los guiones de la cedula el texto mide 13. El formato es cosa de la
-                // pantalla, no del dato.
-                RNCProveedor = SoloDigitos(comando.RNCProveedor),
+                // Se guarda canonico (solo digitos, sin los guiones que la pantalla le
+                // pone a la cedula): el formato es cosa de la pantalla, no del dato.
+                RNCProveedor = SinGuiones(comando.RNCProveedor),
                 NCF = comando.NCF.Trim(),
                 Concepto = comando.Concepto?.Trim(),
                 Subtotal = comando.Subtotal,
@@ -161,6 +165,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 errores.Add("El ITBIS no puede ser negativo.");
             }
 
+            // El ITBIS es un porcentaje del subtotal (18% salvo articulos exentos), asi
+            // que nunca puede igualarlo ni superarlo; si eso pasa, alguien invirtio los
+            // campos o escribio un monto que no corresponde a ningun impuesto real.
+            if (comando.MontoITBIS >= comando.Subtotal)
+            {
+                errores.Add("El ITBIS debe ser menor que el subtotal.");
+            }
+
             // Se compara el desglose contra el total en vez de calcularlo, porque el
             // ITBIS que aparece impreso en la factura manda sobre cualquier cuenta
             // nuestra (hay articulos exentos y tasas distintas).
@@ -190,23 +202,36 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 errores.Add("Debe indicar el proveedor.");
             }
 
-            if (categoria.RequiereNCF && string.IsNullOrWhiteSpace(comando.NCF))
+            var ncf = comando.NCF?.Trim() ?? string.Empty;
+
+            if (categoria.RequiereNCF && ncf.Length == 0)
             {
                 errores.Add($"La categoria '{categoria.Nombre}' exige NCF.");
             }
 
-            // DGII: NCF de papel = 11 caracteres, e-NCF electronico = 13.
-            var ncf = comando.NCF?.Trim() ?? string.Empty;
-            if (ncf.Length is not 0 and not 11 and not 13)
+            // DGII: NCF de papel es 'B' + 0/1 + 9 digitos (11 caracteres); e-NCF
+            // electronico es 'E' + 3/4 + 11 digitos (13 caracteres). Nada de espacios,
+            // guiones ni otras letras -- si no calza con ninguno de los dos moldes, se
+            // rechaza entero en vez de aceptar lo que se pueda.
+            if (ncf.Length > 0 && !PatronNcf.IsMatch(ncf))
             {
-                errores.Add("El NCF debe tener 11 caracteres (NCF) o 13 (e-NCF).");
+                errores.Add(
+                    "El NCF no es valido. Debe empezar con 'B' seguido de 0 o 1 y 9 digitos mas " +
+                    "(11 caracteres), o con 'E' seguido de 3 o 4 y 11 digitos mas (13 caracteres). " +
+                    "No se permiten espacios, guiones ni otras letras.");
             }
 
-            // RNC de empresa = 9 digitos, cedula de persona fisica = 11. El formulario
-            // muestra la cedula con guiones (XXX-XXXXXXX-X), asi que aqui se comparan
-            // solo los digitos.
-            var rnc = SoloDigitos(comando.RNCProveedor);
-            if (rnc.Length > 0 && rnc.Length is not 9 and not 11)
+            // El unico caracter no numerico que se tolera es el guion que la pantalla
+            // le agrega a la cedula (XXX-XXXXXXX-X); cualquier otra cosa -- letras,
+            // espacios, otros simbolos -- se rechaza entera en vez de descartarla en
+            // silencio, que es lo que pasaba antes: un RNC con letras de relleno podia
+            // "cuadrar" en 9 u 11 digitos por accidente una vez limpiado.
+            var rnc = SinGuiones(comando.RNCProveedor);
+            if (rnc.Length > 0 && !rnc.All(char.IsDigit))
+            {
+                errores.Add("El RNC/Cedula solo puede contener numeros (los guiones de la cedula se aceptan aparte).");
+            }
+            else if (rnc.Length > 0 && rnc.Length is not 9 and not 11)
             {
                 errores.Add("El RNC debe tener 9 digitos (empresa) u 11 (cedula).");
             }
@@ -238,12 +263,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         }
 
         /// <summary>
-        /// Deja solo los digitos de un RNC/cedula, descartando guiones y espacios.
+        /// Quita solo guiones (el unico caracter de formato que la pantalla agrega a
+        /// la cedula). No toca ningun otro caracter: si quedo una letra o un simbolo,
+        /// tiene que seguir ahi para que la validacion de "solo numeros" lo detecte.
         /// </summary>
-        private static string SoloDigitos(string? valor) =>
-            string.IsNullOrEmpty(valor)
-                ? string.Empty
-                : new string(valor.Where(char.IsDigit).ToArray());
+        private static string SinGuiones(string? valor) =>
+            string.IsNullOrEmpty(valor) ? string.Empty : valor.Trim().Replace("-", string.Empty);
 
         /// <summary>
         /// El limite efectivo es el mas estricto entre el tope porcentual que el

@@ -6,18 +6,20 @@
 
 <h1>Fondos de caja chica</h1>
 
-@* Pantalla provisional de administración: existe para poder crear el fondo con el
-   que se prueban los gastos y las reposiciones. Cuando se implemente el caso de uso
-   del Administrador (configurar fondos, límites y custodios) esta página debería
-   pasar a llamar ese comando en vez de escribir por el repositorio. *@
-
-@if (mensaje is not null)
+@if (errores.Count > 0)
 {
-    <div class="alert alert-success">@mensaje</div>
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach (var error in errores)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
 }
-@if (error is not null)
+@if (exito is not null)
 {
-    <div class="alert alert-danger">@error</div>
+    <div class="alert alert-success">@exito</div>
 }
 
 <div class="row">
@@ -43,6 +45,7 @@
                         <th class="text-end">% restante</th>
                         <th class="text-end">Límite/gasto</th>
                         <th>Estado</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -50,13 +53,79 @@
                     {
                         var porcentaje = fondo.MontoFijo > 0 ? fondo.BalanceActual / fondo.MontoFijo * 100m : 0m;
                         <tr>
-                            <td>@(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)</td>
+                            <td>@NombreCustodio(fondo.CustodioId)</td>
                             <td class="text-end">@fondo.MontoFijo.ToString("N2")</td>
                             <td class="text-end">@fondo.BalanceActual.ToString("N2")</td>
                             <td class="text-end">@porcentaje.ToString("N1")%</td>
                             <td class="text-end">@LimiteEfectivo(fondo).ToString("N2")</td>
                             <td>@fondo.Estado</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => IniciarEdicion(fondo)">
+                                    Editar
+                                </button>
+                            </td>
                         </tr>
+                        @if (fondoEnEdicion == fondo.Id && entradaEdicion is not null)
+                        {
+                            <tr>
+                                <td colspan="7">
+                                    <div class="card card-body">
+                                        <div class="mb-2">
+                                            <label class="form-label">Monto fijo (RD$)</label>
+                                            <input class="form-control" value="@fondo.MontoFijo.ToString("N2")" readonly disabled />
+                                            <div class="form-text">El monto fijo no se puede modificar después de crear el fondo.</div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Tope por gasto (%)</label>
+                                                <InputNumber @bind-Value="entradaEdicion.PorcentajeMaximoPorGasto" class="form-control" />
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Límite por gasto (RD$)</label>
+                                                <InputNumber @bind-Value="entradaEdicion.LimitePorGasto" class="form-control" />
+                                                <div class="form-text">0 para usar solo el tope porcentual.</div>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">% de alerta para reposición</label>
+                                                <InputNumber @bind-Value="entradaEdicion.PorcentajeAlertaReposicion" class="form-control" />
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Custodio</label>
+                                                <select class="form-select" @bind="entradaEdicion.CustodioId">
+                                                    <option value="">(sin asignar)</option>
+                                                    @if (custodios is not null)
+                                                    {
+                                                        @foreach (var custodio in custodios)
+                                                        {
+                                                            <option value="@custodio.Id">@custodio.Usuario (@custodio.Nombre)</option>
+                                                        }
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Estado</label>
+                                                <select class="form-select" @bind="entradaEdicion.Estado">
+                                                    @foreach (var estado in Enum.GetValues<EstadoFondo>())
+                                                    {
+                                                        <option value="@estado">@estado</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-primary" disabled="@guardando" @onclick="GuardarEdicionAsync">
+                                                @(guardando ? "Guardando..." : "Guardar cambios")
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" @onclick="CancelarEdicion">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
@@ -71,11 +140,16 @@
                 <InputNumber @bind-Value="entrada.MontoFijo" class="form-control" />
             </div>
             <div class="mb-2">
+                <label class="form-label">Tope por gasto (%)</label>
+                <InputNumber @bind-Value="entrada.PorcentajeMaximoPorGasto" class="form-control" />
+                <div class="form-text">Equivale a RD$ @entrada.EquivalenteEnPesos.ToString("N2") sobre el monto fijo indicado.</div>
+            </div>
+            <div class="mb-2">
                 <label class="form-label">Límite por gasto (RD$)</label>
                 <InputNumber @bind-Value="entrada.LimitePorGasto" class="form-control" />
                 <div class="form-text">
-                    Déjelo en 0 para usar el tope reglamentario (2.5% del fondo fijo).
-                    Un valor mayor a ese tope no surte efecto: siempre manda el más estricto.
+                    Déjelo en 0 para usar solo el tope porcentual. Un valor mayor a ese tope no surte
+                    efecto: siempre manda el más estricto.
                 </div>
             </div>
             <div class="mb-2">
@@ -84,9 +158,21 @@
                 <div class="form-text">La reposición se habilita cuando el balance baja de este porcentaje.</div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Id del custodio</label>
-                <InputText @bind-Value="entrada.CustodioId" class="form-control" />
-                <div class="form-text">Provisional: se escribe a mano hasta que exista la pantalla de asignación de usuarios.</div>
+                <label class="form-label">Custodio</label>
+                <select class="form-select" @bind="entrada.CustodioId">
+                    <option value="">(seleccione)</option>
+                    @if (custodios is not null)
+                    {
+                        @foreach (var custodio in custodios)
+                        {
+                            <option value="@custodio.Id">@custodio.Usuario (@custodio.Nombre)</option>
+                        }
+                    }
+                </select>
+                @if (custodios is { Count: 0 })
+                {
+                    <div class="form-text text-warning">Todavía no hay usuarios con el rol Custodio aprobados.</div>
+                }
             </div>
             <button type="submit" class="btn btn-primary" disabled="@guardando">
                 @(guardando ? "Guardando..." : "Crear fondo")

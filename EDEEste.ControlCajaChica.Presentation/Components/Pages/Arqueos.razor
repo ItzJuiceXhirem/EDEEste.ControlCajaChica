@@ -1,0 +1,290 @@
+@page "/arqueos"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permisos.VerArqueos)]
+
+<PageTitle>Arqueos</PageTitle>
+
+<h1>Arqueo de caja</h1>
+
+@if (errores.Count > 0)
+{
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach (var error in errores)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+@if (exito is not null)
+{
+    <div class="alert alert-success">@exito</div>
+}
+
+@if (fondos is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (fondos.Count == 0)
+{
+    <div class="alert alert-warning">Primero cree <a href="/fondos">un fondo</a>.</div>
+}
+else
+{
+    <div class="mb-3" style="max-width: 480px;">
+        <label class="form-label">Fondo</label>
+        <select class="form-select" value="@fondoSeleccionado" @onchange="CambiarFondoAsync">
+            @foreach (var fondo in fondos)
+            {
+                <option value="@fondo.Id">
+                    Custodio @NombreCustodio(fondo.CustodioId)
+                    &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
+                </option>
+            }
+        </select>
+    </div>
+
+    @if (HayArqueoDelMesEnCurso)
+    {
+        <div class="alert alert-info">
+            Este fondo ya tiene un arqueo registrado este mes (@ultimoArqueo!.FechaArqueo.ToString("dd/MM/yyyy")).
+            Puede registrar otro si se trata de un reconteo.
+        </div>
+    }
+
+    <AuthorizeView Policy="@Permisos.EjecutarArqueo" Context="autorizacionEjecutar">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">Nuevo arqueo</h2>
+
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Fecha del arqueo</label>
+                        <input type="date" class="form-control" value="@fechaArqueo.ToString("yyyy-MM-dd")"
+                               max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               @onchange="e => fechaArqueo = DateTime.TryParse(e.Value?.ToString(), out var f) ? f : fechaArqueo" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th colspan="3">Billetes</th>
+                                </tr>
+                                <tr>
+                                    <th>Denominación</th>
+                                    <th style="width: 120px;">Cantidad</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var fila in filas.Where(f => DenominacionesRD.Billetes.Contains(f.ValorDenominacion)))
+                                {
+                                    <tr>
+                                        <td>RD$ @fila.ValorDenominacion.ToString("N2")</td>
+                                        <td>
+                                            <input type="number" min="0" class="form-control form-control-sm"
+                                                   value="@fila.Cantidad"
+                                                   @onchange="e => fila.Cantidad = int.TryParse(e.Value?.ToString(), out var c) ? c : fila.Cantidad" />
+                                        </td>
+                                        <td class="text-end">@fila.Subtotal.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th colspan="3">Monedas</th>
+                                </tr>
+                                <tr>
+                                    <th>Denominación</th>
+                                    <th style="width: 120px;">Cantidad</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var fila in filas.Where(f => DenominacionesRD.Monedas.Contains(f.ValorDenominacion)))
+                                {
+                                    <tr>
+                                        <td>RD$ @fila.ValorDenominacion.ToString("N2")</td>
+                                        <td>
+                                            <input type="number" min="0" class="form-control form-control-sm"
+                                                   value="@fila.Cantidad"
+                                                   @onchange="e => fila.Cantidad = int.TryParse(e.Value?.ToString(), out var c) ? c : fila.Cantidad" />
+                                        </td>
+                                        <td class="text-end">@fila.Subtotal.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td colspan="2" class="text-end">Total contado</td>
+                                    <td class="text-end">RD$ @MontoContado.ToString("N2")</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Observaciones</label>
+                    <textarea class="form-control" rows="2" maxlength="1000" @bind="observaciones"></textarea>
+                </div>
+
+                <div class="card bg-body-secondary mb-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="text-muted small">Saldo teórico</div>
+                                <div class="fw-bold">RD$ @SaldoTeorico.ToString("N2")</div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-muted small">Comprobantes pendientes</div>
+                                <div class="fw-bold">RD$ @MontoComprobantesPendientes.ToString("N2")</div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-muted small">Efectivo contado</div>
+                                <div class="fw-bold">RD$ @MontoContado.ToString("N2")</div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-muted small">Diferencia</div>
+                                <div class="fw-bold">
+                                    <span class="badge @(Diferencia == 0 ? "text-bg-success" : Diferencia > 0 ? "text-bg-info" : "text-bg-danger")">
+                                        RD$ @Diferencia.ToString("N2")
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <hr />
+                        <div>
+                            @(InvarianteCuadra ? "✔" : "✘")
+                            Efectivo contado + comprobantes pendientes = fondo fijo
+                            (RD$ @((MontoContado + MontoComprobantesPendientes).ToString("N2")) de RD$ @(fondoActual?.MontoFijo.ToString("N2")))
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" disabled="@guardando" @onclick="RegistrarAsync">
+                    @(guardando ? "Guardando..." : "Registrar arqueo")
+                </button>
+            </div>
+        </div>
+    </AuthorizeView>
+
+    <h2 class="h5">Historial de arqueos</h2>
+    @if (historial is null)
+    {
+        <p><em>Cargando...</em></p>
+    }
+    else if (historial.Count == 0)
+    {
+        <p class="text-muted">Este fondo todavía no tiene arqueos registrados.</p>
+    }
+    else
+    {
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Resultado</th>
+                    <th class="text-end">Efectivo contado</th>
+                    <th class="text-end">Comprobantes pendientes</th>
+                    <th class="text-end">Saldo teórico</th>
+                    <th class="text-end">Diferencia</th>
+                    <th>Observaciones</th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var arqueo in historial)
+                {
+                    <tr>
+                        <td>@arqueo.FechaArqueo.ToString("dd/MM/yyyy")</td>
+                        <td><span class="badge @ClaseResultado(arqueo.Resultado)">@EtiquetaResultado(arqueo.Resultado)</span></td>
+                        <td class="text-end">@arqueo.MontoEfectivoContado.ToString("N2")</td>
+                        <td class="text-end">@arqueo.MontoComprobantesPendientes.ToString("N2")</td>
+                        <td class="text-end">@arqueo.SaldoTeorico.ToString("N2")</td>
+                        <td class="text-end">@arqueo.Diferencia.ToString("N2")</td>
+                        <td>@TruncarObservacion(arqueo.Observaciones)</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(arqueo.Observaciones) && arqueo.Observaciones.Length > LongitudObservacionEnTabla)
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => VerObservacion(arqueo.Id)">
+                                    Ver observación
+                                </button>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => AlternarDetalle(arqueo.Id)">
+                                @(arqueoExpandido == arqueo.Id ? "Ocultar" : "Ver desglose")
+                            </button>
+                        </td>
+                    </tr>
+                    @if (arqueoExpandido == arqueo.Id)
+                    {
+                        <tr>
+                            <td colspan="9">
+                                @if (arqueo.DetallesDenominacion.Count == 0)
+                                {
+                                    <p class="text-muted mb-0">Sin denominaciones registradas (conteo en cero).</p>
+                                }
+                                else
+                                {
+                                    <table class="table table-sm mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Denominación</th>
+                                                <th class="text-end">Cantidad</th>
+                                                <th class="text-end">Subtotal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var detalle in arqueo.DetallesDenominacion.OrderByDescending(d => d.ValorDenominacion))
+                                            {
+                                                <tr>
+                                                    <td>RD$ @detalle.ValorDenominacion.ToString("N2")</td>
+                                                    <td class="text-end">@detalle.Cantidad</td>
+                                                    <td class="text-end">@detalle.SubtotalDenominacion.ToString("N2")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@if (arqueoObservacionAbierta is not null && ArqueoConObservacionAbierta is { } arqueoConObservacion)
+{
+    @* Modal armado a mano con clases de Bootstrap: el proyecto solo carga bootstrap.min.css
+       (no el bundle JS), asi que la visibilidad la controla el propio estado de Blazor
+       en vez de data-bs-toggle. *@
+    <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); overflow-y: auto;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color: #002a5f;">
+                    <h5 class="modal-title">Observación del arqueo del @arqueoConObservacion.FechaArqueo.ToString("dd/MM/yyyy")</h5>
+                    <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" @onclick="CerrarObservacion"></button>
+                </div>
+                <div class="modal-body bg-white">
+                    <p class="mb-0" style="white-space: pre-wrap; word-break: break-word;">@arqueoConObservacion.Observaciones</p>
+                </div>
+                <div class="modal-footer" style="background-color: #002a5f;">
+                    <button type="button" class="btn btn-danger" @onclick="CerrarObservacion">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

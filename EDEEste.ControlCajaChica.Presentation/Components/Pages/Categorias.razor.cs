@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Application.Features.Categorias;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using Microsoft.AspNetCore.Components;
 
@@ -13,39 +14,60 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private ICategoriaGastoRepository RepositorioCategorias { get; set; } = default!;
 
         [Inject]
-        private IApplicationDbContext Contexto { get; set; } = default!;
+        private CrearCategoriaGastoHandler HandlerCrear { get; set; } = default!;
+
+        [Inject]
+        private ActualizarCategoriaGastoHandler HandlerActualizar { get; set; } = default!;
 
         private IReadOnlyList<CategoriaGasto>? categorias;
         private readonly EntradaCategoria entrada = new();
         private bool guardando;
         private Guid? cambiandoId;
-        private string? mensaje;
-        private string? error;
+
+        private Guid? categoriaEnEdicion;
+        private EntradaEdicionCategoria? entradaEdicion;
+
+        private readonly List<string> errores = new();
+        private string? exito;
 
         protected override async Task OnInitializedAsync() => await RecargarAsync();
 
+        private async Task RecargarAsync() => categorias = await RepositorioCategorias.ListarAsync();
+
         /// <summary>
-        /// La categoría viene rastreada por el mismo DbContext con scope que usa el
-        /// repositorio, así que basta con cambiar la propiedad y guardar.
+        /// El check no es solo indicador: marcarlo activa o desactiva la categoría en
+        /// el momento, a traves del mismo handler que usa la edicion completa (con el
+        /// resto de los campos de la categoria sin cambiar).
         /// </summary>
         private async Task CambiarActivoAsync(CategoriaGasto categoria, bool activo)
         {
-            mensaje = null;
-            error = null;
+            errores.Clear();
+            exito = null;
             cambiandoId = categoria.Id;
 
             try
             {
-                categoria.Activo = activo;
-                await Contexto.SaveChangesAsync();
-                mensaje = $"Categoría '{categoria.Nombre}' {(activo ? "activada" : "desactivada")}.";
+                var resultado = await HandlerActualizar.EjecutarAsync(new ActualizarCategoriaGastoCommand
+                {
+                    CategoriaGastoId = categoria.Id,
+                    Nombre = categoria.Nombre,
+                    CuentaContable = categoria.CuentaContable,
+                    RequiereNCF = categoria.RequiereNCF,
+                    Activo = activo
+                });
+
+                if (!resultado.Exitoso)
+                {
+                    errores.AddRange(resultado.Errores);
+                    return;
+                }
+
+                exito = $"Categoría '{categoria.Nombre}' {(activo ? "activada" : "desactivada")}.";
+                await RecargarAsync();
             }
             catch (Exception ex)
             {
-                // Si no se pudo guardar, se devuelve el check a como estaba para que la
-                // pantalla no muestre un estado que la BDD no tiene.
-                categoria.Activo = !activo;
-                error = ex.Message;
+                errores.Add(ex.Message);
             }
             finally
             {
@@ -53,38 +75,98 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             }
         }
 
-        private async Task RecargarAsync() => categorias = await RepositorioCategorias.ListarAsync();
-
         private async Task CrearAsync()
         {
-            mensaje = null;
-            error = null;
-
-            if (string.IsNullOrWhiteSpace(entrada.Nombre))
-            {
-                error = "El nombre es obligatorio.";
-                return;
-            }
-
+            errores.Clear();
+            exito = null;
             guardando = true;
+
             try
             {
-                await RepositorioCategorias.AgregarAsync(new CategoriaGasto
+                var resultado = await HandlerCrear.EjecutarAsync(new CrearCategoriaGastoCommand
                 {
-                    Nombre = entrada.Nombre!.Trim(),
-                    CuentaContable = entrada.CuentaContable?.Trim() ?? string.Empty,
+                    Nombre = entrada.Nombre ?? string.Empty,
+                    CuentaContable = entrada.CuentaContable ?? string.Empty,
                     RequiereNCF = entrada.RequiereNCF,
                     Activo = entrada.Activo
                 });
-                await Contexto.SaveChangesAsync();
 
-                mensaje = $"Categoría '{entrada.Nombre}' creada.";
+                if (!resultado.Exitoso)
+                {
+                    errores.AddRange(resultado.Errores);
+                    return;
+                }
+
+                exito = $"Categoría '{entrada.Nombre}' creada.";
                 entrada.Limpiar();
                 await RecargarAsync();
             }
             catch (Exception ex)
             {
-                error = ex.Message;
+                errores.Add(ex.Message);
+            }
+            finally
+            {
+                guardando = false;
+            }
+        }
+
+        private void IniciarEdicion(CategoriaGasto categoria)
+        {
+            errores.Clear();
+            exito = null;
+            categoriaEnEdicion = categoria.Id;
+            entradaEdicion = new EntradaEdicionCategoria
+            {
+                Nombre = categoria.Nombre,
+                CuentaContable = categoria.CuentaContable,
+                RequiereNCF = categoria.RequiereNCF
+            };
+        }
+
+        private void CancelarEdicion()
+        {
+            categoriaEnEdicion = null;
+            entradaEdicion = null;
+        }
+
+        private async Task GuardarEdicionAsync(CategoriaGasto categoria)
+        {
+            if (categoriaEnEdicion is not { } id || entradaEdicion is null)
+            {
+                return;
+            }
+
+            errores.Clear();
+            exito = null;
+            guardando = true;
+
+            try
+            {
+                var resultado = await HandlerActualizar.EjecutarAsync(new ActualizarCategoriaGastoCommand
+                {
+                    CategoriaGastoId = id,
+                    Nombre = entradaEdicion.Nombre,
+                    CuentaContable = entradaEdicion.CuentaContable,
+                    RequiereNCF = entradaEdicion.RequiereNCF,
+                    // El estado activo/inactivo se maneja con su propio check en la
+                    // tabla; la edicion inline no lo toca.
+                    Activo = categoria.Activo
+                });
+
+                if (!resultado.Exitoso)
+                {
+                    errores.AddRange(resultado.Errores);
+                    return;
+                }
+
+                exito = "Categoría actualizada.";
+                CancelarEdicion();
+                await RecargarAsync();
+            }
+            catch (Exception ex)
+            {
+                errores.Add(ex.Message);
             }
             finally
             {
@@ -106,6 +188,13 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 RequiereNCF = true;
                 Activo = true;
             }
+        }
+
+        private sealed class EntradaEdicionCategoria
+        {
+            public string Nombre { get; set; } = string.Empty;
+            public string CuentaContable { get; set; } = string.Empty;
+            public bool RequiereNCF { get; set; }
         }
     }
 }

@@ -47,7 +47,7 @@
                         {
                             <tr>
                                 <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@(solicitud.FondoCajaChica?.CustodioId is { Length: > 0 } custodioId ? custodioId : "(sin asignar)")</td>
+                                <td>@NombreCustodio(solicitud.FondoCajaChica?.CustodioId ?? string.Empty)</td>
                                 <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
                                 <td>
                                     <a class="btn btn-sm btn-outline-secondary" href="/reposiciones/@solicitud.Id/pdf" target="_blank">
@@ -95,7 +95,7 @@
                         {
                             <tr>
                                 <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@(solicitud.FondoCajaChica?.CustodioId is { Length: > 0 } custodioId ? custodioId : "(sin asignar)")</td>
+                                <td>@NombreCustodio(solicitud.FondoCajaChica?.CustodioId ?? string.Empty)</td>
                                 <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
                                 <td>
                                     <a class="btn btn-sm btn-outline-secondary" href="/reposiciones/@solicitud.Id/pdf" target="_blank">
@@ -138,7 +138,7 @@ else
             @foreach (var fondo in fondos)
             {
                 <option value="@fondo.Id">
-                    Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                    Custodio @NombreCustodio(fondo.CustodioId)
                     &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
                 </option>
             }
@@ -203,9 +203,24 @@ else
                         </div>
                     }
 
-                    <button class="btn btn-primary" disabled="@(generando || !habilitada)" @onclick="GenerarAsync">
-                        @(generando ? "Generando expediente..." : "Generar solicitud y expediente PDF")
-                    </button>
+                    <AuthorizeView Policy="@Permisos.SolicitarReposicion" Context="autorizacionSolicitar">
+                        <Authorized>
+                            <button class="btn btn-primary" disabled="@(generando || !habilitada)" @onclick="GenerarAsync">
+                                @(generando ? "Generando expediente..." : "Generar solicitud y expediente PDF")
+                            </button>
+                        </Authorized>
+                        <NotAuthorized>
+                            @* El botón deshabilitado no dispara eventos de mouse en todos los
+                               navegadores, así que el title (el tooltip nativo, sin JS) va en
+                               un <span> envolvente en vez de en el botón mismo. *@
+                            <span class="d-inline-block" tabindex="0"
+                                  title="Sólo el custodio puede hacer una solicitud de reposición.">
+                                <button class="btn btn-primary" disabled style="pointer-events: none;">
+                                    Generar solicitud y expediente PDF
+                                </button>
+                            </span>
+                        </NotAuthorized>
+                    </AuthorizeView>
                 }
             </div>
         </div>
@@ -245,9 +260,9 @@ else
                         <td><code>@solicitud.Id.ToString()[..8]</code></td>
                         <td class="text-end">@solicitud.MontoReclamado.ToString("N2")</td>
                         <td>@solicitud.Estado</td>
-                        <td>@(solicitud.GerenteUsuarioId ?? "-")</td>
+                        <td>@NombreUsuario(solicitud.GerenteUsuarioId)</td>
                         <td>@(solicitud.FechaAprobacion?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
-                        <td>@(solicitud.FinanzasUsuarioId ?? "-")</td>
+                        <td>@NombreUsuario(solicitud.FinanzasUsuarioId)</td>
                         <td>@(solicitud.FechaPago?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
                         <td>@(solicitud.ReferenciaPago ?? "-")</td>
                         <td>

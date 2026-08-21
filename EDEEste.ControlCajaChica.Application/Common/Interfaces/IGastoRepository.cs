@@ -32,6 +32,16 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
         /// </summary>
         Task<IReadOnlyList<Gasto>> ListarAnuladosAsync(Guid fondoId, DateTime? desde, CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Gastos que todavia no volvieron al fondo: pendientes de reposicion, en
+        /// proceso de reposicion o con anulacion pendiente. Se enumeran en positivo y
+        /// no por exclusion de Repuesto/Anulado, porque Rechazado hoy no lo escribe
+        /// nadie y una lista negativa lo arrastraria dentro sin que nadie lo haya
+        /// decidido. Alimenta el arqueo: BalanceActual + Σ(estos) debe cuadrar con
+        /// MontoFijo.
+        /// </summary>
+        Task<IReadOnlyList<Gasto>> ListarNoRepuestosAsync(Guid fondoId, CancellationToken cancellationToken = default);
+
         Task AgregarAsync(Gasto gasto, CancellationToken cancellationToken = default);
     }
 }

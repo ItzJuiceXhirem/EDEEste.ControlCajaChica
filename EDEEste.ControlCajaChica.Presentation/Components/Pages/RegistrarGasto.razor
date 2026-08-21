@@ -43,7 +43,7 @@ else
                     @foreach (var fondo in fondos)
                     {
                         <option value="@fondo.Id">
-                            Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
+                            Custodio @NombreCustodio(fondo.CustodioId)
                             &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
                         </option>
                     }
@@ -67,16 +67,23 @@ else
             </div>
             <div class="col-md-3 mb-2">
                 <label class="form-label">RNC / Cédula</label>
-                @* Input plano en vez de InputText: el valor se reescribe en cada
-                   pulsación para insertar los guiones de la cédula. *@
+                @* <input> plano con @bind a nivel de elemento (no InputText): así se
+                   puede combinar @bind:event="oninput" con @bind:after sin el choque
+                   de parámetros que da InputText. @bind SÍ fuerza el valor corregido
+                   de vuelta al navegador en cada pulsación, a diferencia de un
+                   value="@@x" + @@oninput manual (que dejaba ver letras/símbolos hasta
+                   que el campo perdía el foco). *@
                 <input class="form-control" maxlength="13" inputmode="numeric"
-                       value="@entrada.RNCProveedor" @oninput="FormatearRnc" />
-                <div class="form-text">9 dígitos (RNC) u 11 (cédula).</div>
+                       @bind="entrada.RNCProveedor" @bind:event="oninput" @bind:after="FormatearRnc" />
+                <div class="form-text">Solo números: 9 dígitos (RNC) u 11 (cédula).</div>
             </div>
             <div class="col-md-3 mb-2">
                 <label class="form-label">NCF</label>
-                <InputText @bind-Value="entrada.NCF" class="form-control" maxlength="13" />
-                <div class="form-text">11 (NCF) o 13 (e-NCF).</div>
+                <input class="form-control" maxlength="13"
+                       @bind="entrada.NCF" @bind:event="oninput" @bind:after="FiltrarNcf" />
+                <div class="form-text">
+                    'B' + 0/1 + 9 dígitos (11 caracteres), o 'E' + 3/4 + 11 dígitos (13 caracteres).
+                </div>
             </div>
         </div>
 

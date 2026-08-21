@@ -6,16 +6,20 @@
 
 <h1>Categorías de gasto</h1>
 
-@* Igual que Fondos: pantalla provisional de administración para poder tener con qué
-   clasificar los gastos mientras no exista el caso de uso del Administrador. *@
-
-@if (mensaje is not null)
+@if (errores.Count > 0)
 {
-    <div class="alert alert-success">@mensaje</div>
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach (var error in errores)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
 }
-@if (error is not null)
+@if (exito is not null)
 {
-    <div class="alert alert-danger">@error</div>
+    <div class="alert alert-success">@exito</div>
 }
 
 <div class="row">
@@ -39,6 +43,7 @@
                         <th>Cuenta contable</th>
                         <th>Exige NCF</th>
                         <th>Activa</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -58,7 +63,45 @@
                                        aria-label="@(categoria.Activo ? "Desactivar" : "Activar") @categoria.Nombre"
                                        @onchange="e => CambiarActivoAsync(categoria, e.Value is true)" />
                             </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => IniciarEdicion(categoria)">
+                                    Editar
+                                </button>
+                            </td>
                         </tr>
+                        @if (categoriaEnEdicion == categoria.Id && entradaEdicion is not null)
+                        {
+                            <tr>
+                                <td colspan="5">
+                                    <div class="card card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Nombre</label>
+                                                <input class="form-control" maxlength="100" @bind="entradaEdicion.Nombre" />
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <label class="form-label">Cuenta contable</label>
+                                                <input class="form-control" maxlength="50" @bind="entradaEdicion.CuentaContable" />
+                                            </div>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input type="checkbox" class="form-check-input" id="@($"editar-ncf-{categoria.Id}")"
+                                                   @bind="entradaEdicion.RequiereNCF" />
+                                            <label class="form-check-label" for="@($"editar-ncf-{categoria.Id}")">Exige NCF</label>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-primary" disabled="@guardando"
+                                                    @onclick="() => GuardarEdicionAsync(categoria)">
+                                                @(guardando ? "Guardando..." : "Guardar cambios")
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" @onclick="CancelarEdicion">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
@@ -70,11 +113,11 @@
         <EditForm Model="entrada" OnValidSubmit="CrearAsync" FormName="nueva-categoria">
             <div class="mb-2">
                 <label class="form-label">Nombre</label>
-                <InputText @bind-Value="entrada.Nombre" class="form-control" />
+                <InputText @bind-Value="entrada.Nombre" class="form-control" maxlength="100" />
             </div>
             <div class="mb-2">
                 <label class="form-label">Cuenta contable</label>
-                <InputText @bind-Value="entrada.CuentaContable" class="form-control" />
+                <InputText @bind-Value="entrada.CuentaContable" class="form-control" maxlength="50" />
             </div>
             <div class="form-check mb-2">
                 <InputCheckbox @bind-Value="entrada.RequiereNCF" class="form-check-input" id="requiere-ncf" />

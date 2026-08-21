@@ -29,6 +29,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
                 .OrderBy(c => c.Nombre)
                 .ToListAsync(cancellationToken);
 
+        public async Task<bool> ExisteNombreAsync(string nombre, Guid? excluirId = null, CancellationToken cancellationToken = default) =>
+            await _context.CategoriasGasto
+                .AnyAsync(c => c.Nombre == nombre && (excluirId == null || c.Id != excluirId), cancellationToken);
+
         public async Task AgregarAsync(CategoriaGasto categoria, CancellationToken cancellationToken = default) =>
             await _context.CategoriasGasto.AddAsync(categoria, cancellationToken);
     }

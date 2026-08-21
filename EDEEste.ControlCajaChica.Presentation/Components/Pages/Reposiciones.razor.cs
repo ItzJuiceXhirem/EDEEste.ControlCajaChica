@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Features.Reposiciones;
@@ -31,7 +32,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         [Inject]
         private ProcesarPagoReposicionHandler HandlerPagar { get; set; } = default!;
 
+        [Inject]
+        private IIdentityService Identidad { get; set; } = default!;
+
         private IReadOnlyList<FondoCajaChica>? fondos;
+
+        // CustodioId, GerenteUsuarioId y FinanzasUsuarioId guardan el Id de Identity
+        // (un GUID), no un nombre: sin este mapa, la pantalla mostraria el GUID crudo
+        // en vez del nombre de usuario donde sea que aparezcan.
+        private readonly Dictionary<string, string> nombresDeUsuario = new();
         private IReadOnlyList<Gasto>? pendientes;
         private IReadOnlyList<SolicitudReposicion>? solicitudes;
         private IReadOnlyList<SolicitudReposicion>? porAprobar;
@@ -52,6 +61,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         protected override async Task OnInitializedAsync()
         {
             fondos = await Fondos.ListarAsync();
+            await ResolverNombresDeUsuarioAsync(fondos.Select(f => f.CustodioId));
 
             if (fondos.Count > 0)
             {
@@ -61,6 +71,31 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
             await CargarColasAsync();
         }
+
+        /// <summary>
+        /// Traduce Ids de Identity (custodio, gerente, finanzas) a nombres legibles.
+        /// Cachea en nombresDeUsuario para no repetir la consulta cuando el mismo
+        /// usuario ya se resolvio antes (por ejemplo, el mismo gerente aprobando
+        /// varias solicitudes).
+        /// </summary>
+        private async Task ResolverNombresDeUsuarioAsync(IEnumerable<string?> ids)
+        {
+            var pendientes = ids
+                .Where(id => !string.IsNullOrEmpty(id) && !nombresDeUsuario.ContainsKey(id!))
+                .Distinct()
+                .ToList();
+
+            foreach (var id in pendientes)
+            {
+                nombresDeUsuario[id!] = await Identidad.ObtenerNombreUsuarioAsync(id!) ?? id!;
+            }
+        }
+
+        private string NombreCustodio(string custodioId) =>
+            string.IsNullOrWhiteSpace(custodioId) ? "(sin asignar)" : nombresDeUsuario.GetValueOrDefault(custodioId, custodioId);
+
+        private string NombreUsuario(string? usuarioId) =>
+            string.IsNullOrEmpty(usuarioId) ? "-" : nombresDeUsuario.GetValueOrDefault(usuarioId, usuarioId);
 
         /// <summary>
         /// Las colas de aprobacion y pago no dependen del fondo seleccionado: el
@@ -95,6 +130,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             fondoActual = await Fondos.ObtenerPorIdAsync(fondoId);
             pendientes = await Gastos.ListarPendientesDeReposicionAsync(fondoId);
             solicitudes = await RepositorioReposiciones.ListarPorFondoAsync(fondoId);
+
+            await ResolverNombresDeUsuarioAsync(solicitudes.SelectMany(s => new[] { s.GerenteUsuarioId, s.FinanzasUsuarioId }));
         }
 
         private async Task GenerarAsync()

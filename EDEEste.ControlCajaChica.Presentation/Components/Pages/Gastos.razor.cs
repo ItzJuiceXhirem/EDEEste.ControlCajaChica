@@ -29,11 +29,21 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         [Inject]
         private RevertirAnulacionGastoHandler HandlerRevertirAnulacion { get; set; } = default!;
 
+        [Inject]
+        private IIdentityService Identidad { get; set; } = default!;
+
         private IReadOnlyList<FondoCajaChica>? fondos;
+
+        // CustodioId guarda el Id de Identity (un GUID), no un nombre: sin este mapa,
+        // el desplegable de fondos mostraria el GUID crudo en vez del nombre de usuario.
+        private Dictionary<string, string> nombresDeCustodio = new();
         private IReadOnlyList<Gasto>? gastos;
         private IReadOnlyList<Gasto>? anulacionesPendientes;
         private IReadOnlyList<Gasto>? anulados;
         private Guid fondoSeleccionado;
+
+        // null = "Todos". Filtra en memoria sobre lo ya cargado (ver GastosFiltrados).
+        private EstadoGasto? filtroEstado;
 
         // null = todo el historial.
         private int? diasAnulados = 90;
@@ -57,6 +67,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         protected override async Task OnInitializedAsync()
         {
             fondos = await Fondos.ListarAsync();
+            await ResolverNombresDeCustodioAsync();
 
             if (fondos.Count > 0)
             {
@@ -64,6 +75,20 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 await CargarTodoAsync(fondoSeleccionado);
             }
         }
+
+        private async Task ResolverNombresDeCustodioAsync()
+        {
+            var mapa = new Dictionary<string, string>();
+            foreach (var id in fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+            {
+                mapa[id] = await Identidad.ObtenerNombreUsuarioAsync(id) ?? id;
+            }
+
+            nombresDeCustodio = mapa;
+        }
+
+        private string NombreCustodio(string custodioId) =>
+            string.IsNullOrWhiteSpace(custodioId) ? "(sin asignar)" : nombresDeCustodio.GetValueOrDefault(custodioId, custodioId);
 
         private async Task CambiarFondoAsync(ChangeEventArgs e)
         {
@@ -99,6 +124,23 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             diasAnulados = string.IsNullOrEmpty(valor) ? null : int.Parse(valor, CultureInfo.InvariantCulture);
             await CargarAnuladosAsync(fondoSeleccionado);
         }
+
+        private void CambiarFiltroEstado(ChangeEventArgs e)
+        {
+            var valor = e.Value?.ToString();
+            filtroEstado = string.IsNullOrEmpty(valor) ? null : Enum.Parse<EstadoGasto>(valor);
+        }
+
+        /// <summary>
+        /// Filtra en memoria la tabla principal por estado; no vuelve a la BDD porque
+        /// ListarPorFondoAsync ya trajo todos los gastos del fondo de una vez.
+        /// </summary>
+        private IEnumerable<Gasto> GastosFiltrados =>
+            gastos is null
+                ? []
+                : filtroEstado is null
+                    ? gastos
+                    : gastos.Where(g => g.Estado == filtroEstado);
 
         /// <summary>
         /// Filtra en memoria sobre lo ya cargado, sin volver a la BDD: la lista ya

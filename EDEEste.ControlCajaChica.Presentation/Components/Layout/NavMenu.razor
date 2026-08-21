@@ -37,6 +37,14 @@
             </div>
         </AuthorizeView>
 
+        <AuthorizeView Policy="@Permisos.VerArqueos">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="arqueos">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Arqueos
+                </NavLink>
+            </div>
+        </AuthorizeView>
+
         <AuthorizeView Policy="@Permisos.ConfigurarFondos">
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="fondos">
@@ -71,7 +79,7 @@
                 <div class="nav-item px-3">
                     <form action="Account/Logout" method="post">
                         <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                        <input type="hidden" name="ReturnUrl" value="@ReturnUrlAlCerrarSesion" />
                         <button type="submit" class="nav-link">
                             <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Cerrar sesión
                         </button>
@@ -96,6 +104,14 @@
 
 @code {
     private string? currentUrl;
+
+    // Acceso denegado es publica (no exige [Authorize]): si el ReturnUrl del logout
+    // apuntara ahi, el usuario se quedaba viendo la misma pantalla ya sin sesion, en
+    // vez de terminar en el login. Cualquier otra pagina conserva su propio ReturnUrl.
+    private string ReturnUrlAlCerrarSesion =>
+        string.Equals(currentUrl, "Account/AccessDenied", StringComparison.OrdinalIgnoreCase)
+            ? "Account/Login"
+            : currentUrl ?? string.Empty;
 
     protected override void OnInitialized()
     {

@@ -37,17 +37,29 @@ else if (fondos.Count == 0)
 }
 else
 {
-    <div class="mb-3" style="max-width: 480px;">
-        <label class="form-label">Fondo</label>
-        <select class="form-select" value="@fondoSeleccionado" @onchange="CambiarFondoAsync">
-            @foreach (var fondo in fondos)
-            {
-                <option value="@fondo.Id">
-                    Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
-                    &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
-                </option>
-            }
-        </select>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label class="form-label">Fondo</label>
+            <select class="form-select" value="@fondoSeleccionado" @onchange="CambiarFondoAsync">
+                @foreach (var fondo in fondos)
+                {
+                    <option value="@fondo.Id">
+                        Custodio @NombreCustodio(fondo.CustodioId)
+                        &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Estado</label>
+            <select class="form-select" @onchange="CambiarFiltroEstado">
+                <option value="" selected="@(filtroEstado is null)">Todos</option>
+                <option value="@EstadoGasto.PendienteReposicion" selected="@(filtroEstado == EstadoGasto.PendienteReposicion)">Pendiente de reposición</option>
+                <option value="@EstadoGasto.EnProcesoReposicion" selected="@(filtroEstado == EstadoGasto.EnProcesoReposicion)">En proceso de reposición</option>
+                <option value="@EstadoGasto.Repuesto" selected="@(filtroEstado == EstadoGasto.Repuesto)">Repuesto</option>
+                <option value="@EstadoGasto.Anulado" selected="@(filtroEstado == EstadoGasto.Anulado)">Anulado</option>
+            </select>
+        </div>
     </div>
 
     @if (gastos is null)
@@ -60,6 +72,12 @@ else
     }
     else
     {
+        @if (!GastosFiltrados.Any())
+        {
+            <p class="text-muted">Ningún gasto coincide con el filtro seleccionado.</p>
+        }
+        else
+        {
         <table class="table table-striped align-middle">
             <thead>
                 <tr>
@@ -75,7 +93,7 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var gasto in gastos)
+                @foreach (var gasto in GastosFiltrados)
                 {
                     <tr>
                         <td>@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
@@ -137,11 +155,12 @@ else
             <tfoot>
                 <tr class="fw-bold">
                     <td colspan="6" class="text-end">Total</td>
-                    <td class="text-end">@gastos.Sum(g => g.MontoTotal).ToString("N2")</td>
+                    <td class="text-end">@GastosFiltrados.Sum(g => g.MontoTotal).ToString("N2")</td>
                     <td colspan="2"></td>
                 </tr>
             </tfoot>
         </table>
+        }
     }
 
     <AuthorizeView Policy="@Permisos.AnularGasto" Context="autorizacionConfirmar">

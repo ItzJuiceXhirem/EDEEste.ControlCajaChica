@@ -49,6 +49,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             services.AddScoped<ICategoriaGastoRepository, CategoriaGastoRepository>();
             services.AddScoped<IGastoRepository, GastoRepository>();
             services.AddScoped<IReposicionRepository, ReposicionRepository>();
+            services.AddScoped<IArqueoRepository, ArqueoRepository>();
         }
 
         /// <summary>

@@ -11,6 +11,9 @@ using EDEEste.ControlCajaChica.Infrastructure.Persistence;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Features.Gastos;
 using EDEEste.ControlCajaChica.Application.Features.Reposiciones;
+using EDEEste.ControlCajaChica.Application.Features.Arqueos;
+using EDEEste.ControlCajaChica.Application.Features.Fondos;
+using EDEEste.ControlCajaChica.Application.Features.Categorias;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 
@@ -64,6 +67,15 @@ builder.Services.AddScoped<RevertirAnulacionGastoHandler>();
 builder.Services.AddScoped<CrearSolicitudReposicionHandler>();
 builder.Services.AddScoped<AprobarReposicionHandler>();
 builder.Services.AddScoped<ProcesarPagoReposicionHandler>();
+builder.Services.AddScoped<RegistrarArqueoMensualHandler>();
+
+// Fondos
+builder.Services.AddScoped<CrearFondoHandler>();
+builder.Services.AddScoped<ActualizarParametrosFondoHandler>();
+
+// Categorias
+builder.Services.AddScoped<CrearCategoriaGastoHandler>();
+builder.Services.AddScoped<ActualizarCategoriaGastoHandler>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 

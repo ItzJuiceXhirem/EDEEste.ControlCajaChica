@@ -41,6 +41,15 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
                                 && (desde == null || g.FechaModificacion >= desde))
                     .ToList());
 
+        public Task<IReadOnlyList<Gasto>> ListarNoRepuestosAsync(Guid fondoId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Gasto>>(
+                _gastos.Values
+                    .Where(g => g.FondoCajaChicaId == fondoId
+                                && (g.Estado == EstadoGasto.PendienteReposicion
+                                    || g.Estado == EstadoGasto.EnProcesoReposicion
+                                    || g.Estado == EstadoGasto.AnulacionPendiente))
+                    .ToList());
+
         public Task AgregarAsync(Gasto gasto, CancellationToken cancellationToken = default)
         {
             Agregar(gasto);
