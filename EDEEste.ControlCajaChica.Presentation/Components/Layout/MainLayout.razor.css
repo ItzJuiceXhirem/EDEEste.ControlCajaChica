@@ -1,78 +1,93 @@
+/* La escala del 10% se aplica aquí, sobre todo el marco interior (sidebar, barra
+   de contexto y contenido), para que suba en bloque y no pantalla por pantalla.
+   El 100vh se divide por el factor porque las unidades de viewport no se escalan
+   con `zoom`; sin eso, la página mediría 110vh y siempre habría scroll. */
 .page {
     position: relative;
     display: flex;
     flex-direction: column;
+    zoom: var(--cc-zoom);
+    min-height: calc(100vh / var(--cc-zoom));
 }
 
 main {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--cc-ivory);
 }
 
+/* Degradado del sidebar (DESIGN.md §1.1): los tres azules de marca en una sola
+   familia tonal, de claro a oscuro, para que no se note el salto. */
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    display: flex;
+    flex-direction: column;
+    background-image: linear-gradient(178deg, #003566 0%, #001D3D 62%, #000814 100%);
 }
 
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
+/* §5.5 — blanca sobre el marfil del contenido, con la sección a la izquierda en
+   versalitas espaciadas y la fecha larga a la derecha. */
+.cc-topbar {
+    height: 56px;
+    flex: none;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 32px;
+    background: var(--cc-surface);
+    border-bottom: 1px solid var(--cc-line);
+    color: var(--cc-text-soft);
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
+.cc-crumb {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.cc-date {
+    font-size: 12.5px;
+    white-space: nowrap;
+}
+
+.cc-content {
+    flex: 1;
+    padding: 26px 32px 32px;
+    min-width: 0;
+}
+
+/* Los cortes van a 705px y no a 641px: con la escala del 10%, el sidebar y el
+   contenido se quedan sin sitio un 10% antes de lo que dice el viewport. */
+@media (max-width: 704.98px) {
+    .cc-topbar {
+        padding: 0 18px;
     }
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
+    .cc-content {
+        padding: 20px 18px 26px;
     }
 }
 
-@media (min-width: 641px) {
+@media (min-width: 705px) {
     .page {
         flex-direction: row;
     }
 
     .sidebar {
         width: 250px;
-        height: 100vh;
+        flex: none;
+        height: calc(100vh / var(--cc-zoom));
         position: sticky;
         top: 0;
     }
 
-    .top-row {
+    .cc-topbar {
         position: sticky;
         top: 0;
         z-index: 1;
-    }
-
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
     }
 }
 

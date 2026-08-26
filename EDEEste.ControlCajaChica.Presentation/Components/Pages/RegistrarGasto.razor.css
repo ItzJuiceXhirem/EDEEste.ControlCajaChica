@@ -1,0 +1,380 @@
+/* Registrar gasto — dirección D del artifact aprobado. */
+
+.rg-h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 29px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    color: var(--cc-ink);
+}
+
+.rg-sub {
+    color: #6B7482;
+    font-size: 13px;
+    margin: 0 0 18px;
+}
+
+.rg-h2 {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 0;
+    color: var(--cc-ink);
+}
+
+.rg-cap {
+    display: block;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8A94A3;
+    margin-bottom: 6px;
+}
+
+.rg-help {
+    display: block;
+    font-size: 11.5px;
+    color: #6B7482;
+    margin-top: 5px;
+    line-height: 1.5;
+}
+
+.rg-help-block {
+    margin: 6px 0 0;
+    max-width: 78ch;
+}
+
+.rg-mt14 { margin-top: 14px; }
+.rg-mt18 { margin-top: 18px; }
+
+/* ── Tarjeta ─────────────────────────────────────────────────────────────── */
+.rg-card {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+}
+
+/* Franja tenue: fondo y categoría eligen el expediente al que entra el gasto, no
+   son datos de la factura, así que se separan del resto del formulario. */
+.rg-strip {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    background: #FBFCFD;
+    border-bottom: 1px solid #ECEEF1;
+    border-radius: 12px 12px 0 0;
+}
+
+    .rg-strip .rg-f {
+        flex: 1 1 240px;
+    }
+
+.rg-body {
+    padding: 18px 20px;
+}
+
+.rg-foot {
+    padding: 15px 20px;
+    border-top: 1px solid #ECEEF1;
+    background: #FBFCFD;
+    border-radius: 0 0 12px 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.rg-divider {
+    height: 1px;
+    background: #ECEEF1;
+    margin: 22px 0;
+}
+
+/* ── Campos ──────────────────────────────────────────────────────────────── */
+.rg-f {
+    min-width: 0;
+}
+
+/* ::deep porque InputText, InputSelect, InputNumber, InputDate e InputFile son
+   componentes: el <input> o <select> lo renderizan ellos, así que no lleva el
+   atributo de ámbito de este archivo y un selector normal no lo alcanzaría.
+   Los campos escritos a mano también caen aquí, así que la regla es una sola. */
+.rg-card ::deep .rg-input {
+    width: 100%;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    color: #16202E;
+    min-height: 38px;
+}
+
+    .rg-card ::deep .rg-input::placeholder {
+        color: #8A94A3;
+    }
+
+    .rg-card ::deep .rg-input:focus {
+        outline: none;
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+    /* Blazor marca los campos validados; sobre este diseño el outline cuadrado del
+       scaffold desentona con el radio de 8px. */
+    .rg-card ::deep .rg-input.valid.modified,
+    .rg-card ::deep .rg-input.invalid {
+        outline: none;
+    }
+
+    .rg-card ::deep .rg-input.invalid {
+        border-color: #DC3545;
+    }
+
+.rg-grid {
+    display: grid;
+    gap: 13px;
+}
+
+.rg-c3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.rg-c631 {
+    grid-template-columns: 2fr 1fr 1fr;
+}
+
+/* ── Montos y recibo ─────────────────────────────────────────────────────── */
+.rg-montos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 32px;
+    align-items: start;
+}
+
+/* Totales tipo recibo: el filete dorado separa el total de sus sumandos. */
+.rg-tot {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px 26px;
+    font-size: 13px;
+}
+
+    .rg-tot .k {
+        color: #6B7482;
+        text-align: right;
+    }
+
+    .rg-tot .v {
+        text-align: right;
+    }
+
+    .rg-tot .gk,
+    .rg-tot .gv {
+        border-top: 2px solid var(--cc-gold);
+        padding-top: 8px;
+        margin-top: 4px;
+        text-align: right;
+    }
+
+    .rg-tot .gk {
+        font-weight: 600;
+        color: var(--cc-ink);
+    }
+
+    .rg-tot .gv {
+        font-family: var(--cc-ff-head);
+        font-weight: 700;
+        font-size: 19px;
+        color: var(--cc-ink);
+    }
+
+/* ── Aviso del tope ──────────────────────────────────────────────────────── */
+.rg-alert {
+    border-radius: 10px;
+    padding: 11px 15px;
+    font-size: 12.5px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.rg-a-ok {
+    background: #DCF3E7;
+    color: #0F5132;
+}
+
+.rg-a-bad {
+    background: #FBE0E3;
+    color: #B02A37;
+}
+
+/* ── Comprobantes ────────────────────────────────────────────────────────── */
+/* La zona de arrastre es un <label> que envuelve al input real: el input se
+   oculta pero sigue siendo el control, así conserva el foco de teclado y el
+   lector de pantalla que un <div> con onclick habría perdido. */
+.rg-drop {
+    display: block;
+    border: 1.5px dashed #D8DDE4;
+    border-radius: 10px;
+    background: #FAFBFC;
+    padding: 16px;
+    text-align: center;
+    color: #6B7482;
+    font-size: 12.5px;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+    .rg-drop:hover,
+    .rg-drop.cc-drop-over {
+        border-color: var(--cc-navy);
+        background: #F5F8FB;
+    }
+
+    /* Clase que aplica interop.js mientras un archivo pasa por encima arrastrado. */
+    .rg-drop.cc-drop-over {
+        border-style: solid;
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+    .rg-drop b {
+        color: var(--cc-navy);
+    }
+
+    .rg-drop:focus-within {
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+/* ::deep: el <input type="file"> lo renderiza el componente InputFile. Oculto
+   visualmente pero no con display:none, para que siga siendo enfocable. */
+.rg-drop ::deep .rg-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.rg-tablewrap {
+    overflow-x: auto;
+}
+
+.rg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .rg-table thead th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8A94A3;
+        padding: 0 9px 12px;
+        border: 0;
+    }
+
+    .rg-table tbody tr {
+        border-bottom: 1px solid #ECEEF1;
+    }
+
+        .rg-table tbody tr:last-child {
+            border-bottom: 0;
+        }
+
+    .rg-table td {
+        padding: 12px 9px;
+        vertical-align: middle;
+    }
+
+.rg-file-n {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.rg-act {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.rg-xsm {
+    border: none;
+    background: transparent;
+    color: #8A94A3;
+    font-size: 14px;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 6px;
+}
+
+    .rg-xsm:hover {
+        background: #FBE0E3;
+        color: #B02A37;
+    }
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.rg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 17px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.rg-btn-pri {
+    background: var(--cc-navy);
+    color: #fff;
+}
+
+    .rg-btn-pri:hover:not(:disabled) {
+        background: var(--cc-prussian);
+        color: #fff;
+    }
+
+.rg-btn-ghost {
+    background: var(--cc-surface);
+    color: #3C4553;
+    border-color: #D8DDE4;
+}
+
+    .rg-btn-ghost:hover {
+        background: #F2F6FA;
+        color: #3C4553;
+    }
+
+.rg-btn:disabled {
+    opacity: 0.55;
+}
+
+/* ── Pantallas estrechas ─────────────────────────────────────────────────── */
+/* Cortes ya multiplicados por --cc-zoom (1050→1155, 720→792). */
+@media (max-width: 1155px) {
+    .rg-montos {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+}
+
+@media (max-width: 792px) {
+    .rg-c631,
+    .rg-c3 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

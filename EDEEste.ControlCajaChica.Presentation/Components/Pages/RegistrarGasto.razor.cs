@@ -8,6 +8,7 @@ using EDEEste.ControlCajaChica.Application.Features.Gastos;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.JSInterop;
 
 namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 {
@@ -29,6 +30,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         [Inject]
         private RegistrarGastoHandler Handler { get; set; } = default!;
+
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; } = default!;
+
+        // Referencias para conectar el arrastrar-y-soltar sobre la zona de carga: sin
+        // esto, soltar un archivo lo abre en una pestaña del navegador en vez de
+        // entregarlo al <input type="file"> real que renderiza InputFile.
+        private ElementReference zonaDropRef;
+        private InputFile? inputFileRef;
 
         private IReadOnlyList<FondoCajaChica>? fondos;
         private IReadOnlyList<CategoriaGasto>? categorias;
@@ -54,6 +64,23 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             entrada.CategoriaGastoId = categorias.FirstOrDefault()?.Id ?? Guid.Empty;
         }
 
+        /// <summary>
+        /// No se limita a "firstRender": mientras se cargan fondos/categorias la
+        /// pantalla todavia muestra "Cargando...", asi que la zona de arrastre (y su
+        /// InputFile) no existen en ese primer render -- solo aparecen despues, en un
+        /// render posterior. El propio JS es idempotente (ver dataset.ccWired en
+        /// interop.js), asi que llamarlo de mas en renders subsiguientes no duplica
+        /// los listeners; sin ese chequeo alli, esto tendria que llevar su propio
+        /// booleano de "ya conectado".
+        /// </summary>
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (inputFileRef?.Element is { } elementoInput)
+            {
+                await JsRuntime.InvokeVoidAsync("ccDragDrop.wire", zonaDropRef, elementoInput);
+            }
+        }
+
         private async Task ResolverNombresDeCustodioAsync()
         {
             var mapa = new Dictionary<string, string>();
@@ -67,6 +94,71 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         private string NombreCustodio(string custodioId) =>
             string.IsNullOrWhiteSpace(custodioId) ? "(sin asignar)" : nombresDeCustodio.GetValueOrDefault(custodioId, custodioId);
+
+        private FondoCajaChica? FondoActual =>
+            fondos?.FirstOrDefault(f => f.Id == entrada.FondoCajaChicaId);
+
+        /// <summary>
+        /// El total no es un campo del formulario sino la suma de sus dos partes: con
+        /// un tercer campo editable, el cuadre Subtotal + ITBIS = Total que valida el
+        /// handler podia fallar por una simple errata de tecleo. Aqui no puede.
+        /// </summary>
+        private decimal MontoTotal => (entrada.Subtotal ?? 0m) + (entrada.MontoITBIS ?? 0m);
+
+        /// <summary>
+        /// Misma formula que <c>RegistrarGastoHandler.CalcularLimitePorGasto</c>: el
+        /// mas estricto entre el tope porcentual del fondo y su limite absoluto, si lo
+        /// hay. Aqui es solo para avisar; quien decide sigue siendo el handler.
+        /// </summary>
+        private static decimal LimitePorGasto(FondoCajaChica fondo)
+        {
+            var topeReglamentario = fondo.MontoFijo * (fondo.PorcentajeMaximoPorGasto / 100m);
+
+            return fondo.LimitePorGasto > 0
+                ? Math.Min(fondo.LimitePorGasto, topeReglamentario)
+                : topeReglamentario;
+        }
+
+        private string Encabezado
+        {
+            get
+            {
+                if (FondoActual is not { } fondo)
+                {
+                    return "Complete los datos de la factura y adjunte sus comprobantes.";
+                }
+
+                return $"Tope por gasto RD$ {LimitePorGasto(fondo):N2} · disponible RD$ {fondo.BalanceActual:N2}";
+            }
+        }
+
+        /// <summary>
+        /// Aviso en vivo del tope, para que el rechazo no llegue recien al guardar.
+        /// Solo aparece con un monto escrito: en blanco no hay nada que avisar.
+        /// </summary>
+        private AvisoDeTope? AvisoTope
+        {
+            get
+            {
+                if (FondoActual is not { } fondo || MontoTotal <= 0m)
+                {
+                    return null;
+                }
+
+                var limite = LimitePorGasto(fondo);
+                var margen = limite - MontoTotal;
+
+                return margen >= 0m
+                    ? new AvisoDeTope(true,
+                        $"Dentro del tope de RD$ {limite:N2} por gasto, por RD$ {margen:N2}. " +
+                        $"El fondo queda en RD$ {fondo.BalanceActual - MontoTotal:N2}.")
+                    : new AvisoDeTope(false,
+                        $"Se pasa del tope de RD$ {limite:N2} por gasto por RD$ {Math.Abs(margen):N2}. " +
+                        "El registro será rechazado.");
+            }
+        }
+
+        private sealed record AvisoDeTope(bool DentroDelTope, string Mensaje);
 
         private void SeleccionarArchivos(InputFileChangeEventArgs e)
         {
@@ -141,7 +233,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                     Concepto = entrada.Concepto,
                     Subtotal = entrada.Subtotal ?? 0,
                     MontoITBIS = entrada.MontoITBIS ?? 0,
-                    MontoTotal = entrada.MontoTotal ?? 0,
+                    MontoTotal = MontoTotal,
                     FechaGasto = entrada.FechaGasto
                 };
 
@@ -209,9 +301,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
             // Nullables para que el campo salga vacío y se vea el placeholder "0" en vez
             // de un cero escrito que el usuario tiene que borrar antes de teclear.
+            //
+            // No hay MontoTotal: es la suma de estos dos y se calcula en la pantalla
+            // (ver RegistrarGasto.MontoTotal). Al no existir como campo, el cuadre no
+            // puede romperse por una errata.
             public decimal? Subtotal { get; set; }
             public decimal? MontoITBIS { get; set; }
-            public decimal? MontoTotal { get; set; }
             public DateTime FechaGasto { get; set; } = DateTime.Today;
 
             public void Limpiar(Guid fondoId, Guid categoriaId)
@@ -224,7 +319,6 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 Concepto = null;
                 Subtotal = null;
                 MontoITBIS = null;
-                MontoTotal = null;
                 FechaGasto = DateTime.Today;
             }
         }

@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Domain.Enums;
 using Microsoft.AspNetCore.Components;
 
 namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
@@ -11,22 +14,60 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
     {
         private const decimal PorcentajeAlertaPorDefecto = 30m;
 
+        /// <summary>Cuántos arqueos entran en el anillo de resultados.</summary>
+        private const int ArqueosEnElAnillo = 3;
+
+        /// <summary>Separación en grados entre segmentos del anillo.</summary>
+        private const double SeparacionSegmentos = 8d;
+
+        private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-DO");
+
+        // El degradado cónico se escribe dentro de un atributo style, así que sus
+        // números tienen que llevar punto decimal pase lo que pase con la cultura
+        // del servidor: con "93,4%" el navegador descarta la regla entera.
+        private static readonly CultureInfo Invariante = CultureInfo.InvariantCulture;
+
         [Inject]
         private IFondoRepository Fondos { get; set; } = default!;
 
         [Inject]
         private IIdentityService Identidad { get; set; } = default!;
 
+        [Inject]
+        private IArqueoRepository Arqueos { get; set; } = default!;
+
         private IReadOnlyList<FondoCajaChica>? fondos;
+
+        private IReadOnlyList<ArqueoCaja>? ultimosArqueos;
 
         // CustodioId guarda el Id de Identity (un GUID), no un nombre: sin este mapa,
         // la tarjeta de cada fondo mostraria el GUID crudo en vez del nombre de usuario.
         private Dictionary<string, string> nombresDeCustodio = new();
 
+        /// <summary>
+        /// El anillo de arqueos solo acompaña a un fondo único. Con varios fondos
+        /// mezclaría en un mismo anillo arqueos de cajas distintas, que no se comparan
+        /// entre sí.
+        /// </summary>
+        private bool EsPanelDeUnFondo => fondos is { Count: 1 };
+
+        private string Lede => EsPanelDeUnFondo
+            ? "Su fondo y el resultado de sus últimos arqueos."
+            : "Fondos bajo su supervisión.";
+
         protected override async Task OnInitializedAsync()
         {
             fondos = await Fondos.ListarAsync();
             await ResolverNombresDeCustodioAsync();
+
+            if (EsPanelDeUnFondo)
+            {
+                var arqueos = await Arqueos.ListarPorFondoAsync(fondos![0].Id);
+                ultimosArqueos = arqueos
+                    .OrderByDescending(a => a.FechaArqueo)
+                    .Take(ArqueosEnElAnillo)
+                    .ToList();
+            }
         }
 
         private async Task ResolverNombresDeCustodioAsync()
@@ -54,11 +95,59 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         /// lectura uniforme de todos los fondos de un vistazo, mientras que el aviso de
         /// "toca solicitar reposicion" si respeta el umbral configurado de cada fondo.
         /// </summary>
-        private static string ClaseBarra(decimal porcentaje) => porcentaje switch
+        private static string ColorAnillo(decimal porcentaje) => porcentaje switch
         {
-            >= 50m => "bg-success",
-            >= 30m => "bg-warning",
-            _ => "bg-danger"
+            >= 50m => "#198754",
+            >= 30m => "#FFC107",
+            _ => "#DC3545"
         };
+
+        private static string ColorResultado(ResultadoArqueo resultado) => resultado switch
+        {
+            ResultadoArqueo.Cuadrado => "#198754",
+            ResultadoArqueo.Sobrante => "#0DCAF0",
+            _ => "#DC3545"
+        };
+
+        private static string EtiquetaResultado(ResultadoArqueo resultado) => resultado switch
+        {
+            ResultadoArqueo.Cuadrado => "Cuadrado",
+            ResultadoArqueo.Sobrante => "Sobrante",
+            _ => "Faltante"
+        };
+
+        /// <summary>
+        /// Anillo de un segmento por arqueo, con una rendija del color del fondo entre
+        /// segmentos para que dos resultados iguales seguidos no se lean como uno solo.
+        /// Con un único arqueo no hay rendija: no habría nada que separar.
+        /// </summary>
+        private string GradienteArqueos()
+        {
+            var arqueos = ultimosArqueos!;
+            var porcion = 360d / arqueos.Count;
+            var separacion = arqueos.Count > 1 ? SeparacionSegmentos : 0d;
+
+            var tramos = new StringBuilder("conic-gradient(");
+            for (var i = 0; i < arqueos.Count; i++)
+            {
+                var inicio = i * porcion;
+                var finColor = inicio + porcion - separacion;
+                var finTramo = inicio + porcion;
+
+                if (i > 0)
+                {
+                    tramos.Append(", ");
+                }
+
+                tramos.Append(Invariante, $"{ColorResultado(arqueos[i].Resultado)} {inicio:0.##}deg {finColor:0.##}deg");
+
+                if (separacion > 0d)
+                {
+                    tramos.Append(Invariante, $", #FFFFFF {finColor:0.##}deg {finTramo:0.##}deg");
+                }
+            }
+
+            return tramos.Append(')').ToString();
+        }
     }
 }

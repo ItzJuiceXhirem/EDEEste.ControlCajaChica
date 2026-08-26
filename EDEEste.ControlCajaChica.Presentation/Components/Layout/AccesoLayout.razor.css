@@ -1,0 +1,425 @@
+/* Pantallas de acceso — DESIGN.md §5.4.
+   Fondo negro tinta, banda dorada como único gesto grande de oro en toda la app,
+   y el campo de denominaciones de textura. */
+
+/* El panel va en flujo normal y no posicionado, aunque el diseño lo muestre
+   flotando a la derecha: el formulario de Solicitar acceso mide más que una
+   pantalla de portátil, y anclado en absoluto quedaba recortado por el
+   overflow sin manera de llegar a él. En flujo, el contenedor crece y la
+   página hace scroll. Las capas decorativas sí siguen en absoluto. */
+.cc-acceso {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background: #000814;
+    color: var(--cc-ivory);
+    font-family: var(--cc-ff-text);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    /* La separación del borde derecho crece con la ventana en vez de quedarse en
+       un valor fijo: así el panel se mantiene a la misma altura de la mirada en
+       un portátil y en un monitor ancho, sin irse a la esquina en el segundo. */
+    padding: 48px clamp(40px, 7vw, 220px);
+}
+
+/* ── Campo de denominaciones ─────────────────────────────────────────────── */
+/* Recortado a la franja superior: por debajo empieza el degradado, y las fichas
+   ahí abajo competirían con el panel del formulario. */
+.cc-field {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    clip-path: polygon(0 0, 100% 0, 100% 17%, 0 54%);
+    pointer-events: none;
+}
+
+.cc-chip {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+}
+
+.cc-bill {
+    border-radius: 4px;
+    border: 1px solid rgba(255, 253, 245, 0.2);
+    color: rgba(255, 253, 245, 0.34);
+}
+
+.cc-coin {
+    border-radius: 50%;
+    border: 1px solid rgba(255, 195, 0, 0.36);
+    color: rgba(255, 195, 0, 0.46);
+}
+
+/* ── Atmósfera ───────────────────────────────────────────────────────────── */
+.cc-below {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    clip-path: polygon(0 57%, 100% 20%, 100% 100%, 0 100%);
+    background: radial-gradient(ellipse 72% 78% at 40% 84%, rgba(0, 53, 102, 0.46) 0%, rgba(0, 29, 61, 0.22) 46%, rgba(0, 8, 20, 0) 80%);
+}
+
+.cc-band {
+    position: absolute;
+    left: -14%;
+    top: 30%;
+    width: 128%;
+    height: 58px;
+    transform: rotate(-13deg);
+    background: linear-gradient(90deg, #FFC300 0%, #FFDA20 52%, #FFC300 100%);
+}
+
+.cc-band-thin {
+    position: absolute;
+    left: -14%;
+    top: 30%;
+    width: 128%;
+    height: 10px;
+    transform: rotate(-13deg) translateY(78px);
+    background: rgba(255, 195, 0, 0.3);
+}
+
+.cc-ghost {
+    position: absolute;
+    left: -18px;
+    bottom: 40px;
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 132px;
+    line-height: 0.84;
+    letter-spacing: -0.05em;
+    color: rgba(255, 253, 245, 0.06);
+    white-space: pre-line;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ── Marca ───────────────────────────────────────────────────────────────── */
+.cc-id {
+    position: absolute;
+    left: 56px;
+    top: 46px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cc-mark {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    color: var(--cc-gold);
+    font-family: var(--cc-ff-head);
+}
+
+    .cc-mark svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+.cc-wordmark {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.005em;
+    color: var(--cc-ivory);
+}
+
+/* ── Panel del formulario ────────────────────────────────────────────────── */
+/* position:relative + z-index para quedar por encima de las capas decorativas,
+   que sí están posicionadas y si no lo taparían. */
+.cc-side {
+    position: relative;
+    z-index: 1;
+    width: 520px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.cc-panel {
+    width: 100%;
+    border-radius: 10px;
+    padding: 42px 46px 44px;
+    border-top: 3px solid var(--cc-gold);
+    background: linear-gradient(168deg, rgba(0, 53, 102, 0.72) 0%, rgba(0, 29, 61, 0.97) 52%, rgba(0, 8, 20, 0.99) 100%);
+    box-shadow: 0 50px 90px -30px rgba(0, 0, 0, 0.88);
+}
+
+/* Lockup corporativo (recreación) */
+.cc-ede {
+    display: inline-flex;
+    align-items: flex-end;
+    position: relative;
+    line-height: 1;
+}
+
+.cc-ede-sw {
+    position: absolute;
+    right: -1px;
+    top: -8px;
+    width: 39px;
+    height: 12px;
+}
+
+    .cc-ede-sw path {
+        fill: var(--cc-gold);
+    }
+
+.cc-ede-w,
+.cc-ede-dot {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.045em;
+}
+
+.cc-ede-w1 {
+    color: var(--cc-ivory);
+}
+
+.cc-ede-w2,
+.cc-ede-dot {
+    color: var(--cc-gold);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Contenido de la página, que llega por @Body y no lleva el ámbito de este
+   archivo — de ahí el ::deep. Vive aquí y no en cada página porque Iniciar
+   sesión y Solicitar acceso comparten exactamente el mismo tratamiento.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cc-panel ::deep .cc-kicker {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--cc-gold);
+    margin: 0 0 9px;
+}
+
+.cc-panel ::deep h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 33px;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--cc-ivory);
+}
+
+.cc-panel ::deep .cc-note {
+    font-size: 13px;
+    line-height: 1.55;
+    color: rgba(255, 253, 245, 0.5);
+}
+
+.cc-panel ::deep .cc-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.cc-panel ::deep .cc-f {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cc-panel ::deep .cc-lb {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 253, 245, 0.52);
+}
+
+/* Los campos de Bootstrap sobre fondo oscuro: mismo control, otra piel. */
+.cc-panel ::deep .form-control {
+    height: 50px;
+    border-radius: 6px;
+    background: rgba(255, 253, 245, 0.05);
+    border: 1px solid rgba(255, 253, 245, 0.16);
+    padding: 0 15px;
+    font-size: 15px;
+    color: rgba(255, 253, 245, 0.94);
+}
+
+    .cc-panel ::deep .form-control::placeholder {
+        color: rgba(255, 253, 245, 0.3);
+        text-align: start;
+    }
+
+    .cc-panel ::deep .form-control:focus {
+        border-color: var(--cc-gold);
+        background: rgba(255, 253, 245, 0.08);
+        color: var(--cc-ivory);
+        box-shadow: 0 0 0 3px rgba(255, 195, 0, 0.15);
+    }
+
+.cc-panel ::deep .cc-hint {
+    font-size: 11.5px;
+    color: rgba(255, 253, 245, 0.4);
+}
+
+.cc-panel ::deep .cc-rem {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13.5px;
+    color: rgba(255, 253, 245, 0.72);
+    margin: 0;
+}
+
+.cc-panel ::deep .cc-rem .form-check-input {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    border-radius: 4px;
+    border-color: rgba(255, 253, 245, 0.35);
+    background-color: rgba(255, 253, 245, 0.08);
+    flex: none;
+}
+
+    .cc-panel ::deep .cc-rem .form-check-input:checked {
+        background-color: var(--cc-gold);
+        border-color: var(--cc-gold);
+    }
+
+    .cc-panel ::deep .cc-rem .form-check-input:focus {
+        box-shadow: 0 0 0 3px rgba(255, 195, 0, 0.2);
+    }
+
+/* El dorado es el color de la acción principal aquí — es la única pantalla donde
+   el acento tiene más licencia que el azul, porque no compite con datos. */
+.cc-panel ::deep .cc-cta {
+    width: 100%;
+    height: 52px;
+    border: none;
+    border-radius: 6px;
+    background: var(--cc-gold);
+    color: var(--cc-ink);
+    font-family: var(--cc-ff-text);
+    font-weight: 600;
+    font-size: 15.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+}
+
+    .cc-panel ::deep .cc-cta:hover {
+        background: var(--cc-gold-lt);
+    }
+
+    .cc-panel ::deep .cc-cta:focus-visible {
+        outline: 3px solid rgba(255, 253, 245, 0.5);
+        outline-offset: 2px;
+    }
+
+    .cc-panel ::deep .cc-cta svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.1;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+.cc-panel ::deep .cc-sep {
+    height: 1px;
+    background: rgba(255, 253, 245, 0.13);
+}
+
+.cc-panel ::deep .cc-lnk-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13.5px;
+    color: rgba(255, 253, 245, 0.5);
+}
+
+.cc-panel ::deep a {
+    color: var(--cc-gold-lt);
+    text-decoration: none;
+}
+
+    .cc-panel ::deep a:hover {
+        color: var(--cc-gold);
+        text-decoration: underline;
+    }
+
+/* §5.3 y §5.4: sobre fondo oscuro el rojo y el celeste de Bootstrap pierden casi
+   todo el contraste, así que se aclaran. Es la única excepción a no tocar los
+   colores de estado, y solo aplica a texto suelto. */
+.cc-panel ::deep .validation-message,
+.cc-panel ::deep .text-danger {
+    color: #FF9AA3 !important;
+    font-size: 12.5px;
+}
+
+.cc-panel ::deep .alert {
+    border-radius: 6px;
+    font-size: 12.5px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+}
+
+.cc-panel ::deep .alert-danger {
+    background: rgba(220, 53, 69, 0.14);
+    border-color: rgba(255, 154, 163, 0.4);
+    color: #FF9AA3;
+}
+
+.cc-panel ::deep .alert-success {
+    background: rgba(25, 135, 84, 0.16);
+    border-color: rgba(133, 224, 179, 0.4);
+    color: #85E0B3;
+}
+
+.cc-panel ::deep .alert-info {
+    background: rgba(13, 202, 240, 0.14);
+    border-color: rgba(126, 231, 255, 0.38);
+    color: #7EE7FF;
+}
+
+    .cc-panel ::deep .alert-info a {
+        color: #7EE7FF;
+        text-decoration: underline;
+    }
+
+/* ── Pantallas angostas: el panel deja de flotar y la página fluye ───────── */
+@media (max-width: 1023.98px) {
+    .cc-acceso {
+        justify-content: center;
+        /* Aquí ya no hay sitio para la composición asimétrica: el panel se centra
+           y el clamp de arriba dejaría un margen absurdo. */
+        padding: 110px 20px 48px;
+    }
+
+    .cc-ghost {
+        font-size: 84px;
+        left: -8px;
+        bottom: 16px;
+    }
+
+    .cc-id {
+        left: 24px;
+        top: 28px;
+    }
+}
+
+@media (max-width: 479.98px) {
+    .cc-panel {
+        padding: 28px 22px 30px;
+    }
+}

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
@@ -33,14 +34,21 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private FondoCajaChica? fondoActual;
         private Guid fondoSeleccionado;
 
-        // CustodioId guarda el Id de Identity (un GUID), no un nombre: sin este mapa,
-        // el desplegable de fondos mostraria el GUID crudo en vez del nombre de usuario.
-        private Dictionary<string, string> nombresDeCustodio = new();
+        // Los Id de Identity son GUID, no nombres: sin este mapa, el desplegable de
+        // fondos y el "Realizado por" del modal mostrarian el GUID crudo.
+        private readonly Dictionary<string, string> nombresDeUsuario = new();
 
         private IReadOnlyList<Gasto>? pendientes;
         private IReadOnlyList<ArqueoCaja>? historial;
         private ArqueoCaja? ultimoArqueo;
         private Guid? arqueoExpandido;
+
+        /// <summary>
+        /// §5.1: el conteo arranca desplegado para quien puede capturarlo. Quien no
+        /// tiene el permiso nunca llega hasta aqui — su rama del AuthorizeView pinta
+        /// la franja con candado, sin estado que alternar.
+        /// </summary>
+        private bool seccionAbierta = true;
 
         // Solo guarda el Id: el texto completo se lee de "historial" al momento de
         // pintar el modal, para no duplicar el estado.
@@ -58,7 +66,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         protected override async Task OnInitializedAsync()
         {
             fondos = await Fondos.ListarAsync();
-            await ResolverNombresDeCustodioAsync();
+            await ResolverNombresAsync(fondos.Select(f => f.CustodioId));
 
             if (fondos.Count > 0)
             {
@@ -67,19 +75,24 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             }
         }
 
-        private async Task ResolverNombresDeCustodioAsync()
+        /// <summary>
+        /// Resuelve solo los Id que aun no estan en el mapa: la pantalla vuelve a
+        /// pedir nombres cada vez que se cambia de fondo o se registra un arqueo, y
+        /// casi siempre son los mismos usuarios.
+        /// </summary>
+        private async Task ResolverNombresAsync(IEnumerable<string> ids)
         {
-            var mapa = new Dictionary<string, string>();
-            foreach (var id in fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+            foreach (var id in ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
             {
-                mapa[id] = await Identidad.ObtenerNombreUsuarioAsync(id) ?? id;
+                if (!nombresDeUsuario.ContainsKey(id))
+                {
+                    nombresDeUsuario[id] = await Identidad.ObtenerNombreUsuarioAsync(id) ?? id;
+                }
             }
-
-            nombresDeCustodio = mapa;
         }
 
-        private string NombreCustodio(string custodioId) =>
-            string.IsNullOrWhiteSpace(custodioId) ? "(sin asignar)" : nombresDeCustodio.GetValueOrDefault(custodioId, custodioId);
+        private string NombreUsuario(string usuarioId) =>
+            string.IsNullOrWhiteSpace(usuarioId) ? "(sin asignar)" : nombresDeUsuario.GetValueOrDefault(usuarioId, usuarioId);
 
         private async Task CambiarFondoAsync(ChangeEventArgs e)
         {
@@ -99,7 +112,17 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             pendientes = await RepositorioGastos.ListarNoRepuestosAsync(fondoId);
             historial = await RepositorioArqueos.ListarPorFondoAsync(fondoId);
             ultimoArqueo = await RepositorioArqueos.ObtenerUltimoDelFondoAsync(fondoId);
+
+            await ResolverNombresAsync(historial.Select(a => a.RealizadoPorUsuarioId));
         }
+
+        private void AlternarSeccion() => seccionAbierta = !seccionAbierta;
+
+        private IEnumerable<FilaConteo> FilasBilletes =>
+            filas.Where(f => DenominacionesRD.Billetes.Contains(f.ValorDenominacion));
+
+        private IEnumerable<FilaConteo> FilasMonedas =>
+            filas.Where(f => DenominacionesRD.Monedas.Contains(f.ValorDenominacion));
 
         private decimal MontoComprobantesPendientes => pendientes?.Sum(g => g.MontoTotal) ?? 0m;
 
@@ -108,6 +131,18 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private decimal SaldoTeorico => fondoActual?.BalanceActual ?? 0m;
 
         private decimal Diferencia => MontoContado - SaldoTeorico;
+
+        /// <summary>
+        /// El mismo criterio que aplica <c>RegistrarArqueoMensualHandler</c>, calculado
+        /// en vivo para que la franja y la caja de resultado digan de antemano lo que
+        /// va a quedar registrado.
+        /// </summary>
+        private ResultadoArqueo ResultadoActual => Diferencia switch
+        {
+            0m => ResultadoArqueo.Cuadrado,
+            > 0m => ResultadoArqueo.Sobrante,
+            _ => ResultadoArqueo.Faltante
+        };
 
         /// <summary>
         /// La invariante del README (efectivo contado + comprobantes pendientes =
@@ -132,6 +167,35 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             fechaArqueo = DateTime.Today;
         }
 
+        private static void Ajustar(FilaConteo fila, int delta) =>
+            fila.Cantidad = Math.Max(0, fila.Cantidad + delta);
+
+        private static void FijarCantidad(FilaConteo fila, string? valor) =>
+            fila.Cantidad = int.TryParse(valor, out var cantidad) ? Math.Max(0, cantidad) : 0;
+
+        /// <summary>
+        /// La ficha de cada denominacion se va destinando de mayor a menor, para que
+        /// el orden del conteo se lea tambien por el peso del color y no solo por el
+        /// numero. Los valores salen de DenominacionesRD, asi que un billete nuevo
+        /// entra en la escala sin tocar esta pantalla.
+        /// </summary>
+        private static string OpacidadBillete(decimal valor) =>
+            Escalar(DenominacionesRD.Billetes.ToList().IndexOf(valor), DenominacionesRD.Billetes.Count, 0.17, 0.05);
+
+        private static string OpacidadMoneda(decimal valor) =>
+            Escalar(DenominacionesRD.Monedas.ToList().IndexOf(valor), DenominacionesRD.Monedas.Count, 0.30, 0.12);
+
+        private static string Escalar(int indice, int total, double maximo, double minimo)
+        {
+            if (indice < 0 || total <= 1)
+            {
+                return maximo.ToString("0.###", CultureInfo.InvariantCulture);
+            }
+
+            var opacidad = maximo - (maximo - minimo) * indice / (total - 1);
+            return opacidad.ToString("0.###", CultureInfo.InvariantCulture);
+        }
+
         private void AlternarDetalle(Guid arqueoId) =>
             arqueoExpandido = arqueoExpandido == arqueoId ? null : arqueoId;
 
@@ -140,25 +204,66 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private void CerrarObservacion() => arqueoObservacionAbierta = null;
 
         private ArqueoCaja? ArqueoConObservacionAbierta =>
-            historial?.FirstOrDefault(a => a.Id == arqueoObservacionAbierta);
+            arqueoObservacionAbierta is null
+                ? null
+                : historial?.FirstOrDefault(a => a.Id == arqueoObservacionAbierta);
 
         /// <summary>
         /// Recorta el texto para que una observacion larga no deforme la tabla del
         /// historial. El texto completo queda a un clic de distancia en el modal.
         /// </summary>
         private static string TruncarObservacion(string? observaciones) =>
-            string.IsNullOrEmpty(observaciones)
-                ? "-"
-                : observaciones.Length <= LongitudObservacionEnTabla
-                    ? observaciones
-                    : observaciones[..LongitudObservacionEnTabla] + "...";
+            string.IsNullOrWhiteSpace(observaciones)
+                ? "—"
+                : ObservacionTruncada(observaciones)
+                    ? observaciones[..LongitudObservacionEnTabla] + "…"
+                    : observaciones;
 
-        private static string ClaseResultado(ResultadoArqueo resultado) => resultado switch
+        private static bool ObservacionTruncada(string? observaciones) =>
+            !string.IsNullOrWhiteSpace(observaciones) && observaciones.Length > LongitudObservacionEnTabla;
+
+        /// <summary>
+        /// Signo explicito en las dos direcciones: un sobrante con "+" delante se
+        /// distingue de un faltante aunque el lector no repare en el color.
+        /// </summary>
+        private static string FormatoDiferencia(decimal diferencia) => diferencia switch
         {
-            ResultadoArqueo.Cuadrado => "text-bg-success",
-            ResultadoArqueo.Sobrante => "text-bg-info",
-            ResultadoArqueo.Faltante => "text-bg-danger",
-            _ => "text-bg-secondary"
+            0m => "0.00",
+            > 0m => "+" + diferencia.ToString("N2"),
+            _ => "−" + Math.Abs(diferencia).ToString("N2")
+        };
+
+        private static string ClaseBadge(ResultadoArqueo resultado) => resultado switch
+        {
+            ResultadoArqueo.Cuadrado => "arq-bdg-ok",
+            ResultadoArqueo.Sobrante => "arq-bdg-up",
+            _ => "arq-bdg-bad"
+        };
+
+        private static string ClaseCajaResultado(ResultadoArqueo resultado) => resultado switch
+        {
+            ResultadoArqueo.Cuadrado => "arq-verdict-ok",
+            ResultadoArqueo.Sobrante => "arq-verdict-up",
+            _ => "arq-verdict-bad"
+        };
+
+        private static string ClaseTextoResultado(ResultadoArqueo resultado) => resultado switch
+        {
+            ResultadoArqueo.Cuadrado => "arq-txt-ok",
+            ResultadoArqueo.Sobrante => "arq-txt-up",
+            _ => "arq-txt-bad"
+        };
+
+        /// <summary>
+        /// Variante aclarada para el degradado oscuro del modal (DESIGN.md §5.3): es la
+        /// unica excepcion a no tocar los colores de estado, y solo aplica a texto
+        /// suelto — los badges conservan su aspecto claro tal cual.
+        /// </summary>
+        private static string ClaseTextoResultadoOscuro(ResultadoArqueo resultado) => resultado switch
+        {
+            ResultadoArqueo.Cuadrado => "arq-txt-ok-dark",
+            ResultadoArqueo.Sobrante => "arq-txt-up-dark",
+            _ => "arq-txt-bad-dark"
         };
 
         private static string EtiquetaResultado(ResultadoArqueo resultado) => resultado switch
@@ -198,6 +303,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 exito = "Arqueo registrado.";
                 LimpiarFormulario();
                 await CargarFondoAsync(fondoSeleccionado);
+
+                // Registrado el conteo, lo que interesa es el historial: la franja
+                // plegada conserva el resumen y deja la lista servida completa.
+                seccionAbierta = false;
             }
             catch (Exception ex)
             {

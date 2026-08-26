@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <ResourcePreloader />
+    @* Las fuentes van antes de app.css para que los tokens que las nombran ya las
+       encuentren declaradas. display=swap: el texto se pinta con la pila de respaldo
+       y cambia al cargar, en vez de dejar la pantalla en blanco. *@
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Stack+Sans+Headline:wght@500;600;700&family=Stack+Sans+Text:wght@400;500;600&display=swap" />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["EDEEste.ControlCajaChica.Presentation.styles.css"]" />
@@ -17,6 +24,7 @@
 <body>
     <Routes @rendermode="PageRenderMode" />
     <ReconnectModal />
+    <script src="@Assets["js/interop.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 

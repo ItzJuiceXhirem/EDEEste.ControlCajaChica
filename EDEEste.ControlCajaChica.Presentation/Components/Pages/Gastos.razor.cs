@@ -9,11 +9,14 @@ using EDEEste.ControlCajaChica.Application.Features.Gastos;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 {
     public partial class Gastos
     {
+        private const int LongitudMotivoEnTabla = 60;
+
         [Inject]
         private IFondoRepository Fondos { get; set; } = default!;
 
@@ -32,11 +35,28 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         [Inject]
         private IIdentityService Identidad { get; set; } = default!;
 
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; } = default!;
+
+        // Referencias para posicionar la ficha (§5.9) al lado de la fila que la abrió,
+        // en vez de que aparezca siempre arriba del todo de la tabla. Un Dictionary y
+        // no una sola ElementReference porque el @ref vive dentro de un @foreach: cada
+        // fila necesita la suya para poder medir la que el usuario tocó.
+        private ElementReference tarjetaMovimientosRef;
+        private ElementReference fichaRef;
+        private readonly Dictionary<Guid, ElementReference> filaRefs = new();
+
+        // Evita reposicionar en cada render (p. ej. al teclear en el buscador de la
+        // ficha, si lo hubiera): solo hace falta recalcular cuando cambia CUAL fila
+        // está abierta.
+        private Guid? fichaPosicionadaPara;
+
         private IReadOnlyList<FondoCajaChica>? fondos;
 
-        // CustodioId guarda el Id de Identity (un GUID), no un nombre: sin este mapa,
-        // el desplegable de fondos mostraria el GUID crudo en vez del nombre de usuario.
-        private Dictionary<string, string> nombresDeCustodio = new();
+        // Los Id de Identity son GUID, no nombres: sin este mapa, el desplegable de
+        // fondos y el "registrado por" de la ficha mostrarian el GUID crudo.
+        private readonly Dictionary<string, string> nombresDeUsuario = new();
+
         private IReadOnlyList<Gasto>? gastos;
         private IReadOnlyList<Gasto>? anulacionesPendientes;
         private IReadOnlyList<Gasto>? anulados;
@@ -45,15 +65,30 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         // null = "Todos". Filtra en memoria sobre lo ya cargado (ver GastosFiltrados).
         private EstadoGasto? filtroEstado;
 
+        /// <summary>
+        /// §5.8: la cifra de "Anulado" no filtra la tabla de movimientos — abre una
+        /// vista distinta, porque una anulacion trae columnas propias (motivo, quien
+        /// decide) que no encajan en las de un gasto pendiente.
+        /// </summary>
+        private bool vistaAnulados;
+
+        /// <summary>§5.9: fila abierta en la ficha lateral.</summary>
+        private Guid? gastoSeleccionado;
+
+        private string busquedaMovimientos = string.Empty;
+
         // null = todo el historial.
         private int? diasAnulados = 90;
         private string busquedaAnulados = string.Empty;
 
-        // Fila expandida con el textarea de motivo, y el motivo que se esta escribiendo.
-        // anulacionDirectaEnCurso distingue si el formulario abierto es "Solicitar
-        // anulacion" (Custodio, no toca el balance) o "Anular" directo (Gerente, si
-        // lo toca) -- misma fila de UI, pero el boton "Confirmar" llama a un handler
-        // distinto segun cual se haya pulsado.
+        // Solo guarda el Id: el texto se lee de la lista al pintar el modal, para no
+        // duplicar el estado.
+        private Guid? motivoAbierto;
+
+        // Gasto cuyo formulario de motivo esta abierto, y el motivo que se esta
+        // escribiendo. anulacionDirectaEnCurso distingue si es "Solicitar anulacion"
+        // (Custodio, no toca el balance) o "Anular" directo (Gerente, si lo toca) --
+        // mismo formulario, pero el boton de confirmar llama a un handler distinto.
         private Guid? gastoEnAnulacion;
         private bool anulacionDirectaEnCurso;
         private string motivoAnulacion = string.Empty;
@@ -64,10 +99,14 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private readonly List<string> errores = new();
         private string? exito;
 
+        private string Lede => vistaAnulados
+            ? "Mostrando anulaciones: lo que espera decisión y el historial de lo ya anulado."
+            : "Registre y dé seguimiento a los gastos del fondo hasta su reposición.";
+
         protected override async Task OnInitializedAsync()
         {
             fondos = await Fondos.ListarAsync();
-            await ResolverNombresDeCustodioAsync();
+            await ResolverNombresAsync(fondos.Select(f => f.CustodioId));
 
             if (fondos.Count > 0)
             {
@@ -76,19 +115,53 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             }
         }
 
-        private async Task ResolverNombresDeCustodioAsync()
+        /// <summary>
+        /// Posiciona la ficha para que su parte superior arranque a la altura de la
+        /// fila que la abrió, en vez de siempre arriba del todo de la tarjeta -- con
+        /// una tabla larga, abrir una fila del final obligaba a subir para ver la
+        /// ficha. Si la fila está cerca del final, el borde inferior de la ficha se
+        /// alinea con el borde inferior de la fila en su lugar, para que la ficha
+        /// nunca sobresalga por debajo de la tarjeta de movimientos.
+        ///
+        /// Se hace por JS y no con estado en C# porque depende de un alto que solo el
+        /// navegador conoce (el de la ficha ya renderizada) -- medirlo y aplicarlo en
+        /// la misma llamada evita un segundo viaje al servidor solo para reposicionar.
+        /// </summary>
+        protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            var mapa = new Dictionary<string, string>();
-            foreach (var id in fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+            if (gastoSeleccionado == fichaPosicionadaPara)
             {
-                mapa[id] = await Identidad.ObtenerNombreUsuarioAsync(id) ?? id;
+                return;
             }
 
-            nombresDeCustodio = mapa;
+            fichaPosicionadaPara = gastoSeleccionado;
+
+            if (gastoSeleccionado is not { } id || !filaRefs.TryGetValue(id, out var filaRef))
+            {
+                return;
+            }
+
+            await JsRuntime.InvokeVoidAsync("ccGastosFicha.posicionar", tarjetaMovimientosRef, filaRef, fichaRef);
         }
 
-        private string NombreCustodio(string custodioId) =>
-            string.IsNullOrWhiteSpace(custodioId) ? "(sin asignar)" : nombresDeCustodio.GetValueOrDefault(custodioId, custodioId);
+        /// <summary>
+        /// Resuelve solo los Id que aun no estan en el mapa: la pantalla vuelve a
+        /// pedir nombres cada vez que se cambia de fondo o se anula un gasto, y casi
+        /// siempre son los mismos usuarios.
+        /// </summary>
+        private async Task ResolverNombresAsync(IEnumerable<string> ids)
+        {
+            foreach (var id in ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+            {
+                if (!nombresDeUsuario.ContainsKey(id))
+                {
+                    nombresDeUsuario[id] = await Identidad.ObtenerNombreUsuarioAsync(id) ?? id;
+                }
+            }
+        }
+
+        private string NombreUsuario(string usuarioId) =>
+            string.IsNullOrWhiteSpace(usuarioId) ? "(sin asignar)" : nombresDeUsuario.GetValueOrDefault(usuarioId, usuarioId);
 
         private async Task CambiarFondoAsync(ChangeEventArgs e)
         {
@@ -97,6 +170,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 errores.Clear();
                 exito = null;
                 fondoSeleccionado = id;
+                CerrarFicha();
                 await CargarTodoAsync(id);
             }
         }
@@ -110,6 +184,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             gastos = await RepositorioGastos.ListarPorFondoAsync(fondoId);
             anulacionesPendientes = await RepositorioGastos.ListarPorEstadoAsync(fondoId, EstadoGasto.AnulacionPendiente);
             await CargarAnuladosAsync(fondoId);
+
+            await ResolverNombresAsync(gastos.Select(g => g.RegistradoPorUsuarioId));
         }
 
         private async Task CargarAnuladosAsync(Guid fondoId)
@@ -125,22 +201,87 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             await CargarAnuladosAsync(fondoSeleccionado);
         }
 
-        private void CambiarFiltroEstado(ChangeEventArgs e)
-        {
-            var valor = e.Value?.ToString();
-            filtroEstado = string.IsNullOrEmpty(valor) ? null : Enum.Parse<EstadoGasto>(valor);
-        }
+        // ── Cifras de resumen (§5.8) ─────────────────────────────────────────────
+
+        private decimal Total(EstadoGasto estado) =>
+            gastos?.Where(g => g.Estado == estado).Sum(g => g.MontoTotal) ?? 0m;
+
+        private int Conteo(EstadoGasto estado) =>
+            gastos?.Count(g => g.Estado == estado) ?? 0;
+
+        private decimal TotalAnulados => anulados?.Sum(g => g.MontoTotal) ?? 0m;
+
+        private string VentanaAnulados => diasAnulados is { } dias ? $"· {dias} días" : "· histórico";
+
+        private bool EstadoActivo(EstadoGasto estado) => !vistaAnulados && filtroEstado == estado;
 
         /// <summary>
-        /// Filtra en memoria la tabla principal por estado; no vuelve a la BDD porque
+        /// La misma cifra enciende y apaga su filtro: volver a pulsarla devuelve la
+        /// tabla completa, sin necesidad de una opcion "Todos" aparte.
+        /// </summary>
+        private void FiltrarPor(EstadoGasto estado)
+        {
+            vistaAnulados = false;
+            filtroEstado = filtroEstado == estado ? null : estado;
+            CerrarFicha();
+        }
+
+        private void AbrirAnulados()
+        {
+            vistaAnulados = !vistaAnulados;
+            filtroEstado = null;
+            CerrarFicha();
+        }
+
+        // ── Ficha lateral (§5.9) ─────────────────────────────────────────────────
+
+        private Gasto? GastoEnFicha =>
+            gastoSeleccionado is null ? null : gastos?.FirstOrDefault(g => g.Id == gastoSeleccionado);
+
+        /// <summary>
+        /// La misma fila abre y cierra la ficha; el boton ✕ de la cabecera hace lo
+        /// mismo. Los dos mecanismos coexisten a proposito (§5.9).
+        /// </summary>
+        private void AlternarFicha(Guid gastoId)
+        {
+            if (gastoSeleccionado == gastoId)
+            {
+                CerrarFicha();
+                return;
+            }
+
+            gastoSeleccionado = gastoId;
+            CancelarFormularioAnulacion();
+        }
+
+        private void CerrarFicha()
+        {
+            gastoSeleccionado = null;
+            CancelarFormularioAnulacion();
+        }
+
+        // ── Filtros en memoria ───────────────────────────────────────────────────
+
+        /// <summary>
+        /// Filtra en memoria la tabla principal; no vuelve a la BDD porque
         /// ListarPorFondoAsync ya trajo todos los gastos del fondo de una vez.
         /// </summary>
-        private IEnumerable<Gasto> GastosFiltrados =>
-            gastos is null
-                ? []
-                : filtroEstado is null
-                    ? gastos
-                    : gastos.Where(g => g.Estado == filtroEstado);
+        private IEnumerable<Gasto> GastosFiltrados
+        {
+            get
+            {
+                if (gastos is null)
+                {
+                    return [];
+                }
+
+                var filtrados = filtroEstado is null ? gastos : gastos.Where(g => g.Estado == filtroEstado);
+
+                return string.IsNullOrWhiteSpace(busquedaMovimientos)
+                    ? filtrados
+                    : filtrados.Where(g => Coincide(g, busquedaMovimientos.Trim()));
+            }
+        }
 
         /// <summary>
         /// Filtra en memoria sobre lo ya cargado, sin volver a la BDD: la lista ya
@@ -162,6 +303,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 gasto.NCF,
                 gasto.RNCProveedor,
                 gasto.Concepto,
+                gasto.CategoriaGasto?.Nombre,
                 gasto.MotivoAnulacion,
                 gasto.MontoTotal.ToString("N2", CultureInfo.InvariantCulture)
             };
@@ -181,20 +323,53 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             return new string(sinDiacriticos.ToArray()).Normalize(NormalizationForm.FormC);
         }
 
+        // ── Motivo: truncado y modal (§5.2 y §5.3) ───────────────────────────────
+
+        private static bool MotivoTruncado(string? motivo) =>
+            !string.IsNullOrWhiteSpace(motivo) && motivo.Length > LongitudMotivoEnTabla;
+
+        private static string TruncarMotivo(string? motivo) =>
+            string.IsNullOrWhiteSpace(motivo)
+                ? "—"
+                : MotivoTruncado(motivo)
+                    ? motivo[..LongitudMotivoEnTabla] + "…"
+                    : motivo;
+
+        private void VerMotivo(Guid gastoId) => motivoAbierto = gastoId;
+
+        private void CerrarMotivo() => motivoAbierto = null;
+
+        /// <summary>
+        /// El gasto puede estar en cualquiera de las dos listas de la vista de
+        /// anulaciones, asi que se busca en ambas.
+        /// </summary>
+        private Gasto? GastoConMotivoAbierto =>
+            motivoAbierto is null
+                ? null
+                : anulacionesPendientes?.FirstOrDefault(g => g.Id == motivoAbierto)
+                  ?? anulados?.FirstOrDefault(g => g.Id == motivoAbierto);
+
+        // ── Estados ──────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// §5.7: pildora con fondo tenue, no la variante solida de Bootstrap. Los
+        /// hues siguen respondiendo a la semantica de §1.4 — cambia la construccion
+        /// del badge, no que color significa que.
+        /// </summary>
         private static string ClaseEstado(EstadoGasto estado) => estado switch
         {
-            EstadoGasto.PendienteReposicion => "text-bg-warning",
-            EstadoGasto.EnProcesoReposicion => "text-bg-info",
-            EstadoGasto.Repuesto => "text-bg-success",
-            EstadoGasto.Rechazado or EstadoGasto.Anulado => "text-bg-danger",
-            EstadoGasto.AnulacionPendiente => "text-bg-dark",
-            _ => "text-bg-secondary"
+            EstadoGasto.PendienteReposicion => "gst-p-warn",
+            EstadoGasto.EnProcesoReposicion => "gst-p-info",
+            EstadoGasto.Repuesto => "gst-p-ok",
+            EstadoGasto.Rechazado or EstadoGasto.Anulado => "gst-p-bad",
+            EstadoGasto.AnulacionPendiente => "gst-p-dark",
+            _ => "gst-p-dark"
         };
 
         private static string EtiquetaEstado(EstadoGasto estado) => estado switch
         {
-            EstadoGasto.PendienteReposicion => "Pendiente de reposición",
-            EstadoGasto.EnProcesoReposicion => "En proceso de reposición",
+            EstadoGasto.PendienteReposicion => "Pendiente",
+            EstadoGasto.EnProcesoReposicion => "En proceso",
             EstadoGasto.Repuesto => "Repuesto",
             EstadoGasto.Rechazado => "Rechazado",
             EstadoGasto.Anulado => "Anulado",
@@ -202,8 +377,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             _ => estado.ToString()
         };
 
+        // ── Anulación ────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Abrir el formulario tambien abre la ficha: el motivo se escribe alli, no
+        /// en una fila expandida de la tabla.
+        /// </summary>
         private void AbrirFormularioAnulacion(Guid gastoId, bool directa)
         {
+            gastoSeleccionado = gastoId;
             gastoEnAnulacion = gastoId;
             anulacionDirectaEnCurso = directa;
             motivoAnulacion = string.Empty;
@@ -248,8 +430,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 }
 
                 exito = "Se pidió la anulación del gasto. Queda pendiente de que el Gerente la confirme.";
-                gastoEnAnulacion = null;
-                motivoAnulacion = string.Empty;
+                CerrarFicha();
                 await CargarTodoAsync(fondoSeleccionado);
             }
             catch (Exception ex)
@@ -283,8 +464,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 }
 
                 exito = "Gasto anulado. El monto volvió al fondo.";
-                gastoEnAnulacion = null;
-                motivoAnulacion = string.Empty;
+                CerrarFicha();
                 await CargarTodoAsync(fondoSeleccionado);
             }
             catch (Exception ex)

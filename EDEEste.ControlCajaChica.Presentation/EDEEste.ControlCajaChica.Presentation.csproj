@@ -10,9 +10,13 @@
 
   <ItemGroup>
     <Compile Remove="Pages\**" />
+    <Compile Remove="Shared\**" />
     <Content Remove="Pages\**" />
+    <Content Remove="Shared\**" />
     <EmbeddedResource Remove="Pages\**" />
+    <EmbeddedResource Remove="Shared\**" />
     <None Remove="Pages\**" />
+    <None Remove="Shared\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,10 +30,6 @@
   <ItemGroup>
     <ProjectReference Include="..\EDEEste.ControlCajaChica.Application\EDEEste.ControlCajaChica.Application.csproj" />
     <ProjectReference Include="..\EDEEste.ControlCajaChica.Infrastructure\EDEEste.ControlCajaChica.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Shared\" />
   </ItemGroup>
 
 </Project>
