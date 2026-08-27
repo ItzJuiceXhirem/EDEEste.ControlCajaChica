@@ -75,5 +75,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
 
         public async Task AgregarAsync(Gasto gasto, CancellationToken cancellationToken = default) =>
             await _context.Gastos.AddAsync(gasto, cancellationToken);
+
+        public Task<ComprobanteAdjunto?> ObtenerComprobanteAsync(Guid comprobanteId, CancellationToken cancellationToken = default) =>
+            _context.Comprobantes.FirstOrDefaultAsync(c => c.Id == comprobanteId, cancellationToken);
     }
 }

@@ -123,6 +123,9 @@ app.MapAdditionalIdentityEndpoints();
 // Descarga del expediente PDF consolidado de una reposición.
 app.MapReposicionEndpoints();
 
+// Visualización de un comprobante adjunto de un gasto (imagen o PDF).
+app.MapGastoEndpoints();
+
 // Los roles del catálogo se crean al arrancar si aún no existen (operación idempotente).
 await using (var scope = app.Services.CreateAsyncScope())
 {

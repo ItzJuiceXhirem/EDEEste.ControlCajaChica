@@ -107,141 +107,166 @@ else
 
     @if (vistaAnulados)
     {
-        <AuthorizeView Policy="@Permisos.AnularGasto" Context="autorizacionConfirmar">
-            @if (anulacionesPendientes is { Count: > 0 })
-            {
-                <section class="gst-card gst-mb">
-                    <div class="gst-cb">
-                        <div class="gst-row">
-                            <h2 class="gst-h2">Solicitudes por confirmar</h2>
-                            <span class="gst-pill gst-p-dark">Decide el Gerente</span>
-                        </div>
-                        <div class="gst-alert gst-a-info">
-                            <span aria-hidden="true">ⓘ</span>
-                            <span>
-                                Al confirmar, el monto vuelve al fondo. Devolver a pendiente deja el
-                                gasto como estaba y borra el motivo.
-                            </span>
-                        </div>
+        @* §5.9: misma ficha compartida que Movimientos — las filas de aquí no
+           tenían @onclick, así que el cursor de mano y el hover de .gst-table
+           prometían un clic que no hacía nada. *@
+        <div class="gst-split @(GastoEnFicha is not null ? "gst-open" : "")">
+            <div>
+                <AuthorizeView Policy="@Permisos.AnularGasto" Context="autorizacionConfirmar">
+                    @if (anulacionesPendientes is { Count: > 0 })
+                    {
+                        <section class="gst-card gst-mb">
+                            <div class="gst-cb">
+                                <div class="gst-row">
+                                    <h2 class="gst-h2">Solicitudes por confirmar</h2>
+                                    <span class="gst-pill gst-p-dark">Decide el Gerente</span>
+                                </div>
+                                <div class="gst-alert gst-a-info">
+                                    <span aria-hidden="true">ⓘ</span>
+                                    <span>
+                                        Al confirmar, el monto vuelve al fondo. Devolver a pendiente deja el
+                                        gasto como estaba y borra el motivo.
+                                    </span>
+                                </div>
 
-                        <div class="gst-tablewrap">
-                            <table class="gst-table gst-mt10">
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th><th>NCF</th><th>Proveedor</th>
-                                        <th class="num">Monto</th><th>Motivo</th><th class="act">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var gasto in anulacionesPendientes)
-                                    {
+                                <div class="gst-tablewrap">
+                                    <table class="gst-table gst-mt10">
+                                        <thead>
+                                            <tr>
+                                                <th>Fecha</th><th>NCF</th><th>Proveedor</th>
+                                                <th class="num">Monto</th><th>Motivo</th><th class="act">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var gasto in anulacionesPendientes)
+                                            {
+                                                <tr @key="gasto.Id"
+                                                    class="@(gastoSeleccionado == gasto.Id ? "gst-sel" : "")"
+                                                    @onclick="() => AlternarFicha(gasto.Id)">
+                                                    <td class="cc-num">@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
+                                                    <td>@gasto.NCF</td>
+                                                    <td>@gasto.Proveedor</td>
+                                                    <td class="num gst-money">@gasto.MontoTotal.ToString("N2")</td>
+                                                    <td>@TruncarMotivo(gasto.MotivoAnulacion)</td>
+                                                    <td class="act">
+                                                        @* stopPropagation: los botones actúan sobre el gasto sin
+                                                           además abrir o cerrar su ficha. *@
+                                                        <span class="gst-g6">
+                                                            @if (MotivoTruncado(gasto.MotivoAnulacion))
+                                                            {
+                                                                <button type="button" class="gst-icobtn" title="Ver el motivo completo"
+                                                                        @onclick="() => VerMotivo(gasto.Id)"
+                                                                        @onclick:stopPropagation="true">
+                                                                    @RenderIconoOjo()
+                                                                </button>
+                                                            }
+                                                            <button type="button" class="gst-btn gst-btn-bad gst-btn-sm"
+                                                                    disabled="@(procesando is not null)"
+                                                                    @onclick="() => ConfirmarAnulacionAsync(gasto.Id)"
+                                                                    @onclick:stopPropagation="true">
+                                                                Confirmar
+                                                            </button>
+                                                            <button type="button" class="gst-btn gst-btn-ghost gst-btn-sm"
+                                                                    disabled="@(procesando is not null)"
+                                                                    @onclick="() => RevertirAnulacionAsync(gasto.Id)"
+                                                                    @onclick:stopPropagation="true">
+                                                                Devolver
+                                                            </button>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    }
+                </AuthorizeView>
+
+                <section class="gst-card">
+                    <div class="gst-cb gst-cb-head">
+                        <div class="gst-row">
+                            <h2 class="gst-h2">Gastos anulados</h2>
+                            @* §5.8: seleccionar la ventana y escribir en el buscador nunca deben
+                               quedar en líneas distintas, así que van en su propio nowrap. *@
+                            <div class="gst-filters">
+                                <select class="gst-select gst-select-sm" value="@(diasAnulados?.ToString() ?? string.Empty)"
+                                        @onchange="CambiarVentanaAnuladosAsync">
+                                    <option value="30">Últimos 30 días</option>
+                                    <option value="60">Últimos 60 días</option>
+                                    <option value="90">Últimos 90 días</option>
+                                    <option value="">Todo el historial</option>
+                                </select>
+                                @RenderBuscador("Buscar proveedor, NCF, motivo…", busquedaAnulados,
+                                                valor => busquedaAnulados = valor)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gst-cb-body">
+                        @if (anulados is null)
+                        {
+                            <p class="gst-empty"><em>Cargando...</em></p>
+                        }
+                        else if (anulados.Count == 0)
+                        {
+                            <p class="gst-empty">No hay gastos anulados en esta ventana.</p>
+                        }
+                        else if (!AnuladosFiltrados.Any())
+                        {
+                            <p class="gst-empty">Ningún gasto anulado coincide con la búsqueda.</p>
+                        }
+                        else
+                        {
+                            <div class="gst-tablewrap">
+                                <table class="gst-table">
+                                    <thead>
                                         <tr>
-                                            <td class="cc-num">@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
-                                            <td>@gasto.NCF</td>
-                                            <td>@gasto.Proveedor</td>
-                                            <td class="num gst-money">@gasto.MontoTotal.ToString("N2")</td>
-                                            <td>@TruncarMotivo(gasto.MotivoAnulacion)</td>
-                                            <td class="act">
-                                                <span class="gst-g6">
+                                            <th>Fecha</th><th>NCF</th><th>Proveedor</th>
+                                            <th class="num">Monto</th><th>Motivo</th><th class="act"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var gasto in AnuladosFiltrados)
+                                        {
+                                            <tr @key="gasto.Id"
+                                                class="@(gastoSeleccionado == gasto.Id ? "gst-sel" : "")"
+                                                @onclick="() => AlternarFicha(gasto.Id)">
+                                                <td class="cc-num">@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
+                                                <td>@gasto.NCF</td>
+                                                <td>@gasto.Proveedor</td>
+                                                <td class="num gst-money">@gasto.MontoTotal.ToString("N2")</td>
+                                                <td>@TruncarMotivo(gasto.MotivoAnulacion)</td>
+                                                <td class="act">
                                                     @if (MotivoTruncado(gasto.MotivoAnulacion))
                                                     {
                                                         <button type="button" class="gst-icobtn" title="Ver el motivo completo"
-                                                                @onclick="() => VerMotivo(gasto.Id)">
+                                                                @onclick="() => VerMotivo(gasto.Id)"
+                                                                @onclick:stopPropagation="true">
                                                             @RenderIconoOjo()
                                                         </button>
                                                     }
-                                                    <button type="button" class="gst-btn gst-btn-bad gst-btn-sm"
-                                                            disabled="@(procesando is not null)"
-                                                            @onclick="() => ConfirmarAnulacionAsync(gasto.Id)">
-                                                        Confirmar
-                                                    </button>
-                                                    <button type="button" class="gst-btn gst-btn-ghost gst-btn-sm"
-                                                            disabled="@(procesando is not null)"
-                                                            @onclick="() => RevertirAnulacionAsync(gasto.Id)">
-                                                        Devolver
-                                                    </button>
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="gst-tfoot">
+                                <span>Total anulado en la ventana</span>
+                                <span class="v cc-num">RD$ @AnuladosFiltrados.Sum(g => g.MontoTotal).ToString("N2")</span>
+                            </div>
+                        }
                     </div>
                 </section>
+            </div>
+
+            @if (GastoEnFicha is { } fichaAnulado)
+            {
+                @RenderFicha(fichaAnulado)
             }
-        </AuthorizeView>
-
-        <section class="gst-card">
-            <div class="gst-cb gst-cb-head">
-                <div class="gst-row">
-                    <h2 class="gst-h2">Gastos anulados</h2>
-                    <div class="gst-g8">
-                        <select class="gst-select gst-select-sm" @onchange="CambiarVentanaAnuladosAsync">
-                            <option value="30" selected="@(diasAnulados == 30)">Últimos 30 días</option>
-                            <option value="60" selected="@(diasAnulados == 60)">Últimos 60 días</option>
-                            <option value="90" selected="@(diasAnulados == 90)">Últimos 90 días</option>
-                            <option value="" selected="@(diasAnulados is null)">Todo el historial</option>
-                        </select>
-                        @RenderBuscador("Buscar proveedor, NCF, motivo…", busquedaAnulados,
-                                        valor => busquedaAnulados = valor)
-                    </div>
-                </div>
-            </div>
-
-            <div class="gst-cb-body">
-                @if (anulados is null)
-                {
-                    <p class="gst-empty"><em>Cargando...</em></p>
-                }
-                else if (anulados.Count == 0)
-                {
-                    <p class="gst-empty">No hay gastos anulados en esta ventana.</p>
-                }
-                else if (!AnuladosFiltrados.Any())
-                {
-                    <p class="gst-empty">Ningún gasto anulado coincide con la búsqueda.</p>
-                }
-                else
-                {
-                    <div class="gst-tablewrap">
-                        <table class="gst-table">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th><th>NCF</th><th>Proveedor</th>
-                                    <th class="num">Monto</th><th>Motivo</th><th class="act"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var gasto in AnuladosFiltrados)
-                                {
-                                    <tr>
-                                        <td class="cc-num">@gasto.FechaGasto.ToString("dd/MM/yyyy")</td>
-                                        <td>@gasto.NCF</td>
-                                        <td>@gasto.Proveedor</td>
-                                        <td class="num gst-money">@gasto.MontoTotal.ToString("N2")</td>
-                                        <td>@TruncarMotivo(gasto.MotivoAnulacion)</td>
-                                        <td class="act">
-                                            @if (MotivoTruncado(gasto.MotivoAnulacion))
-                                            {
-                                                <button type="button" class="gst-icobtn" title="Ver el motivo completo"
-                                                        @onclick="() => VerMotivo(gasto.Id)">
-                                                    @RenderIconoOjo()
-                                                </button>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="gst-tfoot">
-                        <span>Total anulado en la ventana</span>
-                        <span class="v cc-num">RD$ @AnuladosFiltrados.Sum(g => g.MontoTotal).ToString("N2")</span>
-                    </div>
-                }
-            </div>
-        </section>
+        </div>
     }
     else if (gastos is null)
     {
@@ -259,8 +284,23 @@ else
                             Movimientos
                             <span class="gst-mut gst-count">· @GastosFiltrados.Count() gastos</span>
                         </h2>
-                        @RenderBuscador("Buscar proveedor, NCF, concepto…", busquedaMovimientos,
-                                        valor => busquedaMovimientos = valor)
+                        <div class="gst-filters">
+                            @* Sólo tiene sentido acotar por fecha en "Todos" y en "Repuesto": las
+                               otras dos cifras ya son colas activas, no un historial que crezca
+                               sin límite (ver MuestraVentanaDeDias). *@
+                            @if (MuestraVentanaDeDias)
+                            {
+                                <select class="gst-select gst-select-sm" value="@(diasMovimientos?.ToString() ?? string.Empty)"
+                                        @onchange="CambiarVentanaMovimientos">
+                                    <option value="30">Últimos 30 días</option>
+                                    <option value="60">Últimos 60 días</option>
+                                    <option value="90">Últimos 90 días</option>
+                                    <option value="">Todo el historial</option>
+                                </select>
+                            }
+                            @RenderBuscador("Buscar proveedor, NCF, concepto…", busquedaMovimientos,
+                                            valor => busquedaMovimientos = valor)
+                        </div>
                     </div>
                 </div>
 
@@ -276,7 +316,7 @@ else
                     else
                     {
                         <div class="gst-tablewrap">
-                            <table class="gst-table">
+                            <table class="gst-table gst-table-mov">
                                 <thead>
                                     <tr>
                                         <th>Fecha</th><th>NCF</th><th>Proveedor</th><th>Categoría</th><th>Concepto</th>
@@ -337,111 +377,7 @@ else
 
             @if (GastoEnFicha is { } ficha)
             {
-                <aside class="gst-ficha" @ref="fichaRef">
-                    @* §5.9: la cabecera usa el mismo degradado y filete de marca del
-                       modal — es el lenguaje que ya significa "información destacada". *@
-                    <div class="gst-ficha-h">
-                        <div class="gst-ficha-id">
-                            <div class="t">@ficha.Proveedor</div>
-                            <div class="s">
-                                @ficha.FechaGasto.ToString("dd/MM/yyyy") ·
-                                registrado por @NombreUsuario(ficha.RegistradoPorUsuarioId)
-                            </div>
-                        </div>
-                        <button type="button" class="gst-x" aria-label="Cerrar la ficha" @onclick="CerrarFicha">
-                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5 14.5 14.5M14.5 5.5 5.5 14.5" /></svg>
-                        </button>
-                    </div>
-                    <div class="gst-hair"></div>
-
-                    <div class="gst-ficha-b">
-                        <span class="gst-pill @ClaseEstado(ficha.Estado)">@EtiquetaEstado(ficha.Estado)</span>
-
-                        <dl class="gst-dl">
-                            <dt>NCF</dt><dd>@ficha.NCF</dd>
-                            <dt>RNC</dt><dd>@ficha.RNCProveedor</dd>
-                            <dt>Categoría</dt><dd>@(ficha.CategoriaGasto?.Nombre ?? "—")</dd>
-                            <dt>Concepto</dt><dd>@(ficha.Concepto ?? "—")</dd>
-                        </dl>
-
-                        <div class="gst-tot">
-                            <span class="k">Subtotal</span><span class="v cc-num">@ficha.Subtotal.ToString("N2")</span>
-                            <span class="k">ITBIS</span><span class="v cc-num">@ficha.MontoITBIS.ToString("N2")</span>
-                            <span class="gk">Total</span><span class="gv cc-num">RD$ @ficha.MontoTotal.ToString("N2")</span>
-                        </div>
-
-                        <div class="gst-block">
-                            <span class="gst-cap">Comprobantes</span>
-                            @if (ficha.Comprobantes.Count == 0)
-                            {
-                                <p class="gst-empty">Este gasto no tiene comprobantes adjuntos.</p>
-                            }
-                            else
-                            {
-                                <div class="gst-files">
-                                    @foreach (var comprobante in ficha.Comprobantes)
-                                    {
-                                        <div class="gst-file">
-                                            <span class="gst-file-n">@comprobante.NombreOriginal</span>
-                                            <span class="gst-mut gst-file-s cc-num">@(comprobante.TamanoBytes / 1024) KB</span>
-                                        </div>
-                                    }
-                                </div>
-                            }
-                        </div>
-
-                        @if (!string.IsNullOrWhiteSpace(ficha.MotivoAnulacion))
-                        {
-                            <div class="gst-block">
-                                <span class="gst-cap">Motivo de la anulación</span>
-                                <p class="gst-motivo">@ficha.MotivoAnulacion</p>
-                            </div>
-                        }
-
-                        @if (gastoEnAnulacion == ficha.Id)
-                        {
-                            @* El motivo se escribe aquí y no en una fila expandida: con la
-                               ficha abierta la tabla ya está estrecha, y un textarea metido
-                               entre filas quedaría espachurrado. *@
-                            <div class="gst-block">
-                                <label class="gst-cap" for="gst-motivo">Motivo de la anulación (obligatorio)</label>
-                                <textarea id="gst-motivo" class="gst-ta" rows="3" maxlength="500"
-                                          placeholder="Por qué se anula este gasto."
-                                          @bind="motivoAnulacion"></textarea>
-                                <div class="gst-g8 gst-mt10">
-                                    <button type="button" class="gst-btn gst-btn-pri gst-btn-sm"
-                                            disabled="@(procesando is not null)"
-                                            @onclick="ConfirmarFormularioAnulacionAsync">
-                                        @(anulacionDirectaEnCurso ? "Anular gasto" : "Enviar solicitud")
-                                    </button>
-                                    <button type="button" class="gst-btn gst-btn-ghost gst-btn-sm"
-                                            @onclick="CancelarFormularioAnulacion">
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </div>
-                        }
-                        else if (ficha.Estado == EstadoGasto.PendienteReposicion)
-                        {
-                            <div class="gst-g8 gst-mt18">
-                                <AuthorizeView Policy="@Permisos.SolicitarAnulacionGasto" Context="autorizacionSolicitarFicha">
-                                    <button type="button" class="gst-btn gst-btn-warn gst-btn-sm"
-                                            disabled="@(procesando is not null)"
-                                            @onclick="() => AbrirFormularioAnulacion(ficha.Id, false)">
-                                        Solicitar anulación
-                                    </button>
-                                </AuthorizeView>
-                                <AuthorizeView Policy="@Permisos.AnularGasto" Context="autorizacionAnularFicha">
-                                    <button type="button" class="gst-btn gst-btn-bad gst-btn-sm"
-                                            disabled="@(procesando is not null)"
-                                            @onclick="() => AbrirFormularioAnulacion(ficha.Id, true)">
-                                        Anular
-                                    </button>
-                                </AuthorizeView>
-                            </div>
-                        }
-                    </div>
-                </aside>
+                @RenderFicha(ficha)
             }
         </div>
     }
@@ -501,4 +437,113 @@ else
         <path d="M1.8 10S4.9 4.8 10 4.8 18.2 10 18.2 10 15.1 15.2 10 15.2 1.8 10 1.8 10Z" />
         <circle cx="10" cy="10" r="2.4" />
     </svg>;
+
+    @* §5.9: fragmento compartido — antes vivía sólo dentro de Movimientos; ahora
+       lo usan también las tablas de Anulados, para que cualquier fila clickeable
+       de la página abra la misma ficha. *@
+    private RenderFragment RenderFicha(Gasto ficha) =>@<aside class="gst-ficha" @ref="fichaRef">
+        <div class="gst-ficha-h">
+            <div class="gst-ficha-id">
+                <div class="t">@ficha.Proveedor</div>
+                <div class="s">
+                    @ficha.FechaGasto.ToString("dd/MM/yyyy") ·
+                    registrado por @NombreUsuario(ficha.RegistradoPorUsuarioId)
+                </div>
+            </div>
+            <button type="button" class="gst-x" aria-label="Cerrar la ficha" @onclick="CerrarFicha">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5 14.5 14.5M14.5 5.5 5.5 14.5" /></svg>
+            </button>
+        </div>
+        <div class="gst-hair"></div>
+
+        <div class="gst-ficha-b">
+            <span class="gst-pill @ClaseEstado(ficha.Estado)">@EtiquetaEstado(ficha.Estado)</span>
+
+            <dl class="gst-dl">
+                <dt>NCF</dt><dd>@ficha.NCF</dd>
+                <dt>RNC</dt><dd>@ficha.RNCProveedor</dd>
+                <dt>Categoría</dt><dd>@(ficha.CategoriaGasto?.Nombre ?? "—")</dd>
+                <dt>Concepto</dt><dd>@(ficha.Concepto ?? "—")</dd>
+            </dl>
+
+            <div class="gst-tot">
+                <span class="k">Subtotal</span><span class="v cc-num">@ficha.Subtotal.ToString("N2")</span>
+                <span class="k">ITBIS</span><span class="v cc-num">@ficha.MontoITBIS.ToString("N2")</span>
+                <span class="gk">Total</span><span class="gv cc-num">RD$ @ficha.MontoTotal.ToString("N2")</span>
+            </div>
+
+            <div class="gst-block">
+                <span class="gst-cap">Comprobantes</span>
+                @if (ficha.Comprobantes.Count == 0)
+                {
+                    <p class="gst-empty">Este gasto no tiene comprobantes adjuntos.</p>
+                }
+                else
+                {
+                    <div class="gst-files">
+                        @foreach (var comprobante in ficha.Comprobantes)
+                        {
+                            @* target=_blank: abre el archivo en una pestaña aparte y no
+                               navega fuera de la ficha que se está viendo. *@
+                            <a class="gst-file" href="/gastos/comprobantes/@comprobante.Id/archivo" target="_blank">
+                                <span class="gst-file-n">@comprobante.NombreOriginal</span>
+                                <span class="gst-mut gst-file-s cc-num">@(comprobante.TamanoBytes / 1024) KB</span>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(ficha.MotivoAnulacion))
+            {
+                <div class="gst-block">
+                    <span class="gst-cap">Motivo de la anulación</span>
+                    <p class="gst-motivo">@ficha.MotivoAnulacion</p>
+                </div>
+            }
+
+            @if (gastoEnAnulacion == ficha.Id)
+            {
+                @* El motivo se escribe aquí y no en una fila expandida: con la
+                   ficha abierta la tabla ya está estrecha, y un textarea metido
+                   entre filas quedaría espachurrado. *@
+                <div class="gst-block">
+                    <label class="gst-cap" for="gst-motivo">Motivo de la anulación (obligatorio)</label>
+                    <textarea id="gst-motivo" class="gst-ta" rows="3" maxlength="500"
+                              placeholder="Por qué se anula este gasto."
+                              @bind="motivoAnulacion"></textarea>
+                    <div class="gst-g8 gst-mt10">
+                        <button type="button" class="gst-btn gst-btn-pri gst-btn-sm"
+                                disabled="@(procesando is not null)"
+                                @onclick="ConfirmarFormularioAnulacionAsync">
+                            @(anulacionDirectaEnCurso ? "Anular gasto" : "Enviar solicitud")
+                        </button>
+                        <button type="button" class="gst-btn gst-btn-ghost gst-btn-sm"
+                                @onclick="CancelarFormularioAnulacion">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (ficha.Estado == EstadoGasto.PendienteReposicion)
+            {
+                <div class="gst-g8 gst-mt18">
+                    <AuthorizeView Policy="@Permisos.SolicitarAnulacionGasto" Context="autorizacionSolicitarFicha">
+                        <button type="button" class="gst-btn gst-btn-warn gst-btn-sm"
+                                disabled="@(procesando is not null)"
+                                @onclick="() => AbrirFormularioAnulacion(ficha.Id, false)">
+                            Solicitar anulación
+                        </button>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@Permisos.AnularGasto" Context="autorizacionAnularFicha">
+                        <button type="button" class="gst-btn gst-btn-bad gst-btn-sm"
+                                disabled="@(procesando is not null)"
+                                @onclick="() => AbrirFormularioAnulacion(ficha.Id, true)">
+                            Anular
+                        </button>
+                    </AuthorizeView>
+                </div>
+            }
+        </div>
+    </aside>;
 }

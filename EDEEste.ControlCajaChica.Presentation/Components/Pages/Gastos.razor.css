@@ -278,6 +278,15 @@
     align-items: center;
 }
 
+/* Ventana de días + buscador: nunca deben separarse en líneas distintas, a
+   diferencia de .gst-g8 (pensada para envolver grupos de botones). */
+.gst-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
 .gst-g6 {
     display: inline-flex;
     gap: 6px;
@@ -452,9 +461,16 @@
     align-items: start;
 }
 
-/* Con la ficha abierta la tabla cede ancho: se queda con el subconjunto que
-   sigue sirviendo para comparar entre filas (fecha, proveedor, monto, estado) y
-   suelta NCF, categoría, concepto y adjuntos, que ya están en la ficha.
+/* Con la ficha abierta la tabla de Movimientos cede ancho: se queda con el
+   subconjunto que sigue sirviendo para comparar entre filas (fecha, proveedor,
+   monto, estado) y suelta NCF, categoría, concepto y adjuntos, que ya están en
+   la ficha.
+
+   Escogido por .gst-table-mov y no por .gst-table a secas: la ficha (§5.9)
+   también abre desde las tablas de Anulados, que viven dentro del mismo
+   .gst-split.gst-open pero tienen columnas distintas (Motivo, Acciones) -- con
+   el selector genérico, este mismo :nth-child les habría escondido el monto o
+   los botones de Confirmar/Devolver sin que nadie lo pidiera.
 
    Va dentro de un min-width y no al revés: una regla que devolviera las columnas
    en pantallas estrechas tendría menos especificidad que este :nth-child y no
@@ -465,14 +481,14 @@
         grid-template-columns: minmax(0, 1fr) 352px;
     }
 
-        .gst-split.gst-open .gst-table th:nth-child(2),
-        .gst-split.gst-open .gst-table td:nth-child(2),
-        .gst-split.gst-open .gst-table th:nth-child(4),
-        .gst-split.gst-open .gst-table td:nth-child(4),
-        .gst-split.gst-open .gst-table th:nth-child(5),
-        .gst-split.gst-open .gst-table td:nth-child(5),
-        .gst-split.gst-open .gst-table th:nth-child(6),
-        .gst-split.gst-open .gst-table td:nth-child(6) {
+        .gst-split.gst-open .gst-table-mov th:nth-child(2),
+        .gst-split.gst-open .gst-table-mov td:nth-child(2),
+        .gst-split.gst-open .gst-table-mov th:nth-child(4),
+        .gst-split.gst-open .gst-table-mov td:nth-child(4),
+        .gst-split.gst-open .gst-table-mov th:nth-child(5),
+        .gst-split.gst-open .gst-table-mov td:nth-child(5),
+        .gst-split.gst-open .gst-table-mov th:nth-child(6),
+        .gst-split.gst-open .gst-table-mov td:nth-child(6) {
             display: none;
         }
 }
@@ -627,6 +643,9 @@
     gap: 7px;
 }
 
+/* Ahora es un <a>: hay que anular el subrayado/color de enlace por defecto y
+   dejar claro con el hover que se puede abrir, ya que el nombre del archivo por
+   si solo no se distingue de una etiqueta cualquiera. */
 .gst-file {
     display: flex;
     align-items: center;
@@ -638,7 +657,18 @@
     padding: 8px 12px;
     font-size: 12.5px;
     min-height: 34px;
+    color: inherit;
+    text-decoration: none;
 }
+
+    .gst-file:hover {
+        border-color: var(--cc-navy);
+        background: #F2F6FA;
+    }
+
+        .gst-file:hover .gst-file-n {
+            color: var(--cc-navy);
+        }
 
 .gst-file-n {
     overflow: hidden;

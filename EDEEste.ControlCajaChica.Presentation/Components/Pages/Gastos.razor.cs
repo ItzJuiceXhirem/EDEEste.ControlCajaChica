@@ -81,6 +81,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private int? diasAnulados = 90;
         private string busquedaAnulados = string.Empty;
 
+        // Ventana de días en Movimientos: visible tanto en "Todos" (sin cifra
+        // seleccionada) como en "Repuesto" -- las otras dos cifras son colas activas
+        // y no un historial que crezca sin límite. Arranca en null (todo el
+        // historial): a diferencia de Anulados, aquí no hay una consulta al
+        // repositorio que se acote por fecha -- el filtro es en memoria sobre
+        // "gastos", que ya está completo -- así que empezar mostrando todo es lo que
+        // menos sorprende.
+        private int? diasMovimientos;
+
         // Solo guarda el Id: el texto se lee de la lista al pintar el modal, para no
         // duplicar el estado.
         private Guid? motivoAbierto;
@@ -201,6 +210,14 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             await CargarAnuladosAsync(fondoSeleccionado);
         }
 
+        // Sin await: a diferencia de Anulados, Movimientos no tiene una consulta
+        // propia al repositorio -- filtra en memoria sobre "gastos" (GastosFiltrados).
+        private void CambiarVentanaMovimientos(ChangeEventArgs e)
+        {
+            var valor = e.Value?.ToString();
+            diasMovimientos = string.IsNullOrEmpty(valor) ? null : int.Parse(valor, CultureInfo.InvariantCulture);
+        }
+
         // ── Cifras de resumen (§5.8) ─────────────────────────────────────────────
 
         private decimal Total(EstadoGasto estado) =>
@@ -214,6 +231,13 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private string VentanaAnulados => diasAnulados is { } dias ? $"· {dias} días" : "· histórico";
 
         private bool EstadoActivo(EstadoGasto estado) => !vistaAnulados && filtroEstado == estado;
+
+        /// <summary>
+        /// La ventana de días de Movimientos sólo tiene sentido en "Todos" (sin cifra
+        /// seleccionada) y en "Repuesto": las otras dos cifras (Pendiente, En proceso)
+        /// son colas de trabajo activas, no un historial que acumule con el tiempo.
+        /// </summary>
+        private bool MuestraVentanaDeDias => filtroEstado is null || filtroEstado == EstadoGasto.Repuesto;
 
         /// <summary>
         /// La misma cifra enciende y apaga su filtro: volver a pulsarla devuelve la
@@ -235,8 +259,25 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         // ── Ficha lateral (§5.9) ─────────────────────────────────────────────────
 
-        private Gasto? GastoEnFicha =>
-            gastoSeleccionado is null ? null : gastos?.FirstOrDefault(g => g.Id == gastoSeleccionado);
+        /// <summary>
+        /// La fila abierta puede venir de Movimientos, de "Solicitudes por confirmar"
+        /// o de "Gastos anulados": las tres tienen filas clickeables (§5.9), así que
+        /// se busca en las tres listas cargadas.
+        /// </summary>
+        private Gasto? GastoEnFicha
+        {
+            get
+            {
+                if (gastoSeleccionado is not { } id)
+                {
+                    return null;
+                }
+
+                return gastos?.FirstOrDefault(g => g.Id == id)
+                    ?? anulacionesPendientes?.FirstOrDefault(g => g.Id == id)
+                    ?? anulados?.FirstOrDefault(g => g.Id == id);
+            }
+        }
 
         /// <summary>
         /// La misma fila abre y cierra la ficha; el boton ✕ de la cabecera hace lo
@@ -276,6 +317,20 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 }
 
                 var filtrados = filtroEstado is null ? gastos : gastos.Where(g => g.Estado == filtroEstado);
+
+                // La ventana de días aplica en "Todos" (sin cifra) y en "Repuesto" --
+                // las otras dos cifras son colas activas, no un historial que crezca
+                // sin límite (ver MuestraVentanaDeDias). Filtra por FechaGasto -- la
+                // fecha del gasto en si, no FechaModificacion (esa es cuando se tocó
+                // el registro por última vez, y casi todos los gastos de prueba se
+                // modificaron hace poco sin importar de qué fecha era el gasto).
+                // DateTime.Today y no UtcNow: FechaGasto es una fecha de calendario
+                // sin componente de hora que importe.
+                if (MuestraVentanaDeDias && diasMovimientos is { } dias)
+                {
+                    var desde = DateTime.Today.AddDays(-dias);
+                    filtrados = filtrados.Where(g => g.FechaGasto >= desde);
+                }
 
                 return string.IsNullOrWhiteSpace(busquedaMovimientos)
                     ? filtrados

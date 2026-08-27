@@ -43,5 +43,12 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
         Task<IReadOnlyList<Gasto>> ListarNoRepuestosAsync(Guid fondoId, CancellationToken cancellationToken = default);
 
         Task AgregarAsync(Gasto gasto, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Un comprobante suelto, para el endpoint de descarga/visualización. No hace
+        /// falta cargar el Gasto completo: la ruta física y el tipo MIME bastan para
+        /// servir el archivo.
+        /// </summary>
+        Task<ComprobanteAdjunto?> ObtenerComprobanteAsync(Guid comprobanteId, CancellationToken cancellationToken = default);
     }
 }

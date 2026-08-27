@@ -4,179 +4,651 @@
 
 <PageTitle>Fondos de caja chica</PageTitle>
 
-<h1>Fondos de caja chica</h1>
-
-@if (errores.Count > 0)
+@if (fondos is null || custodios is null)
 {
-    <div class="alert alert-danger">
-        <ul class="mb-0">
-            @foreach (var error in errores)
-            {
-                <li>@error</li>
-            }
-        </ul>
-    </div>
+    <p><em>Cargando...</em></p>
 }
-@if (exito is not null)
+else if (vista == Vista.Lista)
 {
-    <div class="alert alert-success">@exito</div>
-}
+    <div class="fnd-pagebar">
+        <div>
+            <h1 class="fnd-h1">Fondos de caja chica</h1>
+            <p class="fnd-sub">
+                @(fondos.Count == 0
+                    ? "Todavía no hay ningún fondo configurado."
+                    : "Un fondo por custodio. Toque una tarjeta para ajustar sus reglas.")
+            </p>
+        </div>
 
-<div class="row">
-    <div class="col-lg-7">
-        <h2 class="h5">Fondos registrados</h2>
-
-        @if (fondos is null)
+        @if (fondos.Count > 0)
         {
-            <p><em>Cargando...</em></p>
-        }
-        else if (fondos.Count == 0)
-        {
-            <p class="text-muted">Todavía no hay fondos. Cree uno con el formulario de la derecha.</p>
-        }
-        else
-        {
-            <table class="table table-sm table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Custodio</th>
-                        <th class="text-end">Fondo fijo</th>
-                        <th class="text-end">Balance</th>
-                        <th class="text-end">% restante</th>
-                        <th class="text-end">Límite/gasto</th>
-                        <th>Estado</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var fondo in fondos)
-                    {
-                        var porcentaje = fondo.MontoFijo > 0 ? fondo.BalanceActual / fondo.MontoFijo * 100m : 0m;
-                        <tr>
-                            <td>@NombreCustodio(fondo.CustodioId)</td>
-                            <td class="text-end">@fondo.MontoFijo.ToString("N2")</td>
-                            <td class="text-end">@fondo.BalanceActual.ToString("N2")</td>
-                            <td class="text-end">@porcentaje.ToString("N1")%</td>
-                            <td class="text-end">@LimiteEfectivo(fondo).ToString("N2")</td>
-                            <td>@fondo.Estado</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => IniciarEdicion(fondo)">
-                                    Editar
-                                </button>
-                            </td>
-                        </tr>
-                        @if (fondoEnEdicion == fondo.Id && entradaEdicion is not null)
-                        {
-                            <tr>
-                                <td colspan="7">
-                                    <div class="card card-body">
-                                        <div class="mb-2">
-                                            <label class="form-label">Monto fijo (RD$)</label>
-                                            <input class="form-control" value="@fondo.MontoFijo.ToString("N2")" readonly disabled />
-                                            <div class="form-text">El monto fijo no se puede modificar después de crear el fondo.</div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4 mb-2">
-                                                <label class="form-label">Tope por gasto (%)</label>
-                                                <InputNumber @bind-Value="entradaEdicion.PorcentajeMaximoPorGasto" class="form-control" />
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <label class="form-label">Límite por gasto (RD$)</label>
-                                                <InputNumber @bind-Value="entradaEdicion.LimitePorGasto" class="form-control" />
-                                                <div class="form-text">0 para usar solo el tope porcentual.</div>
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <label class="form-label">% de alerta para reposición</label>
-                                                <InputNumber @bind-Value="entradaEdicion.PorcentajeAlertaReposicion" class="form-control" />
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-2">
-                                                <label class="form-label">Custodio</label>
-                                                <select class="form-select" @bind="entradaEdicion.CustodioId">
-                                                    <option value="">(sin asignar)</option>
-                                                    @if (custodios is not null)
-                                                    {
-                                                        @foreach (var custodio in custodios)
-                                                        {
-                                                            <option value="@custodio.Id">@custodio.Usuario (@custodio.Nombre)</option>
-                                                        }
-                                                    }
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6 mb-2">
-                                                <label class="form-label">Estado</label>
-                                                <select class="form-select" @bind="entradaEdicion.Estado">
-                                                    @foreach (var estado in Enum.GetValues<EstadoFondo>())
-                                                    {
-                                                        <option value="@estado">@estado</option>
-                                                    }
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <button class="btn btn-sm btn-primary" disabled="@guardando" @onclick="GuardarEdicionAsync">
-                                                @(guardando ? "Guardando..." : "Guardar cambios")
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary" @onclick="CancelarEdicion">
-                                                Cancelar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
+            @* align-self:flex-end en el CSS los baja a la línea inferior del título,
+               en vez de dejarlos flotando arriba. *@
+            <div class="fnd-filters">
+                <select class="fnd-select fnd-select-sm" value="@orden" @onchange="CambiarOrden">
+                    <option value="@Orden.Todos">Todos</option>
+                    <option value="@Orden.MayorAMenor">De mayor a menor</option>
+                    <option value="@Orden.MenorAMayor">De menor a mayor</option>
+                </select>
+                <label class="fnd-search">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.3" /><path d="m12.6 12.6 4.2 4.2" /></svg>
+                    <input type="search" placeholder="Buscar por custodio…" value="@busqueda"
+                           @oninput="e => busqueda = e.Value?.ToString() ?? string.Empty" />
+                </label>
+            </div>
         }
     </div>
 
-    <div class="col-lg-5">
-        <h2 class="h5">Nuevo fondo</h2>
-        <EditForm Model="entrada" OnValidSubmit="CrearAsync" FormName="nuevo-fondo">
-            <div class="mb-2">
-                <label class="form-label">Monto fijo (RD$)</label>
-                <InputNumber @bind-Value="entrada.MontoFijo" class="form-control" />
-            </div>
-            <div class="mb-2">
-                <label class="form-label">Tope por gasto (%)</label>
-                <InputNumber @bind-Value="entrada.PorcentajeMaximoPorGasto" class="form-control" />
-                <div class="form-text">Equivale a RD$ @entrada.EquivalenteEnPesos.ToString("N2") sobre el monto fijo indicado.</div>
-            </div>
-            <div class="mb-2">
-                <label class="form-label">Límite por gasto (RD$)</label>
-                <InputNumber @bind-Value="entrada.LimitePorGasto" class="form-control" />
-                <div class="form-text">
-                    Déjelo en 0 para usar solo el tope porcentual. Un valor mayor a ese tope no surte
-                    efecto: siempre manda el más estricto.
+    @RenderAvisos()
+
+    @if (fondos.Count == 0 && !HayCustodios)
+    {
+        @* Sin custodios aprobados no hay a quién entregarle un fondo, así que el
+           vacío se convierte en la ruta para desbloquearlo. *@
+        <div class="fnd-empty">
+            <span class="fnd-empty-ic">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M8.2 4.6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z" />
+                    <path d="M3.4 16.1c.55-2.6 2.4-3.9 4.8-3.9s4.25 1.3 4.8 3.9" />
+                    <path d="M13.2 5.2a2.3 2.3 0 0 1 0 4.4" />
+                    <path d="M14.4 12.5c1.4.45 2.3 1.6 2.6 3.2" />
+                </svg>
+            </span>
+            <h2 class="fnd-empty-t">Primero hace falta un custodio</h2>
+            <p class="fnd-empty-d">
+                Un fondo se le entrega a alguien: sin una cuenta aprobada con el rol Custodio no hay
+                a quién asignárselo, así que la creación queda cerrada hasta entonces.
+            </p>
+
+            <div class="fnd-empty-steps">
+                <div class="fnd-empty-step">
+                    <span class="n">1</span>
+                    <span>La persona <b>solicita acceso</b> desde la pantalla de entrada con su usuario de la empresa.</span>
+                </div>
+                <div class="fnd-empty-step">
+                    <span class="n">2</span>
+                    <span>Usted la <b>aprueba y le asigna el rol Custodio</b> en Usuarios.</span>
+                </div>
+                <div class="fnd-empty-step">
+                    <span class="n">3</span>
+                    <span>Vuelve aquí y le <b>crea su fondo</b>.</span>
                 </div>
             </div>
-            <div class="mb-2">
-                <label class="form-label">% de alerta para reposición</label>
-                <InputNumber @bind-Value="entrada.PorcentajeAlertaReposicion" class="form-control" />
-                <div class="form-text">La reposición se habilita cuando el balance baja de este porcentaje.</div>
+
+            <div class="fnd-g8 fnd-mt18">
+                <a class="fnd-btn fnd-btn-pri" href="/usuarios">Ir a Usuarios</a>
+                @* Deshabilitado a la vista, no escondido: el botón dice que la acción
+                   existe, y el estado dice por qué no se puede todavía. *@
+                <button type="button" class="fnd-btn fnd-btn-pri" disabled>Nuevo fondo</button>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Custodio</label>
-                <select class="form-select" @bind="entrada.CustodioId">
-                    <option value="">(seleccione)</option>
-                    @if (custodios is not null)
+        </div>
+    }
+    else
+    {
+        <div class="fnd-grid">
+            @foreach (var fondo in FondosFiltrados)
+            {
+                var uso = PorcentajeUso(fondo);
+                var nota = NotaEstado(fondo);
+
+                <button type="button" class="fnd-card @(fondo.Estado == EstadoFondo.Inactivo ? "fnd-off" : "")"
+                        @onclick="() => AbrirEdicion(fondo)">
+                    <span class="fnd-card-h">
+                        <span>
+                            <span class="fnd-who">@UsuarioDe(fondo.CustodioId)</span>
+                            <span class="fnd-role">@NombreDe(fondo.CustodioId)</span>
+                        </span>
+                        <span class="fnd-pill @ClaseEstado(fondo.Estado)">@EtiquetaEstado(fondo.Estado)</span>
+                    </span>
+
+                    <span class="fnd-bal cc-num">RD$ @fondo.BalanceActual.ToString("N2")</span>
+                    <span class="fnd-of cc-num">de RD$ @fondo.MontoFijo.ToString("N2") · @uso.ToString("N1")%</span>
+
+                    <span class="fnd-bar @ClaseMedidor(fondo)">
+                        <span class="fnd-fill" style="width: @Ancho(uso)%"></span>
+                        <span class="fnd-mark" style="left: @Ancho(UmbralPorcentaje(fondo))%"></span>
+                    </span>
+
+                    <span class="fnd-knobs">
+                        <span class="fnd-knob">
+                            <span class="k">Tope</span>
+                            <span class="v cc-num">@fondo.PorcentajeMaximoPorGasto.ToString("N1")%</span>
+                        </span>
+                        <span class="fnd-knob">
+                            <span class="k">Límite</span>
+                            <span class="v cc-num">RD$ @LimiteEfectivo(fondo).ToString("N0")</span>
+                        </span>
+                        <span class="fnd-knob">
+                            <span class="k">Alerta</span>
+                            <span class="v cc-num">@fondo.PorcentajeAlertaReposicion.ToString("N0")%</span>
+                        </span>
+                    </span>
+
+                    @if (nota is not null)
                     {
-                        @foreach (var custodio in custodios)
-                        {
-                            <option value="@custodio.Id">@custodio.Usuario (@custodio.Nombre)</option>
-                        }
+                        <span class="fnd-note">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.8" /><path d="M10 9.4v4M10 6.8h.01" /></svg>
+                            <span>@nota</span>
+                        </span>
                     }
-                </select>
-                @if (custodios is { Count: 0 })
+                </button>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(busqueda) && !FondosFiltrados.Any())
+            {
+                <p class="fnd-empty-search">Ningún fondo coincide con la búsqueda.</p>
+            }
+            else if (string.IsNullOrWhiteSpace(busqueda))
+            {
+                <button type="button" class="fnd-new @(HayCustodios ? "" : "fnd-new-blocked")"
+                        disabled="@(!HayCustodios)" @onclick="AbrirNuevo">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.5v11M4.5 10h11" /></svg>
+                    <span class="fnd-new-t">Nuevo fondo</span>
+                    <span class="fnd-new-d">
+                        @if (!HayCustodios)
+                        {
+                            <text>No hay custodios aprobados a quien asignárselo.</text>
+                        }
+                        else if (CustodiosSinFondo > 0)
+                        {
+                            <text>Hay <b>@CustodiosSinFondo</b> @(CustodiosSinFondo == 1 ? "custodio aprobado" : "custodios aprobados") sin fondo asignado.</text>
+                        }
+                        else
+                        {
+                            <text>Todos los custodios aprobados ya tienen fondo.</text>
+                        }
+                    </span>
+                </button>
+            }
+        </div>
+    }
+}
+else if (vista == Vista.Nuevo)
+{
+    <div class="fnd-pagebar">
+        <div>
+            <h1 class="fnd-h1">
+                @(paso switch
                 {
-                    <div class="form-text text-warning">Todavía no hay usuarios con el rol Custodio aprobados.</div>
+                    1 => "¿De cuánto es el fondo, y de quién?",
+                    2 => "¿Con qué reglas puede gastar?",
+                    _ => "Revise antes de crear"
+                })
+            </h1>
+            <p class="fnd-sub">
+                @(paso switch
+                {
+                    1 => "El monto fijo queda sellado al crear; el custodio sí se puede cambiar después.",
+                    2 => "Todo esto se puede ajustar después, cuando el fondo ya esté en marcha.",
+                    _ => "El monto fijo queda sellado; los demás parámetros se pueden ajustar después."
+                })
+            </p>
+        </div>
+        <button type="button" class="fnd-btn fnd-btn-ghost fnd-selfend" @onclick="AbrirLista">Volver a la lista</button>
+    </div>
+
+    <div class="fnd-narrow">
+        <div class="fnd-steps">
+            <span class="fnd-step @(paso > 1 ? "fnd-done" : paso == 1 ? "fnd-on" : "")">
+                <span class="fnd-num">@(paso > 1 ? "✓" : "1")</span><span class="fnd-st">Monto y custodio</span>
+            </span>
+            <span class="fnd-line"></span>
+            <span class="fnd-step @(paso > 2 ? "fnd-done" : paso == 2 ? "fnd-on" : "")">
+                <span class="fnd-num">@(paso > 2 ? "✓" : "2")</span><span class="fnd-st">Reglas de gasto</span>
+            </span>
+            <span class="fnd-line"></span>
+            <span class="fnd-step @(paso == 3 ? "fnd-on" : "")">
+                <span class="fnd-num">3</span><span class="fnd-st">Revisar y crear</span>
+            </span>
+        </div>
+
+        @RenderAvisos()
+
+        <section class="fnd-card-plain">
+            @if (paso == 1)
+            {
+                <div class="fnd-cb">
+                    <div class="fnd-grid2">
+                        <div>
+                            <label class="fnd-cap" for="fnd-monto">Monto fijo (RD$)</label>
+                            <InputNumber id="fnd-monto" @bind-Value="entrada.MontoFijo" class="fnd-input fnd-input-xl" />
+                            <p class="fnd-help">
+                                Es el efectivo con el que arranca la caja y contra el que se calculan todos
+                                los límites. <b>NO se puede editar una vez creado el fondo.</b>
+                            </p>
+                        </div>
+                        <div>
+                            <label class="fnd-cap" for="fnd-custodio">Custodio</label>
+                            <select id="fnd-custodio" class="fnd-input fnd-input-xl" @bind="entrada.CustodioId">
+                                @foreach (var custodio in custodios)
+                                {
+                                    <option value="@custodio.Id">@custodio.Usuario — @custodio.Nombre</option>
+                                }
+                            </select>
+                            <p class="fnd-help">
+                                Sólo aparecen cuentas aprobadas con el rol Custodio. Hay @custodios.Count
+                                @(custodios.Count == 1 ? "disponible" : "disponibles").
+                            </p>
+                        </div>
+                    </div>
+
+                    @if (entrada.MontoFijo > 0)
+                    {
+                        <div class="fnd-alert fnd-a-info fnd-mt18">
+                            <span aria-hidden="true">ⓘ</span>
+                            <span>
+                                Con los valores por defecto, un fondo de RD$ @entrada.MontoFijo.ToString("N2")
+                                permitiría gastos de hasta
+                                <b class="cc-num">RD$ @LimiteEfectivo(entrada.MontoFijo, entrada.PorcentajeMaximoPorGasto, entrada.LimitePorGasto).ToString("N2")</b>
+                                y habilitaría la reposición bajo
+                                <b class="cc-num">RD$ @((entrada.MontoFijo * (entrada.PorcentajeAlertaReposicion / 100m)).ToString("N2"))</b>.
+                                En el paso siguiente puede ajustarlo.
+                            </span>
+                        </div>
+                    }
+                </div>
+
+                <div class="fnd-foot fnd-foot-end">
+                    <button type="button" class="fnd-btn fnd-btn-ghost" @onclick="AbrirLista">Cancelar</button>
+                    <button type="button" class="fnd-btn fnd-btn-pri" @onclick="PasoSiguiente">Continuar a las reglas</button>
+                </div>
+            }
+            else if (paso == 2)
+            {
+                <div class="fnd-cb">
+                    @RenderEscalaGasto(entrada.MontoFijo, entrada.PorcentajeMaximoPorGasto, entrada.LimitePorGasto,
+                        @<div class="fnd-grid2 fnd-mt14">
+                            <div>
+                                <label class="fnd-cap" for="fnd-tope">Tope por gasto (%)</label>
+                                <InputNumber id="fnd-tope" @bind-Value="entrada.PorcentajeMaximoPorGasto" class="fnd-input" />
+                                <p class="fnd-help">
+                                    Entre @LimitesFondo.TopePorGastoMinimo.ToString("N0")% y @LimitesFondo.TopePorGastoMaximo.ToString("N0")%.
+                                </p>
+                            </div>
+                            <div>
+                                <label class="fnd-cap" for="fnd-limite">Límite por gasto (RD$)</label>
+                                <InputNumber id="fnd-limite" @bind-Value="entrada.LimitePorGasto" class="fnd-input" />
+                                <p class="fnd-help">0 para usar sólo el tope porcentual.</p>
+                            </div>
+                        </div>)
+
+                    <div class="fnd-scale">
+                        <div class="fnd-sh">
+                            <span class="fnd-st-t">Cuándo se puede pedir reposición</span>
+                            <span class="fnd-help fnd-nomt">
+                                Rango permitido: @LimitesFondo.AlertaReposicionMinima.ToString("N0")%–@LimitesFondo.AlertaReposicionMaxima.ToString("N0")%
+                            </span>
+                        </div>
+                        @RenderReglaAlerta(entrada.MontoFijo, entrada.PorcentajeAlertaReposicion, null)
+                        <div class="fnd-half fnd-mt14">
+                            <label class="fnd-cap" for="fnd-alerta">Alerta de reposición (%)</label>
+                            <InputNumber id="fnd-alerta" @bind-Value="entrada.PorcentajeAlertaReposicion" class="fnd-input" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fnd-foot fnd-foot-between">
+                    <button type="button" class="fnd-btn fnd-btn-ghost" @onclick="PasoAnterior">Volver al monto</button>
+                    <button type="button" class="fnd-btn fnd-btn-pri" @onclick="PasoSiguiente">Continuar a revisar</button>
+                </div>
+            }
+            else
+            {
+                <div class="fnd-cb">
+                    <h2 class="fnd-h3">Resumen</h2>
+                    <dl class="fnd-review">
+                        <dt>Monto fijo</dt>
+                        <dd class="cc-num">RD$ @entrada.MontoFijo.ToString("N2")</dd>
+                        <dt>Custodio</dt>
+                        <dd>@UsuarioDe(entrada.CustodioId) — @NombreDe(entrada.CustodioId)</dd>
+                        <dt>Tope por gasto</dt>
+                        <dd class="cc-num">
+                            @entrada.PorcentajeMaximoPorGasto.ToString("N1")% ·
+                            RD$ @((entrada.MontoFijo * (entrada.PorcentajeMaximoPorGasto / 100m)).ToString("N2"))
+                        </dd>
+                        <dt>Límite por gasto</dt>
+                        <dd class="cc-num">
+                            @(entrada.LimitePorGasto > 0
+                                ? $"RD$ {entrada.LimitePorGasto:N2}"
+                                : "Sin límite adicional")
+                        </dd>
+                        <dt>Alerta de reposición</dt>
+                        <dd class="cc-num">
+                            @entrada.PorcentajeAlertaReposicion.ToString("N0")% · bajo
+                            RD$ @((entrada.MontoFijo * (entrada.PorcentajeAlertaReposicion / 100m)).ToString("N2"))
+                        </dd>
+                        <dt>Estado inicial</dt>
+                        <dd>Activo</dd>
+                    </dl>
+
+                    <div class="fnd-seal">
+                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                            <rect x="4.8" y="9" width="10.4" height="7.6" rx="1.2" />
+                            <path d="M6.8 9V6.6a3.2 3.2 0 0 1 6.4 0V9" />
+                        </svg>
+                        <span>
+                            <b>El monto fijo no se podrá modificar.</b> Si más adelante hace falta otro monto,
+                            habrá que crear un fondo nuevo y dejar éste inactivo — el histórico de gastos se
+                            queda con el fondo original. Todo lo demás sí se puede ajustar cuando quiera.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="fnd-foot fnd-foot-between">
+                    <button type="button" class="fnd-btn fnd-btn-ghost" @onclick="PasoAnterior">Volver a las reglas</button>
+                    @* El botón repite el monto: es lo último que se lee antes de pulsar
+                       y es exactamente el dato que no se va a poder deshacer. *@
+                    <button type="button" class="fnd-btn fnd-btn-pri" disabled="@guardando" @onclick="CrearAsync">
+                        @(guardando ? "Creando..." : $"Crear el fondo de RD$ {entrada.MontoFijo:N2}")
+                    </button>
+                </div>
+            }
+        </section>
+    </div>
+}
+else if (fondoEditando is { } fondo && entradaEdicion is not null)
+{
+    <div class="fnd-pagebar">
+        <div>
+            <h1 class="fnd-h1">Fondo de @UsuarioDe(fondo.CustodioId)</h1>
+            <p class="fnd-sub cc-num">RD$ @fondo.BalanceActual.ToString("N2") en caja ahora mismo</p>
+        </div>
+        <button type="button" class="fnd-btn fnd-btn-ghost fnd-selfend" @onclick="AbrirLista">Volver a la lista</button>
+    </div>
+
+    <div class="fnd-narrow">
+        @RenderAvisos()
+
+        <section class="fnd-card-plain">
+            <div class="fnd-cb">
+                @* El monto fijo sube al primer plano con candado: es el único
+                   parámetro que no se puede deshacer. *@
+                <div class="fnd-lock">
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <rect x="4.8" y="9" width="10.4" height="7.6" rx="1.2" />
+                        <path d="M6.8 9V6.6a3.2 3.2 0 0 1 6.4 0V9" />
+                    </svg>
+                    <div>
+                        <div class="fnd-lock-t">Monto fijo</div>
+                        <div class="fnd-help fnd-nomt">No se puede modificar</div>
+                    </div>
+                    <span class="fnd-lock-v cc-num">RD$ @fondo.MontoFijo.ToString("N2")</span>
+                </div>
+
+                <div class="fnd-grid2 fnd-mt18">
+                    <div>
+                        <label class="fnd-cap" for="fnd-edit-custodio">Custodio</label>
+                        @* @key sobre el valor efectivo: al cancelar el modal, cambiar el
+                           atributo `value` de un <select> no basta para que el navegador
+                           vuelva a la opción anterior. Con la clave, Blazor rehace el
+                           elemento y el desplegable revierte de verdad. *@
+                        <select id="fnd-edit-custodio" class="fnd-input"
+                                @key="custodioPropuesto ?? entradaEdicion.CustodioId"
+                                value="@(custodioPropuesto ?? entradaEdicion.CustodioId)"
+                                @onchange="ProponerCustodio">
+                            @foreach (var custodio in custodios)
+                            {
+                                <option value="@custodio.Id">@custodio.Usuario — @custodio.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="fnd-cap" for="fnd-estado">Estado</label>
+                        <select id="fnd-estado" class="fnd-input" @bind="entradaEdicion.Estado">
+                            @foreach (var estado in Enum.GetValues<EstadoFondo>())
+                            {
+                                <option value="@estado">@EtiquetaEstado(estado)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="fnd-mt18">
+                    @RenderEscalaGasto(fondo.MontoFijo, entradaEdicion.PorcentajeMaximoPorGasto, entradaEdicion.LimitePorGasto,
+                        @<div class="fnd-grid2 fnd-mt14">
+                            <div>
+                                <label class="fnd-cap" for="fnd-edit-tope">Tope por gasto (%)</label>
+                                <InputNumber id="fnd-edit-tope" @bind-Value="entradaEdicion!.PorcentajeMaximoPorGasto" class="fnd-input" />
+                                <p class="fnd-help">
+                                    Entre @LimitesFondo.TopePorGastoMinimo.ToString("N0")% y @LimitesFondo.TopePorGastoMaximo.ToString("N0")%.
+                                </p>
+                            </div>
+                            <div>
+                                <label class="fnd-cap" for="fnd-edit-limite">Límite por gasto (RD$)</label>
+                                <InputNumber id="fnd-edit-limite" @bind-Value="entradaEdicion!.LimitePorGasto" class="fnd-input" />
+                                <p class="fnd-help">0 para usar sólo el tope porcentual.</p>
+                            </div>
+                        </div>)
+                </div>
+
+                <div class="fnd-scale">
+                    <div class="fnd-sh">
+                        <span class="fnd-st-t">Cuándo se puede pedir reposición</span>
+                        <span class="fnd-help fnd-nomt">
+                            Rango permitido: @LimitesFondo.AlertaReposicionMinima.ToString("N0")%–@LimitesFondo.AlertaReposicionMaxima.ToString("N0")%
+                        </span>
+                    </div>
+                    @* En edición la regla gana una marca extra: dónde está el fondo hoy.
+                       Mover la alerta deja de ser abstracto — se ve si el cambio deja al
+                       custodio dentro o fuera. *@
+                    @RenderReglaAlerta(fondo.MontoFijo, entradaEdicion.PorcentajeAlertaReposicion, fondo.BalanceActual)
+                    <div class="fnd-half fnd-mt14">
+                        <label class="fnd-cap" for="fnd-edit-alerta">Alerta de reposición (%)</label>
+                        <InputNumber id="fnd-edit-alerta" @bind-Value="entradaEdicion.PorcentajeAlertaReposicion" class="fnd-input" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="fnd-foot fnd-foot-end">
+                <button type="button" class="fnd-btn fnd-btn-ghost" @onclick="AbrirLista">Cancelar</button>
+                <button type="button" class="fnd-btn fnd-btn-pri" disabled="@guardando" @onclick="GuardarEdicionAsync">
+                    @(guardando ? "Guardando..." : "Guardar cambios")
+                </button>
+            </div>
+        </section>
+    </div>
+
+    @if (custodioPropuesto is { } propuesto)
+    {
+        @* §5.3: mismo modal de marca que Arqueos y Gastos. *@
+        <div class="fnd-scrim" @onclick="CancelarCambioDeCustodio">
+            <div class="fnd-modal" @onclick:stopPropagation="true" role="dialog" aria-modal="true">
+                <div class="fnd-modal-grad">
+                    <h3>Cambiar el custodio del fondo</h3>
+                    <button type="button" class="fnd-modal-x" aria-label="Cancelar" @onclick="CancelarCambioDeCustodio">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5 14.5 14.5M14.5 5.5 5.5 14.5" /></svg>
+                    </button>
+                </div>
+                <div class="fnd-modal-divider"></div>
+
+                <div class="fnd-modal-b">
+                    <p class="fnd-nomargin">
+                        ¿Está seguro de que desea cambiar al custodio <b>@UsuarioDe(entradaEdicion.CustodioId)</b>
+                        por el custodio <b>@UsuarioDe(propuesto)</b>?
+                        El custodio @UsuarioDe(entradaEdicion.CustodioId) perderá acceso a este fondo.
+                    </p>
+
+                    <div class="fnd-swap">
+                        <span class="fnd-swap-who">
+                            <span class="k">Sale</span>
+                            <span class="v">@UsuarioDe(entradaEdicion.CustodioId)</span>
+                        </span>
+                        <span class="fnd-swap-arrow">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11.5" /><path d="M11.4 5.8 15.6 10l-4.2 4.2" /></svg>
+                        </span>
+                        <span class="fnd-swap-who">
+                            <span class="k">Entra</span>
+                            <span class="v">@UsuarioDe(propuesto)</span>
+                        </span>
+                    </div>
+
+                    <div class="fnd-alert fnd-a-warn fnd-mt14">
+                        <span aria-hidden="true">⚠</span>
+                        <span>
+                            El fondo tiene <b class="cc-num">RD$ @fondo.BalanceActual.ToString("N2")</b> en caja.
+                            Todo eso pasa a manos del nuevo custodio.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="fnd-modal-f">
+                    <button type="button" class="fnd-modal-no" @onclick="CancelarCambioDeCustodio">Cancelar</button>
+                    <button type="button" class="fnd-modal-ok" @onclick="ConfirmarCambioDeCustodio">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private RenderFragment RenderAvisos() =>@<text>
+        @if (errores.Count > 0)
+        {
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach (var error in errores)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+        @if (exito is not null)
+        {
+            <div class="alert alert-success">@exito</div>
+        }
+    </text>;
+
+    @* Dos escalas separadas a propósito: el fondo se mide en decenas de miles y un
+       gasto en cientos; en la misma regla, la segunda desaparecería. *@
+    private RenderFragment RenderEscalaGasto(decimal montoFijo, decimal porcentaje, decimal limite, RenderFragment campos)
+    {
+        var tope = montoFijo * (porcentaje / 100m);
+        var efectivo = LimiteEfectivo(montoFijo, porcentaje, limite);
+        var escala = EscalaGasto(montoFijo, tope, limite);
+        var posTope = PosicionEnEscala(escala, tope);
+        var posLimite = limite > 0 ? PosicionEnEscala(escala, limite) : null;
+        var anulado = limite > 0 && limite > tope;
+        var fueraDeRango = porcentaje < LimitesFondo.TopePorGastoMinimo || porcentaje > LimitesFondo.TopePorGastoMaximo;
+        var escalaAlDiez = escala <= montoFijo * FraccionEscalaGasto;
+
+        return@<div class="fnd-scale">
+            <div class="fnd-sh">
+                <span class="fnd-st-t">Cuánto puede costar un solo gasto</span>
+                <span class="fnd-help fnd-nomt">Manda el más estricto de los dos</span>
+            </div>
+
+            <div class="fnd-track">
+                @if (fueraDeRango)
+                {
+                    <span class="fnd-zone fnd-zone-stop fnd-zone-full"></span>
+                }
+                else if (posTope is { } pt)
+                {
+                    <span class="fnd-zone fnd-zone-ok" style="width: @Ancho(pt)%"></span>
+                    <span class="fnd-pin fnd-pin-gold" style="left: @Ancho(pt)%">
+                        <span class="fnd-pin-lbl fnd-lbl-gold cc-num">Tope @porcentaje.ToString("N1")% · RD$ @tope.ToString("N2")</span>
+                    </span>
+                }
+                @if (posLimite is { } pl)
+                {
+                    <span class="fnd-pin fnd-pin-navy" style="left: @Ancho(pl)%">
+                        <span class="fnd-pin-lbl fnd-lbl-navy fnd-lbl-low cc-num">Límite RD$ @limite.ToString("N2")</span>
+                    </span>
                 }
             </div>
-            <button type="submit" class="btn btn-primary" disabled="@guardando">
-                @(guardando ? "Guardando..." : "Crear fondo")
-            </button>
-        </EditForm>
-    </div>
-</div>
+            <div class="fnd-ends @(posLimite is not null ? "fnd-ends-low" : "")">
+                <span>RD$ 0</span>
+                <span class="cc-num">
+                    RD$ @escala.ToString("N2")@(escalaAlDiez ? " · 10% del fondo" : "")
+                </span>
+            </div>
+
+            @if (fueraDeRango)
+            {
+                <p class="fnd-verdict fnd-verdict-bad">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.6 17 16.4H3L10 4.6Z" /><path d="M10 9v3.3M10 14.5h.01" /></svg>
+                    <span>
+                        El tope debe estar entre @LimitesFondo.TopePorGastoMinimo.ToString("N0")% y
+                        @LimitesFondo.TopePorGastoMaximo.ToString("N0")%. Por encima de ahí, dos o tres
+                        gastos vaciarían la caja.
+                    </span>
+                </p>
+            }
+            else if (anulado)
+            {
+                <p class="fnd-verdict fnd-verdict-warn">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.6 17 16.4H3L10 4.6Z" /><path d="M10 9v3.3M10 14.5h.01" /></svg>
+                    <span>
+                        El límite de RD$ @limite.ToString("N2") <b>no surte efecto</b>: el tope del
+                        @porcentaje.ToString("N1")% ya corta en RD$ @tope.ToString("N2"). Déjelo en 0 o
+                        bájelo por debajo del tope.
+                    </span>
+                </p>
+            }
+            else
+            {
+                <p class="fnd-verdict fnd-verdict-ok">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.6 10.4 8.2 14l7.2-8" /></svg>
+                    <span>
+                        @(limite > 0
+                            ? $"Manda el límite en pesos: un gasto no podrá pasar de RD$ {efectivo:N2}."
+                            : $"Sin límite adicional en pesos: manda el tope, que corta en RD$ {efectivo:N2}.")
+                    </span>
+                </p>
+            }
+
+            @* Los campos no viven aquí: los pone cada pantalla, porque enlazan a
+               modelos distintos (alta vs. edición) y adivinarlo desde el fragmento
+               obligaba a un truco frágil sobre los valores. *@
+            @campos
+        </div>;
+    }
+
+    private RenderFragment RenderReglaAlerta(decimal montoFijo, decimal alerta, decimal? balanceHoy)
+    {
+        var fueraDeRango = alerta < LimitesFondo.AlertaReposicionMinima || alerta > LimitesFondo.AlertaReposicionMaxima;
+        var pesos = montoFijo * (alerta / 100m);
+        var usoHoy = balanceHoy is { } b && montoFijo > 0 ? b / montoFijo * 100m : (decimal?)null;
+
+        return@<text>
+            <div class="fnd-track">
+                <span class="fnd-zone fnd-zone-stop" style="width: @Ancho(alerta)%"></span>
+                <span class="fnd-pin fnd-pin-red" style="left: @Ancho(alerta)%">
+                    <span class="fnd-pin-lbl fnd-lbl-red cc-num">Alerta @alerta.ToString("N0")% · RD$ @pesos.ToString("N2")</span>
+                </span>
+                @if (usoHoy is { } u)
+                {
+                    <span class="fnd-pin fnd-pin-navy" style="left: @Ancho(u)%">
+                        <span class="fnd-pin-lbl fnd-lbl-navy fnd-lbl-low cc-num">Hoy: RD$ @balanceHoy!.Value.ToString("N2")</span>
+                    </span>
+                }
+            </div>
+            <div class="fnd-ends @(usoHoy is not null ? "fnd-ends-low" : "")">
+                <span>RD$ 0</span>
+                <span class="cc-num">RD$ @montoFijo.ToString("N2")</span>
+            </div>
+
+            @if (fueraDeRango)
+            {
+                <p class="fnd-verdict fnd-verdict-bad">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.6 17 16.4H3L10 4.6Z" /><path d="M10 9v3.3M10 14.5h.01" /></svg>
+                    <span>
+                        La alerta debe estar entre @LimitesFondo.AlertaReposicionMinima.ToString("N0")% y
+                        @LimitesFondo.AlertaReposicionMaxima.ToString("N0")%.
+                    </span>
+                </p>
+            }
+            else
+            {
+                <p class="fnd-verdict fnd-verdict-ok">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.6 10.4 8.2 14l7.2-8" /></svg>
+                    <span>
+                        El custodio podrá solicitar reposición cuando le queden menos de
+                        RD$ @pesos.ToString("N2") en caja.
+                    </span>
+                </p>
+            }
+        </text>;
+    }
+}

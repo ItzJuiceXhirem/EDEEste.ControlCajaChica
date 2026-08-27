@@ -70,9 +70,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
                 errores.Add("El monto fijo debe ser mayor que cero.");
             }
 
-            if (comando.PorcentajeMaximoPorGasto <= 0 || comando.PorcentajeMaximoPorGasto > 100)
+            if (comando.PorcentajeMaximoPorGasto < LimitesFondo.TopePorGastoMinimo
+                || comando.PorcentajeMaximoPorGasto > LimitesFondo.TopePorGastoMaximo)
             {
-                errores.Add("El tope por gasto debe ser mayor que 0% y no puede superar el 100%.");
+                errores.Add(
+                    $"El tope por gasto debe estar entre {LimitesFondo.TopePorGastoMinimo:N0}% y " +
+                    $"{LimitesFondo.TopePorGastoMaximo:N0}%.");
             }
 
             if (comando.LimitePorGasto < 0)
@@ -90,9 +93,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
                 }
             }
 
-            if (comando.PorcentajeAlertaReposicion < 10 || comando.PorcentajeAlertaReposicion > 50)
+            if (comando.PorcentajeAlertaReposicion < LimitesFondo.AlertaReposicionMinima
+                || comando.PorcentajeAlertaReposicion > LimitesFondo.AlertaReposicionMaxima)
             {
-                errores.Add("El porcentaje de alerta para reposicion debe estar entre 10% y 50%.");
+                errores.Add(
+                    $"El porcentaje de alerta para reposicion debe estar entre " +
+                    $"{LimitesFondo.AlertaReposicionMinima:N0}% y {LimitesFondo.AlertaReposicionMaxima:N0}%.");
             }
 
             if (string.IsNullOrWhiteSpace(comando.CustodioId))
