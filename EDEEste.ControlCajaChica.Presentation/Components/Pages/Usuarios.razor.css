@@ -1,0 +1,438 @@
+/* Usuarios — bandeja de trabajo (solicitudes de acceso + restablecimientos)
+   + directorio completo (DESIGN.md, dirección "Bandeja" de Reposiciones
+   aplicada a esta pantalla). */
+
+.usu-pagebar {
+    margin-bottom: 18px;
+}
+
+.usu-h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 27px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    color: var(--cc-ink);
+}
+
+.usu-sub {
+    color: var(--cc-text-soft);
+    font-size: 13px;
+    margin: 0;
+}
+
+.usu-mut {
+    color: #6B7482;
+}
+
+.usu-empty {
+    margin: 0;
+    padding: 16px 18px;
+    font-size: 13px;
+    color: var(--cc-text-soft);
+}
+
+/* ── Avisos ──────────────────────────────────────────────────────────────── */
+.usu-alert {
+    border-radius: 10px;
+    padding: 12px 15px;
+    font-size: 12.5px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+
+.usu-alert svg {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    margin-top: 2px;
+}
+
+.usu-a-bad { background: #f8d7da; color: #842029; }
+.usu-a-ok { background: #DCF3E7; color: #146C43; }
+.usu-a-info { background: #cff4fc; color: #055160; }
+
+.usu-a-link {
+    align-items: flex-start;
+}
+
+.usu-link-txt {
+    margin: 0 0 8px;
+}
+
+.usu-link-row {
+    display: flex;
+    gap: 8px;
+}
+
+    .usu-link-row .usu-field {
+        flex: 1;
+    }
+
+/* ── Bandeja de trabajo ──────────────────────────────────────────────────── */
+.usu-job {
+    background: var(--cc-surface);
+    border: 1px solid #ECEEF1;
+    border-radius: 12px;
+    border-left: 4px solid var(--cc-gold);
+    padding: 14px 18px;
+    margin-bottom: 12px;
+}
+
+.usu-job-done {
+    border-left-color: #146C43;
+    background: rgba(20, 108, 67, 0.03);
+}
+
+.usu-jh {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.usu-jic {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    flex: none;
+}
+
+    .usu-jic svg {
+        width: 19px;
+        height: 19px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+.usu-jic-cyan {
+    background: #cff4fc;
+    color: #055160;
+}
+
+.usu-jic-ok {
+    background: #DCF3E7;
+    color: #146C43;
+}
+
+.usu-jt {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 14.5px;
+}
+
+.usu-jd {
+    font-size: 12px;
+    color: #6B7482;
+    margin-top: 2px;
+}
+
+.usu-jn {
+    margin-left: auto;
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--cc-navy);
+}
+
+.usu-job-done .usu-jn {
+    color: #146C43;
+}
+
+.usu-jbody {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #ECEEF1;
+}
+
+/* ── Pliegue hacia el directorio ─────────────────────────────────────────── */
+.usu-fold {
+    border-top: 1px dashed #D8DDE4;
+    margin: 26px 0 18px;
+    padding-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.usu-foldlbl {
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8A94A3;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.usu-line {
+    flex: 1;
+    height: 1px;
+    background: #ECEEF1;
+    min-width: 24px;
+}
+
+.usu-tools {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.usu-segmented {
+    display: flex;
+    background: rgba(0, 53, 102, 0.06);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.usu-seg {
+    border: none;
+    background: transparent;
+    padding: 6px 13px;
+    border-radius: 6px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #6B7482;
+    white-space: nowrap;
+}
+
+.usu-seg-on {
+    background: var(--cc-surface);
+    color: var(--cc-navy);
+    box-shadow: 0 1px 2px rgba(0, 53, 102, 0.15);
+}
+
+.usu-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    padding: 6px 12px;
+    min-height: 34px;
+    color: #8A94A3;
+    white-space: nowrap;
+    width: 240px;
+}
+
+    .usu-search:focus-within {
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+    .usu-search svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+    }
+
+    .usu-search input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        font-family: var(--cc-ff-text);
+        font-size: 13px;
+        color: #16202E;
+        padding: 0;
+    }
+
+        .usu-search input:focus {
+            outline: none;
+        }
+
+/* ── Tarjeta / tabla del directorio ──────────────────────────────────────── */
+.usu-card {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+}
+
+.usu-tablewrap {
+    overflow-x: auto;
+}
+
+.usu-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .usu-table thead th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8A94A3;
+        padding: 12px 18px 10px;
+        white-space: nowrap;
+    }
+
+    .usu-table tbody tr {
+        border-top: 1px solid #ECEEF1;
+    }
+
+    .usu-table td {
+        padding: 12px 18px;
+        vertical-align: middle;
+    }
+
+.usu-table .act {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.usu-g6 {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* ── Persona (iniciales + nombre) ────────────────────────────────────────── */
+.usu-avatarname {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.usu-initials {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex: none;
+    display: grid;
+    place-items: center;
+    background-image: linear-gradient(135deg, #FFC300, #FF9F1C);
+    color: #4A3800;
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 11.5px;
+}
+
+.usu-an-name {
+    font-weight: 600;
+    color: var(--cc-ink);
+    font-size: 13px;
+}
+
+.usu-an-user {
+    font-size: 11.5px;
+    color: #6B7482;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ── Píldoras de estado (§5.7) ───────────────────────────────────────────── */
+.usu-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.usu-p-ok { background: #DCF3E7; color: #146C43; }
+.usu-p-bad { background: #FBE0E3; color: #B02A37; }
+
+/* ── Campos / botones ────────────────────────────────────────────────────── */
+.usu-field {
+    width: 100%;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    color: #16202E;
+    min-height: 34px;
+}
+
+.usu-select {
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 7px;
+    padding: 6px 9px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    color: #16202E;
+    min-height: 32px;
+}
+
+.usu-select-sm {
+    font-size: 12px;
+}
+
+.usu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.usu-btn-ghost {
+    background: var(--cc-surface);
+    color: var(--cc-navy);
+    border-color: rgba(0, 53, 102, 0.3);
+}
+
+    .usu-btn-ghost:hover:not(:disabled) {
+        background: #F2F6FA;
+    }
+
+.usu-btn-bad {
+    background: var(--cc-surface);
+    color: #B02A37;
+    border-color: #E9AFB6;
+}
+
+.usu-btn-ok {
+    background: var(--cc-surface);
+    color: #146C43;
+    border-color: #A6D9BE;
+}
+
+.usu-btn:disabled {
+    opacity: 0.6;
+}
+
+.usu-btn-sm {
+    font-size: 11.5px;
+    padding: 5px 10px;
+}
+
+/* ── Pantallas estrechas ─────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .usu-search {
+        width: 100%;
+    }
+
+    .usu-tools {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+}

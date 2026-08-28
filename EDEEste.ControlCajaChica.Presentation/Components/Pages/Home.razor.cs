@@ -57,7 +57,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            fondos = await Fondos.ListarAsync();
+            // Un fondo inactivo ya no opera: no debe aparecer en el panel de nadie,
+            // aunque el Administrador siga viéndolo (y pudiendo reactivarlo) en /fondos.
+            fondos = (await Fondos.ListarAsync()).Where(f => f.Estado != EstadoFondo.Inactivo).ToList();
             await ResolverNombresDeCustodioAsync();
 
             if (EsPanelDeUnFondo)

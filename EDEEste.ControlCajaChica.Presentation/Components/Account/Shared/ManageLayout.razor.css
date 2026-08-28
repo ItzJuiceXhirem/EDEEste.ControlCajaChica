@@ -1,0 +1,159 @@
+/* Mi cuenta — franja de marca con avatar superpuesto (dirección D aprobada). */
+
+.mgl-cardwrap {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 780px;
+}
+
+.mgl-band {
+    background: linear-gradient(to bottom right, #003566 0%, #001D3D 55%, #000814 100%);
+    height: 110px;
+    position: relative;
+}
+
+.mgl-band-inner {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    padding: 0 26px;
+}
+
+.mgl-av {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    flex: none;
+    display: grid;
+    place-items: center;
+    background-image: linear-gradient(135deg, #FFC300, #FF9F1C);
+    color: #4A3800;
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 28px;
+    box-shadow: 0 0 0 4px var(--cc-ivory);
+    position: absolute;
+    left: 26px;
+    bottom: -34px;
+    cursor: pointer;
+}
+
+.mgl-av-ov {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0, 29, 61, .62);
+    display: grid;
+    place-items: center;
+    color: var(--cc-ivory);
+    opacity: 0;
+    transition: opacity .12s ease;
+}
+
+    .mgl-av:hover .mgl-av-ov {
+        opacity: 1;
+    }
+
+    .mgl-av-ov svg {
+        width: 22px;
+        height: 22px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+.mgl-idtext {
+    margin-left: 108px;
+    padding-bottom: 12px;
+    min-width: 0;
+}
+
+.mgl-name {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--cc-ivory);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mgl-role {
+    font-size: 12px;
+    color: var(--cc-gold-lt);
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+.mgl-since {
+    margin-left: auto;
+    padding-bottom: 14px;
+    text-align: right;
+    font-size: 11px;
+    color: rgba(255, 253, 245, .68);
+    line-height: 1.5;
+    flex: none;
+}
+
+    .mgl-since b {
+        color: var(--cc-ivory);
+        font-weight: 600;
+    }
+
+.mgl-body-top {
+    padding: 0 26px;
+    margin-top: 46px;
+}
+
+.mgl-tabs {
+    display: inline-flex;
+    background: rgba(0, 53, 102, .06);
+    border-radius: 9px;
+    padding: 4px;
+    gap: 3px;
+    margin-bottom: 16px;
+}
+
+.mgl-tab {
+    padding: 8px 18px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6B7482;
+}
+
+    .mgl-tab:hover {
+        color: var(--cc-navy);
+    }
+
+.mgl-tab-on {
+    background: var(--cc-surface);
+    color: var(--cc-navy);
+    box-shadow: 0 1px 3px rgba(0, 53, 102, .18);
+}
+
+    .mgl-tab-on:hover {
+        color: var(--cc-navy);
+    }
+
+.mgl-inner {
+    border-top: 1px solid #ECEEF1;
+    margin: 0 26px 26px;
+    padding-top: 20px;
+}
+
+@media (max-width: 560px) {
+    .mgl-band-inner {
+        flex-wrap: wrap;
+    }
+
+    .mgl-since {
+        margin-left: 108px;
+        text-align: left;
+        padding-bottom: 6px;
+    }
+}

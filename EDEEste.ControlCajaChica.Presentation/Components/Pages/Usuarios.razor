@@ -4,28 +4,39 @@
 
 <PageTitle>Usuarios y accesos</PageTitle>
 
-<h1>Usuarios y accesos</h1>
+<div class="usu-pagebar">
+    <div>
+        <h1 class="usu-h1">Usuarios y accesos</h1>
+        <p class="usu-sub">@Subtitulo</p>
+    </div>
+</div>
 
-@if (mensaje is not null)
-{
-    <div class="alert alert-success">@mensaje</div>
-}
 @if (error is not null)
 {
-    <div class="alert alert-danger">@error</div>
+    <div class="usu-alert usu-a-bad">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.6 17 16.4H3L10 4.6Z" /><path d="M10 9v3.3M10 14.5h.01" /></svg>
+        <span>@error</span>
+    </div>
+}
+@if (mensaje is not null)
+{
+    <div class="usu-alert usu-a-ok">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.6 10.4 8.2 14l7.2-8" /></svg>
+        <span>@mensaje</span>
+    </div>
 }
 @if (urlResetGenerada is not null)
 {
-    <div class="alert alert-info">
-        <p class="mb-2">
-            Solicitud aprobada. Mande este enlace por Teams a la persona que lo pidió
-            (solo funciona una vez):
-        </p>
-        <div class="input-group">
-            <input class="form-control" readonly value="@urlResetGenerada" />
-            <button class="btn btn-outline-secondary" type="button" @onclick="CopiarUrlAsync">
-                @(copiadoAlPortapapeles ? "Copiado" : "Copiar")
-            </button>
+    <div class="usu-alert usu-a-info usu-a-link">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.8" /><path d="M10 9.4v4M10 6.8h.01" /></svg>
+        <div>
+            <p class="usu-link-txt">Solicitud aprobada. Mande este enlace por Teams a la persona que lo pidió (sólo funciona una vez):</p>
+            <div class="usu-link-row">
+                <input class="usu-field" readonly value="@urlResetGenerada" />
+                <button type="button" class="usu-btn usu-btn-ghost usu-btn-sm" @onclick="CopiarUrlAsync">
+                    @(copiadoAlPortapapeles ? "Copiado" : "Copiar")
+                </button>
+            </div>
         </div>
     </div>
 }
@@ -36,200 +47,221 @@
 }
 else
 {
-    <section class="mb-5">
-        <h2 class="h5">Solicitudes de acceso</h2>
-        <p class="text-muted small">
-            Personas que crearon su cuenta y esperan que se les asigne un rol. Mientras
-            estén aquí no pueden entrar al sistema.
-        </p>
-        @if (Filtrar(EstadoAccesoUsuario.Pendiente).Count == 0)
-        {
-            <p class="text-muted">No hay solicitudes pendientes.</p>
-        }
-        else
-        {
-            <table class="table table-sm table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Nombre</th>
-                        <th style="width: 220px;">Asignar rol</th>
-                        <th style="width: 150px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var usuario in Filtrar(EstadoAccesoUsuario.Pendiente))
-                    {
-                        <tr>
-                            <td><code>@usuario.Usuario</code></td>
-                            <td>@usuario.Nombre</td>
-                            <td>
-                                <select class="form-select form-select-sm"
-                                        disabled="@(procesandoId == usuario.Id)"
-                                        @onchange="e => AprobarAsync(usuario, e.Value?.ToString())">
-                                    <option value="">Seleccione un rol...</option>
-                                    @foreach (var rol in RolesApp.Todos)
-                                    {
-                                        <option value="@rol">@rol</option>
-                                    }
-                                </select>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-danger"
-                                        disabled="@(procesandoId == usuario.Id)"
-                                        @onclick="() => DenegarAsync(usuario)">
-                                    Denegar acceso
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </section>
+    @if (Filtrar(EstadoAccesoUsuario.Pendiente) is { Count: > 0 } pendientes)
+    {
+        <div class="usu-job">
+            <div class="usu-jh">
+                <span class="usu-jic usu-jic-cyan">@RenderIconoPersona()</span>
+                <div>
+                    <div class="usu-jt">Solicitudes de acceso esperando un rol</div>
+                    <div class="usu-jd">Mientras no tengan rol, no pueden entrar al sistema</div>
+                </div>
+                <div class="usu-jn">@pendientes.Count</div>
+            </div>
+            <div class="usu-jbody">
+                <div class="usu-tablewrap">
+                    <table class="usu-table">
+                        <thead><tr><th>Persona</th><th>Solicitada</th><th style="width:200px">Asignar rol</th><th class="act"></th></tr></thead>
+                        <tbody>
+                            @foreach (var usuario in pendientes)
+                            {
+                                <tr>
+                                    <td>@RenderPersona(usuario)</td>
+                                    <td class="usu-mut">@FormatoFechaHora(usuario.FechaSolicitud)</td>
+                                    <td>
+                                        <select class="usu-select" disabled="@(procesandoId == usuario.Id)"
+                                                @onchange="e => AprobarAsync(usuario, e.Value?.ToString())">
+                                            <option value="">Seleccione un rol...</option>
+                                            @foreach (var rol in RolesApp.Todos)
+                                            {
+                                                <option value="@rol">@rol</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td class="act">
+                                        <button type="button" class="usu-btn usu-btn-bad usu-btn-sm"
+                                                disabled="@(procesandoId == usuario.Id)" @onclick="() => DenegarAsync(usuario)">
+                                            Denegar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
 
-    <section class="mb-5">
-        <h2 class="h5">Usuarios con acceso</h2>
-        @if (Filtrar(EstadoAccesoUsuario.Aprobado).Count == 0)
-        {
-            <p class="text-muted">Todavía no hay usuarios aprobados.</p>
-        }
-        else
-        {
-            <table class="table table-sm table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Nombre</th>
-                        <th style="width: 220px;">Rol</th>
-                        <th style="width: 150px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var usuario in Filtrar(EstadoAccesoUsuario.Aprobado))
-                    {
-                        <tr>
-                            <td><code>@usuario.Usuario</code></td>
-                            <td>@usuario.Nombre</td>
-                            <td>
-                                <select class="form-select form-select-sm"
-                                        value="@usuario.Rol"
-                                        disabled="@(procesandoId == usuario.Id)"
-                                        @onchange="e => CambiarRolAsync(usuario, e.Value?.ToString())">
-                                    @foreach (var rol in RolesApp.Todos)
-                                    {
-                                        <option value="@rol" selected="@(rol == usuario.Rol)">@rol</option>
-                                    }
-                                </select>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-danger"
-                                        disabled="@(procesandoId == usuario.Id)"
-                                        @onclick="() => DenegarAsync(usuario)">
-                                    Revocar acceso
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </section>
+    @if (solicitudesReset is { Count: > 0 })
+    {
+        <div class="usu-job">
+            <div class="usu-jh">
+                <span class="usu-jic usu-jic-cyan">@RenderIconoCandado()</span>
+                <div>
+                    <div class="usu-jt">Solicitudes de restablecer contraseña</div>
+                    <div class="usu-jd">Genera un enlace de un solo uso para mandar por Teams</div>
+                </div>
+                <div class="usu-jn">@solicitudesReset.Count</div>
+            </div>
+            <div class="usu-jbody">
+                <div class="usu-tablewrap">
+                    <table class="usu-table">
+                        <thead><tr><th>Persona</th><th>Solicitada</th><th class="act"></th></tr></thead>
+                        <tbody>
+                            @foreach (var solicitud in solicitudesReset)
+                            {
+                                <tr>
+                                    <td>@RenderPersonaReset(solicitud)</td>
+                                    <td class="usu-mut">@FormatoFechaHora(solicitud.FechaSolicitud)</td>
+                                    <td class="act">
+                                        <span class="usu-g6">
+                                            <button type="button" class="usu-btn usu-btn-ghost usu-btn-sm"
+                                                    disabled="@(procesandoResetId == solicitud.Id)" @onclick="() => IgnorarResetAsync(solicitud)">
+                                                Ignorar
+                                            </button>
+                                            <button type="button" class="usu-btn usu-btn-ok usu-btn-sm"
+                                                    disabled="@(procesandoResetId == solicitud.Id)" @onclick="() => AceptarResetAsync(solicitud)">
+                                                Aceptar
+                                            </button>
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
 
-    <section>
-        <h2 class="h5">Acceso denegado</h2>
-        <p class="text-muted small">
-            Cuentas a las que se les negó el acceso. Se conserva el rol que tenían por
-            si hay que devolverles el acceso más adelante.
-        </p>
-        @if (Filtrar(EstadoAccesoUsuario.Denegado).Count == 0)
-        {
-            <p class="text-muted">No hay cuentas con acceso denegado.</p>
-        }
-        else
-        {
-            <table class="table table-sm table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Nombre</th>
-                        <th>Rol anterior</th>
-                        <th style="width: 220px;">Devolver acceso como</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var usuario in Filtrar(EstadoAccesoUsuario.Denegado))
-                    {
-                        <tr>
-                            <td><code>@usuario.Usuario</code></td>
-                            <td>@usuario.Nombre</td>
-                            <td>@(usuario.Rol ?? "-")</td>
-                            <td>
-                                <select class="form-select form-select-sm"
-                                        disabled="@(procesandoId == usuario.Id)"
-                                        @onchange="e => AprobarAsync(usuario, e.Value?.ToString())">
-                                    <option value="">Seleccione un rol...</option>
-                                    @foreach (var rol in RolesApp.Todos)
-                                    {
-                                        <option value="@rol">@rol</option>
-                                    }
-                                </select>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </section>
+    @if (!HayAlgoPendiente)
+    {
+        <div class="usu-job usu-job-done">
+            <div class="usu-jh">
+                <span class="usu-jic usu-jic-ok">@RenderIconoListaCheck()</span>
+                <div>
+                    <div class="usu-jt">Todo al día</div>
+                    <div class="usu-jd">No hay solicitudes de acceso ni de restablecimiento de contraseña pendientes</div>
+                </div>
+                <div class="usu-jn">0</div>
+            </div>
+        </div>
+    }
 
-    <section class="mb-5">
-        <h2 class="h5">Solicitudes de restablecimiento de contraseña</h2>
-        <p class="text-muted small">
-            Personas que ya tienen acceso pero olvidaron su contraseña. Aceptar genera
-            un enlace de un solo uso; Ignorar deja la contraseña como estaba.
-        </p>
-        @if (solicitudesReset is null)
+    <div class="usu-fold">
+        <span class="usu-foldlbl">Directorio completo</span>
+        <span class="usu-line"></span>
+        <div class="usu-tools">
+            <div class="usu-segmented">
+                <button type="button" class="usu-seg @(filtroDirectorio == FiltroDirectorio.Todos ? "usu-seg-on" : "")" @onclick="() => CambiarFiltroDirectorio(FiltroDirectorio.Todos)">Todos</button>
+                <button type="button" class="usu-seg @(filtroDirectorio == FiltroDirectorio.Aprobados ? "usu-seg-on" : "")" @onclick="() => CambiarFiltroDirectorio(FiltroDirectorio.Aprobados)">Aprobados</button>
+                <button type="button" class="usu-seg @(filtroDirectorio == FiltroDirectorio.Denegados ? "usu-seg-on" : "")" @onclick="() => CambiarFiltroDirectorio(FiltroDirectorio.Denegados)">Denegados</button>
+            </div>
+            <label class="usu-search">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.3" /><path d="m12.6 12.6 4.2 4.2" /></svg>
+                <input type="search" placeholder="Buscar…" value="@busquedaDirectorio"
+                       @oninput="e => busquedaDirectorio = e.Value?.ToString() ?? string.Empty" />
+            </label>
+        </div>
+    </div>
+
+    <section class="usu-card">
+        @if (!DirectorioFiltrado.Any())
         {
-            <p><em>Cargando...</em></p>
-        }
-        else if (solicitudesReset.Count == 0)
-        {
-            <p class="text-muted">No hay solicitudes de restablecimiento pendientes.</p>
+            <p class="usu-empty">Nadie coincide con el filtro o la búsqueda.</p>
         }
         else
         {
-            <table class="table table-sm table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Nombre</th>
-                        <th>Solicitada</th>
-                        <th style="width: 220px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var solicitud in solicitudesReset)
-                    {
-                        <tr>
-                            <td><code>@solicitud.Usuario</code></td>
-                            <td>@solicitud.Nombre</td>
-                            <td>@solicitud.FechaSolicitud.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-outline-secondary me-1"
-                                        disabled="@(procesandoResetId == solicitud.Id)"
-                                        @onclick="() => IgnorarResetAsync(solicitud)">
-                                    Ignorar
-                                </button>
-                                <button class="btn btn-sm btn-primary"
-                                        disabled="@(procesandoResetId == solicitud.Id)"
-                                        @onclick="() => AceptarResetAsync(solicitud)">
-                                    Aceptar
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            <div class="usu-tablewrap">
+                <table class="usu-table">
+                    <thead><tr><th>Persona</th><th>Rol</th><th>Estado</th><th class="act">Acciones</th></tr></thead>
+                    <tbody>
+                        @foreach (var usuario in DirectorioFiltrado)
+                        {
+                            <tr>
+                                <td>@RenderPersona(usuario)</td>
+                                <td class="@(usuario.EstadoAcceso == EstadoAccesoUsuario.Denegado ? "usu-mut" : "")">
+                                    @(usuario.EstadoAcceso == EstadoAccesoUsuario.Denegado ? $"Antes: {usuario.Rol ?? "-"}" : usuario.Rol)
+                                </td>
+                                <td>
+                                    <span class="usu-pill @(usuario.EstadoAcceso == EstadoAccesoUsuario.Aprobado ? "usu-p-ok" : "usu-p-bad")">
+                                        @(usuario.EstadoAcceso == EstadoAccesoUsuario.Aprobado ? "Aprobada" : "Denegada")
+                                    </span>
+                                </td>
+                                <td class="act">
+                                    @if (usuario.EstadoAcceso == EstadoAccesoUsuario.Aprobado)
+                                    {
+                                        <span class="usu-g6">
+                                            <select class="usu-select usu-select-sm" value="@usuario.Rol"
+                                                    disabled="@(procesandoId == usuario.Id)"
+                                                    @onchange="e => CambiarRolAsync(usuario, e.Value?.ToString())">
+                                                @foreach (var rol in RolesApp.Todos)
+                                                {
+                                                    <option value="@rol" selected="@(rol == usuario.Rol)">@rol</option>
+                                                }
+                                            </select>
+                                            <button type="button" class="usu-btn usu-btn-bad usu-btn-sm"
+                                                    disabled="@(procesandoId == usuario.Id)" @onclick="() => DenegarAsync(usuario)">
+                                                Revocar
+                                            </button>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <select class="usu-select usu-select-sm"
+                                                disabled="@(procesandoId == usuario.Id)"
+                                                @onchange="e => AprobarAsync(usuario, e.Value?.ToString())">
+                                            <option value="">Restaurar como...</option>
+                                            @foreach (var rol in RolesApp.Todos)
+                                            {
+                                                <option value="@rol" selected="@(rol == usuario.Rol)">@rol</option>
+                                            }
+                                        </select>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
     </section>
+}
+
+@code {
+    private RenderFragment RenderPersona(UsuarioResumenDto usuario) =>@<div class="usu-avatarname">
+        <span class="usu-initials">@Iniciales(usuario.Nombre)</span>
+        <div>
+            <div class="usu-an-name">@usuario.Nombre</div>
+            <div class="usu-an-user">
+                @usuario.Usuario
+                @if (!string.IsNullOrWhiteSpace(usuario.Extension))
+                {
+                    <text> · Ext. @usuario.Extension</text>
+                }
+            </div>
+        </div>
+    </div>;
+
+    private RenderFragment RenderPersonaReset(SolicitudPasswordResetResumenDto solicitud) =>@<div class="usu-avatarname">
+        <span class="usu-initials">@Iniciales(solicitud.Nombre)</span>
+        <div>
+            <div class="usu-an-name">@solicitud.Nombre</div>
+            <div class="usu-an-user">@solicitud.Usuario</div>
+        </div>
+    </div>;
+
+    private RenderFragment RenderIconoPersona() =>@<svg viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M8.2 4.6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z" /><path d="M3.4 16.1c.55-2.6 2.4-3.9 4.8-3.9s4.25 1.3 4.8 3.9" />
+        <path d="M13.2 5.2a2.3 2.3 0 0 1 0 4.4" /><path d="M14.4 12.5c1.4.45 2.3 1.6 2.6 3.2" />
+    </svg>;
+
+    private RenderFragment RenderIconoCandado() =>@<svg viewBox="0 0 20 20" aria-hidden="true">
+        <rect x="4.8" y="9" width="10.4" height="7.6" rx="1.2" /><path d="M6.8 9V6.6a3.2 3.2 0 0 1 6.4 0V9" />
+    </svg>;
+
+    private RenderFragment RenderIconoListaCheck() =>@<svg viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M4 5.8h9M4 9.8h9M4 13.8h5" /><circle cx="15" cy="14.2" r="4.1" /><path d="M13.1 14.2 14.4 15.5l2.3-2.9" />
+    </svg>;
 }

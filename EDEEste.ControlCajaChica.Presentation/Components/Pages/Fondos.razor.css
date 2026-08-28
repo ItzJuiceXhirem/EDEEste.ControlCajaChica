@@ -49,6 +49,10 @@
     line-height: 1.5;
 }
 
+.fnd-help-bad {
+    color: #B02A37;
+}
+
 .fnd-nomt { margin-top: 0; }
 .fnd-nomargin { margin: 0; }
 .fnd-mt14 { margin-top: 14px; }
@@ -111,13 +115,19 @@
         border-color: #DC3545;
     }
 
-/* El monto y el custodio son las dos decisiones que condicionan el resto del
-   alta, así que se tecleán más grandes que el resto de campos. */
+/* El monto condiciona todas las cifras de los pasos siguientes, así que se
+   teclea grande. El custodio comparte el alto —son las dos decisiones del paso
+   1 y deben verse pareadas— pero conserva el tipo de letra normal: es un
+   nombre, no una cifra que haya que leer de lejos. */
 ::deep .fnd-input-xl {
     min-height: 54px;
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 20px;
+}
+
+::deep .fnd-input-tall {
+    min-height: 54px;
 }
 
 .fnd-select {
@@ -814,6 +824,7 @@
 
 .fnd-a-info { background: #cff4fc; color: #055160; }
 .fnd-a-warn { background: #fff3cd; color: #664d03; }
+.fnd-a-bad { background: #f8d7da; color: #842029; }
 
 /* ── Modal de cambio de custodio (§5.3) ──────────────────────────────────── */
 /* Contrapeso de --cc-zoom: el velo es `fixed` dentro del árbol escalado y con
@@ -916,9 +927,18 @@
     border: 1px solid var(--cc-gold);
 }
 
-    .fnd-modal-ok:hover {
+    .fnd-modal-ok:hover:not(:disabled) {
         background: var(--cc-gold-lt);
         border-color: var(--cc-gold-lt);
+    }
+
+    /* Sobre el degradado oscuro, un botón apagado necesita su propio tono: el gris
+       claro de los botones deshabilitados del resto de la app se leería como
+       habilitado aquí. */
+    .fnd-modal-ok:disabled {
+        background: rgba(255, 253, 245, 0.16);
+        color: rgba(255, 253, 245, 0.5);
+        border-color: transparent;
     }
 
 .fnd-modal-no {

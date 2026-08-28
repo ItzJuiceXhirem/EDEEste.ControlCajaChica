@@ -1,16 +1,36 @@
 @inherits LayoutComponentBase
 @layout EDEEste.ControlCajaChica.Presentation.Components.Layout.MainLayout
 
-<h1>Mi cuenta</h1>
-
-<div>
-    <hr />
-    <div class="row">
-        <div class="col-lg-3">
-            <ManageNavMenu />
+<div class="mgl-cardwrap">
+    <div class="mgl-band">
+        <div class="mgl-band-inner">
+            @* Sin funcion real todavia -- el filtro y el lapiz solo anticipan la
+               subida de foto de perfil (§DESIGN.md, pendiente de implementar). *@
+            <span class="mgl-av" title="Cambiar foto de perfil (próximamente)">
+                @iniciales
+                <span class="mgl-av-ov">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 15.4 5 12l7.2-7.2 3 3L7.9 15.1 4 15.4Z" /></svg>
+                </span>
+            </span>
+            <div class="mgl-idtext">
+                <div class="mgl-name">@nombre</div>
+                <div class="mgl-role">@rol · @usuario</div>
+            </div>
+            @if (ultimaSesionAnterior is not null)
+            {
+                <div class="mgl-since">
+                    Última sesión<br><b>@FormatoUltimaSesion(ultimaSesionAnterior.Value)</b>
+                </div>
+            }
         </div>
-        <div class="col-lg-9">
-            @Body
-        </div>
+    </div>
+    <div class="mgl-body-top">
+        <nav class="mgl-tabs">
+            <NavLink class="mgl-tab" ActiveClass="mgl-tab-on" href="Account/Manage" Match="NavLinkMatch.All">Perfil</NavLink>
+            <NavLink class="mgl-tab" ActiveClass="mgl-tab-on" href="Account/Manage/ChangePassword">Contraseña</NavLink>
+        </nav>
+    </div>
+    <div class="mgl-inner">
+        @Body
     </div>
 </div>

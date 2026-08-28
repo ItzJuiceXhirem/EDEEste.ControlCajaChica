@@ -13,5 +13,7 @@ namespace EDEEste.ControlCajaChica.Application.DTOs
         string Usuario,
         string Nombre,
         string? Rol,
-        EstadoAccesoUsuario EstadoAcceso);
+        EstadoAccesoUsuario EstadoAcceso,
+        DateTime FechaSolicitud,
+        string? Extension);
 }

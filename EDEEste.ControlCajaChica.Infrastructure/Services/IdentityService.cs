@@ -205,7 +205,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                     usuario.UserName ?? string.Empty,
                     usuario.Nombre,
                     roles.FirstOrDefault(),
-                    usuario.EstadoAcceso));
+                    usuario.EstadoAcceso,
+                    usuario.FechaCreacion,
+                    usuario.PhoneNumber));
             }
 
             return resumen;

@@ -50,10 +50,20 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
                                     || g.Estado == EstadoGasto.AnulacionPendiente))
                     .ToList());
 
+        // Los comprobantes viven colgados de su gasto, asi que el doble los busca
+        // recorriendolos en vez de mantener una segunda coleccion.
+        public Task<ComprobanteAdjunto?> ObtenerComprobanteAsync(Guid comprobanteId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_gastos.Values
+                .SelectMany(g => g.Comprobantes)
+                .FirstOrDefault(c => c.Id == comprobanteId));
+
         public Task AgregarAsync(Gasto gasto, CancellationToken cancellationToken = default)
         {
             Agregar(gasto);
             return Task.CompletedTask;
         }
+
+        public Task<int> ContarPorCategoriaYAnioAsync(Guid categoriaGastoId, int anio, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_gastos.Values.Count(g => g.CategoriaGastoId == categoriaGastoId && g.FechaGasto.Year == anio));
     }
 }

@@ -219,16 +219,39 @@ else if (vista == Vista.Nuevo)
                         </div>
                         <div>
                             <label class="fnd-cap" for="fnd-custodio">Custodio</label>
-                            <select id="fnd-custodio" class="fnd-input fnd-input-xl" @bind="entrada.CustodioId">
+                            @* Alto de campo grande como el monto, pero con el tipo de
+                               letra normal: es un nombre, no una cifra que leer de lejos. *@
+                            <select id="fnd-custodio" class="fnd-input fnd-input-tall" @bind="entrada.CustodioId">
                                 @foreach (var custodio in custodios)
                                 {
-                                    <option value="@custodio.Id">@custodio.Usuario — @custodio.Nombre</option>
+                                    <option value="@custodio.Id">
+                                        @custodio.Usuario — @custodio.Nombre@(CustodioOcupado(custodio.Id) ? " (ya tiene fondo)" : "")
+                                    </option>
                                 }
                             </select>
-                            <p class="fnd-help">
-                                Sólo aparecen cuentas aprobadas con el rol Custodio. Hay @custodios.Count
-                                @(custodios.Count == 1 ? "disponible" : "disponibles").
-                            </p>
+                            @if (CustodioOcupado(entrada.CustodioId))
+                            {
+                                @* Aviso en el sitio, no sólo al pulsar Continuar: el error
+                                   es del campo, así que se dice junto al campo. *@
+                                <p class="fnd-help fnd-help-bad">
+                                    @UsuarioDe(entrada.CustodioId) ya responde por un fondo de
+                                    @FondoDe(entrada.CustodioId). Sólo se permite un custodio por fondo
+                                    y un fondo por custodio.
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="fnd-help">
+                                    Sólo aparecen cuentas aprobadas con el rol Custodio.
+                                    @if (CustodiosSinFondo > 0)
+                                    {
+                                        <text>
+                                            Hay @CustodiosSinFondo sin fondo
+                                            @(CustodiosSinFondo == 1 ? "asignado" : "asignados").
+                                        </text>
+                                    }
+                                </p>
+                            }
                         </div>
                     </div>
 
@@ -388,9 +411,20 @@ else if (fondoEditando is { } fondo && entradaEdicion is not null)
                                 @onchange="ProponerCustodio">
                             @foreach (var custodio in custodios)
                             {
-                                <option value="@custodio.Id">@custodio.Usuario — @custodio.Nombre</option>
+                                @* Se excluye este fondo del chequeo: el custodio actual no
+                                   está "ocupado" por su propio fondo. *@
+                                <option value="@custodio.Id">
+                                    @custodio.Usuario — @custodio.Nombre@(CustodioOcupado(custodio.Id, fondo.Id) ? " (ya tiene fondo)" : "")
+                                </option>
                             }
                         </select>
+                        @if (CustodioOcupado(entradaEdicion.CustodioId, fondo.Id))
+                        {
+                            <p class="fnd-help fnd-help-bad">
+                                @UsuarioDe(entradaEdicion.CustodioId) ya responde por otro fondo. Sólo se
+                                permite un custodio por fondo y un fondo por custodio.
+                            </p>
+                        }
                     </div>
                     <div>
                         <label class="fnd-cap" for="fnd-estado">Estado</label>
@@ -482,18 +516,35 @@ else if (fondoEditando is { } fondo && entradaEdicion is not null)
                         </span>
                     </div>
 
-                    <div class="fnd-alert fnd-a-warn fnd-mt14">
-                        <span aria-hidden="true">⚠</span>
-                        <span>
-                            El fondo tiene <b class="cc-num">RD$ @fondo.BalanceActual.ToString("N2")</b> en caja.
-                            Todo eso pasa a manos del nuevo custodio.
-                        </span>
-                    </div>
+                    @if (CustodioOcupado(propuesto, fondo.Id))
+                    {
+                        <div class="fnd-alert fnd-a-bad fnd-mt14">
+                            <span aria-hidden="true">⚠</span>
+                            <span>
+                                <b>@UsuarioDe(propuesto) ya tiene un fondo asignado.</b> Sólo se permite un
+                                custodio por fondo y un fondo por custodio, así que este cambio no se puede
+                                hacer.
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="fnd-alert fnd-a-warn fnd-mt14">
+                            <span aria-hidden="true">⚠</span>
+                            <span>
+                                El fondo tiene <b class="cc-num">RD$ @fondo.BalanceActual.ToString("N2")</b> en caja.
+                                Todo eso pasa a manos del nuevo custodio.
+                            </span>
+                        </div>
+                    }
                 </div>
 
                 <div class="fnd-modal-f">
                     <button type="button" class="fnd-modal-no" @onclick="CancelarCambioDeCustodio">Cancelar</button>
-                    <button type="button" class="fnd-modal-ok" @onclick="ConfirmarCambioDeCustodio">Aceptar</button>
+                    <button type="button" class="fnd-modal-ok" disabled="@CustodioOcupado(propuesto, fondo.Id)"
+                            @onclick="ConfirmarCambioDeCustodio">
+                        Aceptar
+                    </button>
                 </div>
             </div>
         </div>

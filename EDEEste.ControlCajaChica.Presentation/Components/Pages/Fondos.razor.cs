@@ -240,6 +240,24 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         private bool HayCustodios => custodios is { Count: > 0 };
 
+        /// <summary>
+        /// Si ese custodio ya responde por otro fondo. Es la misma regla que aplican
+        /// los handlers; aqui se repite sobre la lista ya cargada para avisar al
+        /// instante en vez de esperar al viaje de ida y vuelta. La autoridad sigue
+        /// siendo el handler, que la comprueba contra la BDD.
+        /// </summary>
+        private bool CustodioOcupado(string? custodioId, Guid? excluirFondoId = null) =>
+            !string.IsNullOrWhiteSpace(custodioId)
+            && fondos is not null
+            && fondos.Any(f => string.Equals(f.CustodioId, custodioId, StringComparison.OrdinalIgnoreCase)
+                               && f.Id != excluirFondoId);
+
+        private string FondoDe(string? custodioId) =>
+            fondos?.FirstOrDefault(f => string.Equals(f.CustodioId, custodioId, StringComparison.OrdinalIgnoreCase))
+                is { } f
+                ? $"RD$ {f.MontoFijo:N2}"
+                : string.Empty;
+
         // ── Navegacion entre vistas ──────────────────────────────────────────────
 
         private void AbrirLista()
@@ -256,7 +274,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             errores.Clear();
             exito = null;
             entrada.Limpiar();
-            entrada.CustodioId = custodios?.FirstOrDefault()?.Id;
+
+            // Arranca en un custodio que aun no tenga fondo, para no abrir el
+            // formulario ya en estado de error. Si todos tienen, cae al primero y el
+            // aviso aparece de una vez -- que tambien es informacion util.
+            entrada.CustodioId = custodios?.FirstOrDefault(c => !CustodioOcupado(c.Id))?.Id
+                                 ?? custodios?.FirstOrDefault()?.Id;
             paso = 1;
             vista = Vista.Nuevo;
         }
@@ -318,6 +341,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             if (string.IsNullOrWhiteSpace(entrada.CustodioId))
             {
                 problemas.Add("Debe asignar un custodio.");
+            }
+            else if (CustodioOcupado(entrada.CustodioId))
+            {
+                problemas.Add(
+                    $"{UsuarioDe(entrada.CustodioId)} ya tiene un fondo asignado: sólo se permite " +
+                    "un custodio por fondo y un fondo por custodio.");
             }
 
             return problemas;
@@ -449,6 +478,14 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
             var problemas = ValidarReglas(fondo.MontoFijo, entradaEdicion.PorcentajeMaximoPorGasto,
                                           entradaEdicion.LimitePorGasto, entradaEdicion.PorcentajeAlertaReposicion);
+
+            if (CustodioOcupado(entradaEdicion.CustodioId, fondo.Id))
+            {
+                problemas.Add(
+                    $"{UsuarioDe(entradaEdicion.CustodioId)} ya tiene un fondo asignado: sólo se permite " +
+                    "un custodio por fondo y un fondo por custodio.");
+            }
+
             if (problemas.Count > 0)
             {
                 errores.AddRange(problemas);

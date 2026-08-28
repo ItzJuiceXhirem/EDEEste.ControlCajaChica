@@ -50,5 +50,13 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
         /// servir el archivo.
         /// </summary>
         Task<ComprobanteAdjunto?> ObtenerComprobanteAsync(Guid comprobanteId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Cuántos gastos usan esta categoría en el año dado, sin importar el fondo -
+        /// una categoría es compartida por todos los fondos. Es el dato de contexto
+        /// que ve el Administrador al editar una categoría ("Usada en X gastos este
+        /// año"), no una lista que haya que materializar entera.
+        /// </summary>
+        Task<int> ContarPorCategoriaYAnioAsync(Guid categoriaGastoId, int anio, CancellationToken cancellationToken = default);
     }
 }

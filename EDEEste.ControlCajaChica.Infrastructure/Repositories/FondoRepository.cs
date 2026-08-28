@@ -23,6 +23,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
                 .OrderBy(f => f.FechaCreacion)
                 .ToListAsync(cancellationToken);
 
+        public Task<bool> ExisteFondoParaCustodioAsync(
+            string custodioId,
+            Guid? excluirFondoId = null,
+            CancellationToken cancellationToken = default) =>
+            _context.Fondos.AnyAsync(
+                f => f.CustodioId == custodioId && (excluirFondoId == null || f.Id != excluirFondoId),
+                cancellationToken);
+
         public async Task AgregarAsync(FondoCajaChica fondo, CancellationToken cancellationToken = default) =>
             await _context.Fondos.AddAsync(fondo, cancellationToken);
     }

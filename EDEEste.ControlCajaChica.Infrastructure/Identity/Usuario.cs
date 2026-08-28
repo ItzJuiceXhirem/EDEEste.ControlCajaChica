@@ -27,5 +27,22 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
         /// por intentos fallidos de contrasena.
         /// </summary>
         public EstadoAccesoUsuario EstadoAcceso { get; set; } = EstadoAccesoUsuario.Pendiente;
+
+        /// <summary>
+        /// Cuando se creo la cuenta -- para una cuenta todavia Pendiente es, en la
+        /// practica, "cuando se solicito el acceso". Se inicializa aqui (no en el
+        /// momento de guardar) para que quede fijada al instante de construir el
+        /// objeto, igual para una cuenta creada por CrearUsuarioAsync que por
+        /// CrearUsuarioPendienteAsync.
+        /// </summary>
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Cuando inicio sesion la ultima vez. Null hasta el primer inicio de sesion
+        /// exitoso. Login.razor.cs lee este valor ANTES de sobreescribirlo (es la
+        /// sesion anterior a la que esta entrando) y lo pasa como claim de la propia
+        /// sesion -- ver <see cref="EDEEste.ControlCajaChica.Domain.Constants.ClaimsApp.UltimoAccesoAnterior"/>.
+        /// </summary>
+        public DateTime? UltimoAccesoUtc { get; set; }
     }
 }

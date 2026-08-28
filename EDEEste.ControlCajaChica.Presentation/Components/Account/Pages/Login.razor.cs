@@ -1,8 +1,11 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using Microsoft.AspNetCore.Components;
@@ -101,7 +104,19 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
                     return;
             }
 
-            await SignInManager.SignInAsync(usuario, Input.RememberMe);
+            // Se lee ANTES de sobreescribir: es la sesion anterior a esta, que es la
+            // que tiene sentido mostrarle a la persona en su perfil ("note un acceso
+            // que no reconoce"). Mostrar la sesion que apenas esta arrancando no
+            // serviria para nada -- siempre coincidiria con "ahora mismo".
+            var sesionAnterior = usuario.UltimoAccesoUtc;
+            usuario.UltimoAccesoUtc = DateTime.UtcNow;
+            await UserManager.UpdateAsync(usuario);
+
+            var claims = sesionAnterior is { } anterior
+                ? new[] { new Claim(ClaimsApp.UltimoAccesoAnterior, DateTime.SpecifyKind(anterior, DateTimeKind.Utc).ToString("o", CultureInfo.InvariantCulture)) }
+                : [];
+
+            await SignInManager.SignInWithClaimsAsync(usuario, Input.RememberMe, claims);
             Logger.LogInformation("El usuario {Usuario} inició sesión.", usuario.UserName);
             RedirectManager.RedirectTo(ReturnUrl);
         }

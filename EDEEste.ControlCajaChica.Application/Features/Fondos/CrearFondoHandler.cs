@@ -37,7 +37,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             var custodioId = comando.CustodioId?.Trim() ?? string.Empty;
             var custodioValido = custodioId.Length > 0 && await _identidad.EstaEnRolAsync(custodioId, RolesApp.Custodio);
 
-            var errores = Validar(comando, custodioValido);
+            // Un custodio, un fondo: se consulta aqui por lo mismo que el rol, porque
+            // es asincrono y Validar es estatico.
+            var custodioYaTieneFondo = custodioId.Length > 0
+                && await _fondos.ExisteFondoParaCustodioAsync(custodioId, null, cancellationToken);
+
+            var errores = Validar(comando, custodioValido, custodioYaTieneFondo);
             if (errores.Count > 0)
             {
                 return ResultadoOperacion<Guid>.Fallo(errores);
@@ -61,7 +66,10 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             return ResultadoOperacion<Guid>.Ok(fondo.Id);
         }
 
-        private static List<string> Validar(CrearFondoCommand comando, bool custodioValido)
+        private static List<string> Validar(
+            CrearFondoCommand comando,
+            bool custodioValido,
+            bool custodioYaTieneFondo)
         {
             var errores = new List<string>();
 
@@ -108,6 +116,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             else if (!custodioValido)
             {
                 errores.Add("El usuario indicado como custodio no tiene el rol de Custodio.");
+            }
+            else if (custodioYaTieneFondo)
+            {
+                errores.Add(
+                    "Ese custodio ya tiene un fondo asignado: solo se permite un custodio por fondo " +
+                    "y un fondo por custodio.");
             }
 
             return errores;
