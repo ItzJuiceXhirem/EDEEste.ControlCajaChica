@@ -9,9 +9,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 {
     /// <summary>
     /// Pantalla de espera tras pedir un restablecimiento de contraseña. Sondea el
-    /// estado de la solicitud cada 60 segundos y, en cuanto un Administrador la
-    /// aprueba, redirige sola a la URL única de restablecimiento -- sin que el
-    /// usuario tenga que hacer nada ni esperar a que le llegue el enlace por Teams.
+    /// estado de la solicitud cada 60 segundos solo para reflejar si se aprobo o se
+    /// ignoro -- YA NO redirige sola al formulario de la nueva contraseña: el enlace
+    /// real lleva un secreto de un solo uso que solo conoce el Administrador (ver
+    /// PasswordResetService.AceptarAsync), asi que aunque esta pantalla supiera que
+    /// la solicitud fue aprobada, no tiene forma de completar el cambio por su
+    /// cuenta. Quien la pidio sigue teniendo que esperar el enlace por Teams.
     /// </summary>
     public partial class ForgotPasswordConfirmation : IDisposable
     {
@@ -24,6 +27,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
         private string? SolicitudId { get; set; }
 
         private bool ignorada;
+        private bool aprobada;
         private CancellationTokenSource? _cts;
 
         protected override void OnInitialized()
@@ -50,7 +54,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 
                     if (estado == EstadoSolicitudPasswordReset.Aprobada)
                     {
-                        await InvokeAsync(() => NavigationManager.NavigateTo($"Account/ResetPassword/{solicitudId}"));
+                        aprobada = true;
+                        await InvokeAsync(StateHasChanged);
                         return;
                     }
 

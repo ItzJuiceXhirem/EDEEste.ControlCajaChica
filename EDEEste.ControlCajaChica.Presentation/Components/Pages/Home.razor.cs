@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using Microsoft.AspNetCore.Components;
@@ -36,6 +37,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         [Inject]
         private IArqueoRepository Arqueos { get; set; } = default!;
 
+        [Inject]
+        private ICurrentUserService UsuarioActual { get; set; } = default!;
+
         private IReadOnlyList<FondoCajaChica>? fondos;
 
         private IReadOnlyList<ArqueoCaja>? ultimosArqueos;
@@ -59,7 +63,17 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             // Un fondo inactivo ya no opera: no debe aparecer en el panel de nadie,
             // aunque el Administrador siga viéndolo (y pudiendo reactivarlo) en /fondos.
-            fondos = (await Fondos.ListarAsync()).Where(f => f.Estado != EstadoFondo.Inactivo).ToList();
+            var visibles = (await Fondos.ListarAsync()).Where(f => f.Estado != EstadoFondo.Inactivo);
+
+            var usuario = await UsuarioActual.ObtenerAsync();
+            if (usuario.Id is { } usuarioId && await Identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio))
+            {
+                // Un Custodio solo debe ver su propio fondo en el panel, no el balance
+                // y los arqueos de los fondos de otros custodios.
+                visibles = visibles.Where(f => f.CustodioId == usuarioId);
+            }
+
+            fondos = visibles.ToList();
             await ResolverNombresDeCustodioAsync();
 
             if (EsPanelDeUnFondo)

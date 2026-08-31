@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Categorias
 {
@@ -13,11 +14,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
         private const int LongitudMaximaCuentaContable = 50;
 
         private readonly ICategoriaGastoRepository _categorias;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
-        public ActualizarCategoriaGastoHandler(ICategoriaGastoRepository categorias, IApplicationDbContext contexto)
+        public ActualizarCategoriaGastoHandler(
+            ICategoriaGastoRepository categorias, IAutorizacionService autorizacion, IApplicationDbContext contexto)
         {
             _categorias = categorias;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -25,6 +29,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             ActualizarCategoriaGastoCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.ConfigurarCategorias, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para configurar categorías.");
+            }
+
             var categoria = await _categorias.ObtenerPorIdAsync(comando.CategoriaGastoId, cancellationToken);
             if (categoria is null)
             {

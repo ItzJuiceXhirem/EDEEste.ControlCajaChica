@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Features.Gastos;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -27,6 +28,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         [Inject]
         private IIdentityService Identidad { get; set; } = default!;
+
+        [Inject]
+        private ICurrentUserService UsuarioActual { get; set; } = default!;
 
         [Inject]
         private RegistrarGastoHandler Handler { get; set; } = default!;
@@ -56,12 +60,31 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            fondos = await Fondos.ListarAsync();
+            fondos = await FondosVisiblesAsync();
             categorias = await Categorias.ListarActivasAsync();
             await ResolverNombresDeCustodioAsync();
 
             entrada.FondoCajaChicaId = fondos.FirstOrDefault()?.Id ?? Guid.Empty;
             entrada.CategoriaGastoId = categorias.FirstOrDefault()?.Id ?? Guid.Empty;
+        }
+
+        /// <summary>
+        /// Un Custodio solo debe poder registrar gastos contra el fondo que tiene a
+        /// cargo: sin este filtro, el desplegable le dejaba elegir (y descontar
+        /// saldo de) el fondo de cualquier otro custodio. Los demas roles conservan
+        /// la vista sin restringir.
+        /// </summary>
+        private async Task<IReadOnlyList<FondoCajaChica>> FondosVisiblesAsync()
+        {
+            var todos = await Fondos.ListarAsync();
+            var usuario = await UsuarioActual.ObtenerAsync();
+
+            if (usuario.Id is not { } usuarioId || !await Identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio))
+            {
+                return todos;
+            }
+
+            return todos.Where(f => f.CustodioId == usuarioId).ToList();
         }
 
         /// <summary>
@@ -239,8 +262,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
                 foreach (var adjunto in adjuntos)
                 {
-                    var stream = adjunto.Archivo.OpenReadStream(TamanoMaximoArchivo);
-                    abiertos.Add(stream);
+                    // Se vuelca a un MemoryStream (con seek) en vez de pasar el stream
+                    // de IBrowserFile tal cual: ese stream es de solo avance, y el
+                    // handler necesita leer los primeros bytes para comprobar la firma
+                    // del archivo y luego rebobinar para guardarlo completo.
+                    using var origen = adjunto.Archivo.OpenReadStream(TamanoMaximoArchivo);
+                    var contenido = new MemoryStream();
+                    await origen.CopyToAsync(contenido);
+                    contenido.Position = 0;
+                    abiertos.Add(contenido);
 
                     comando.Comprobantes.Add(new RegistrarGastoCommand.ComprobanteEntrada
                     {
@@ -248,7 +278,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                         TipoMime = adjunto.Archivo.ContentType,
                         TamanoBytes = adjunto.Archivo.Size,
                         Descripcion = adjunto.Descripcion,
-                        Contenido = stream
+                        Contenido = contenido
                     });
                 }
 

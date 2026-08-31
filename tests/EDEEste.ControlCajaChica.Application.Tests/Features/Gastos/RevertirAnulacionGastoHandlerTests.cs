@@ -24,7 +24,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
             repo.Agregar(gasto);
 
             var contexto = new FakeApplicationDbContext();
-            var handler = new RevertirAnulacionGastoHandler(repo, contexto);
+            var handler = new RevertirAnulacionGastoHandler(repo, new FakeAutorizacionService(), contexto);
 
             var resultado = await handler.EjecutarAsync(new RevertirAnulacionGastoCommand { GastoId = gasto.Id });
 
@@ -48,7 +48,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
             repo.Agregar(gasto);
 
             var contexto = new FakeApplicationDbContext();
-            var handler = new RevertirAnulacionGastoHandler(repo, contexto);
+            var handler = new RevertirAnulacionGastoHandler(repo, new FakeAutorizacionService(), contexto);
 
             var resultado = await handler.EjecutarAsync(new RevertirAnulacionGastoCommand { GastoId = gasto.Id });
 

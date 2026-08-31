@@ -69,6 +69,20 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 
             var usuario = await UserManager.FindByNameAsync(Input.Usuario);
 
+            // El bloqueo se consulta ANTES de intentar la contraseña -- mismo orden
+            // que usa SignInManager.PasswordSignInAsync de fábrica -- para no gastar
+            // una verificación de contraseña contra una cuenta que ya está bloqueada.
+            // A diferencia de Pendiente/Denegado (estado propio de esta app, más
+            // sensible porque distingue "quién puede entrar"), el bloqueo de Identity
+            // es información de tasa, no de identidad: se revela igual sin conocer la
+            // contraseña, que es el mismo comportamiento por defecto de ASP.NET
+            // Identity.
+            if (usuario is not null && await UserManager.IsLockedOutAsync(usuario))
+            {
+                RedirectManager.RedirectTo("Account/Lockout");
+                return;
+            }
+
             ResultadoAutenticacion credenciales;
             try
             {
@@ -87,11 +101,26 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 
             if (usuario is null || !credenciales.Exitoso)
             {
+                // Cuenta el intento fallido contra una cuenta real -- si con este llega
+                // al tope, el próximo intento (con la contraseña que sea) topa con el
+                // chequeo de arriba. Sobre un usuario que no existe no hay nada que
+                // incrementar.
+                //
                 // Mismo mensaje para "no existe" y "contraseña incorrecta": no hay
                 // razón para ayudar a alguien a averiguar qué cuentas existen.
+                if (usuario is not null)
+                {
+                    await UserManager.AccessFailedAsync(usuario);
+                }
+
                 errorMessage = "Error: usuario o contraseña inválidos.";
                 return;
             }
+
+            // Contraseña correcta: se reinicia el contador de fallos, para que un
+            // puñado de errores viejos no se acumule silenciosamente hasta bloquear
+            // un futuro intento legítimo.
+            await UserManager.ResetAccessFailedCountAsync(usuario);
 
             switch (usuario.EstadoAcceso)
             {
@@ -104,13 +133,13 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
                     return;
             }
 
-            // Se lee ANTES de sobreescribir: es la sesion anterior a esta, que es la
-            // que tiene sentido mostrarle a la persona en su perfil ("note un acceso
-            // que no reconoce"). Mostrar la sesion que apenas esta arrancando no
-            // serviria para nada -- siempre coincidiria con "ahora mismo".
-            var sesionAnterior = usuario.UltimoAccesoUtc;
-            usuario.UltimoAccesoUtc = DateTime.UtcNow;
-            await UserManager.UpdateAsync(usuario);
+            // RegistrarAccesoAsync escribe con un UPDATE dirigido (nunca pasa por
+            // SaveChanges/el interceptor de auditoria -- ver IIdentityService) y
+            // devuelve la fecha de la sesion ANTERIOR a esta, que es la que tiene
+            // sentido mostrarle a la persona en su perfil ("note un acceso que no
+            // reconoce"). Mostrar la sesion que apenas esta arrancando no serviria
+            // para nada -- siempre coincidiria con "ahora mismo".
+            var sesionAnterior = await IdentityService.RegistrarAccesoAsync(usuario.Id);
 
             var claims = sesionAnterior is { } anterior
                 ? new[] { new Claim(ClaimsApp.UltimoAccesoAnterior, DateTime.SpecifyKind(anterior, DateTimeKind.Utc).ToString("o", CultureInfo.InvariantCulture)) }

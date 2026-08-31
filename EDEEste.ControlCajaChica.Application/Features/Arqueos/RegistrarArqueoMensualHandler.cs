@@ -25,6 +25,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
         private readonly IGastoRepository _gastos;
         private readonly IArqueoRepository _arqueos;
         private readonly ICurrentUserService _usuarioActual;
+        private readonly IIdentityService _identidad;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
         public RegistrarArqueoMensualHandler(
@@ -32,12 +34,16 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
             IGastoRepository gastos,
             IArqueoRepository arqueos,
             ICurrentUserService usuarioActual,
+            IIdentityService identidad,
+            IAutorizacionService autorizacion,
             IApplicationDbContext contexto)
         {
             _fondos = fondos;
             _gastos = gastos;
             _arqueos = arqueos;
             _usuarioActual = usuarioActual;
+            _identidad = identidad;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -45,10 +51,27 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
             RegistrarArqueoMensualCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.EjecutarArqueo, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para registrar un arqueo.");
+            }
+
             var fondo = await _fondos.ObtenerPorIdAsync(comando.FondoCajaChicaId, cancellationToken);
             if (fondo is null)
             {
                 return ResultadoOperacion<Guid>.Fallo("El fondo indicado no existe.");
+            }
+
+            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
+
+            // Defensa en profundidad: sin esto, un Custodio podria arquear el fondo de
+            // otro custodio armando la peticion contra el circuito de Blazor Server,
+            // aunque la pantalla ya solo le ofrezca el suyo en el desplegable.
+            if (usuario.Id is { } usuarioIdArquear
+                && await _identidad.EstaEnRolAsync(usuarioIdArquear, RolesApp.Custodio)
+                && fondo.CustodioId != usuarioIdArquear)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para arquear el fondo de otro custodio.");
             }
 
             var errores = Validar(comando, fondo);
@@ -56,8 +79,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
             {
                 return ResultadoOperacion<Guid>.Fallo(errores);
             }
-
-            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
             // Se materializa la lista (y no un SumAsync) a proposito: al traer los
             // gastos, IntegridadInterceptor valida la firma de cada uno. Un agregado

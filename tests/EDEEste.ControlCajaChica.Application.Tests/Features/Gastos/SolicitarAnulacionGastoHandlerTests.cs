@@ -25,7 +25,9 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
             repo.Agregar(gasto);
 
             var contexto = new FakeApplicationDbContext();
-            var handler = new SolicitarAnulacionGastoHandler(repo, contexto);
+            var handler = new SolicitarAnulacionGastoHandler(
+                repo, new FakeFondoRepository(), new FakeCurrentUserService(), new FakeIdentityService(),
+                new FakeAutorizacionService(), contexto);
 
             return (gasto, repo, contexto, handler);
         }

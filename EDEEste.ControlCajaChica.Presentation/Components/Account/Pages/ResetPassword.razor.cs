@@ -13,6 +13,14 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 
         [Parameter] public Guid Id { get; set; }
 
+        /// <summary>
+        /// Secreto de un solo uso que el Administrador manda por Teams -- sin el, el
+        /// Id solo (que quien pidio el restablecimiento ya conoce, porque se lo
+        /// devuelve la propia pantalla de solicitud) no alcanza para nada.
+        /// </summary>
+        [SupplyParameterFromQuery(Name = "t")]
+        private string? Secreto { get; set; }
+
         [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
         [SupplyParameterFromForm]
@@ -31,7 +39,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
             // vuelva a hacer al guardar: sin esto, un enlace ya usado o nunca aprobado
             // mostraría el formulario igual y el usuario no sabría por qué falla hasta
             // que lo intenta.
-            if (!await PasswordResetService.PuedeRestablecerAsync(Id.ToString()))
+            if (!await PasswordResetService.PuedeRestablecerAsync(Id.ToString(), Secreto ?? string.Empty))
             {
                 invalida = true;
                 RedirectManager.RedirectTo("Account/InvalidPasswordReset");
@@ -40,7 +48,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 
         private async Task OnValidSubmitAsync()
         {
-            var resultado = await PasswordResetService.RestablecerAsync(Id.ToString(), Input.Password);
+            var resultado = await PasswordResetService.RestablecerAsync(Id.ToString(), Secreto ?? string.Empty, Input.Password);
 
             if (!resultado.Exitoso)
             {
@@ -57,7 +65,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
         private sealed class InputModel
         {
             [Required(ErrorMessage = "Indique la contraseña nueva.")]
-            [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 6)]
+            [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 8)]
             [DataType(DataType.Password)]
             [Display(Name = "Contraseña nueva")]
             public string Password { get; set; } = "";

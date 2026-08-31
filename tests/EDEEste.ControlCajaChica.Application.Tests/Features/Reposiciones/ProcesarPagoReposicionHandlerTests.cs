@@ -38,7 +38,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Reposiciones
             repo.Agregar(solicitud);
 
             var contexto = new FakeApplicationDbContext();
-            var handler = new ProcesarPagoReposicionHandler(repo, new FakeCurrentUserService(), contexto);
+            var handler = new ProcesarPagoReposicionHandler(repo, new FakeCurrentUserService(), new FakeAutorizacionService(), contexto);
 
             return (fondo, solicitud, gasto, repo, contexto, handler);
         }

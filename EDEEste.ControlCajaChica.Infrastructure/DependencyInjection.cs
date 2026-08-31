@@ -25,6 +25,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             AgregarCriptografia(services, configuration);
             AgregarPersistencia(services, configuration);
             AgregarAutenticacion(services, configuration);
+            AgregarConfiguracionInicial(services, configuration);
 
             services.AddScoped<IIdentityService, IdentityService>();
             services.AddScoped<IPasswordResetService, PasswordResetService>();
@@ -143,6 +144,17 @@ namespace EDEEste.ControlCajaChica.Infrastructure
                     http.DefaultRequestHeaders.Add(opciones.NombreCabeceraApiKey, opciones.ApiKey);
                 }
             });
+
+        /// <summary>
+        /// A diferencia de la clave HMAC, NO se falla el arranque si falta el token:
+        /// solo importa mientras el sistema no tenga ningun Administrador, y exigirlo
+        /// siempre rompería cualquier despliegue ya configurado que nunca lo
+        /// necesito. La pantalla misma (ConfiguracionInicial.razor.cs) es quien se
+        /// niega a mostrar el formulario si esta vacio.
+        /// </summary>
+        private static void AgregarConfiguracionInicial(IServiceCollection services, IConfiguration configuration) =>
+            services.Configure<OpcionesConfiguracionInicial>(
+                configuration.GetSection(OpcionesConfiguracionInicial.Seccion));
 
         private static void AgregarCriptografia(IServiceCollection services, IConfiguration configuration)
         {

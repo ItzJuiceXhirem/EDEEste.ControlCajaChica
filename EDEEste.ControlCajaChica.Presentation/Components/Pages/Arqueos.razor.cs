@@ -30,6 +30,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         [Inject]
         private IIdentityService Identidad { get; set; } = default!;
 
+        [Inject]
+        private ICurrentUserService UsuarioActual { get; set; } = default!;
+
         private IReadOnlyList<FondoCajaChica>? fondos;
         private FondoCajaChica? fondoActual;
         private Guid fondoSeleccionado;
@@ -65,7 +68,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            fondos = await Fondos.ListarAsync();
+            fondos = await FondosVisiblesAsync();
             await ResolverNombresAsync(fondos.Select(f => f.CustodioId));
 
             if (fondos.Count > 0)
@@ -73,6 +76,24 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 fondoSeleccionado = fondos[0].Id;
                 await CargarFondoAsync(fondoSeleccionado);
             }
+        }
+
+        /// <summary>
+        /// Un Custodio solo debe poder arquear el fondo que tiene a cargo: sin este
+        /// filtro, el desplegable le dejaba elegir el fondo de cualquier otro
+        /// custodio. Los demas roles (Gerente, Auditor) conservan la vista completa.
+        /// </summary>
+        private async Task<IReadOnlyList<FondoCajaChica>> FondosVisiblesAsync()
+        {
+            var todos = await Fondos.ListarAsync();
+            var usuario = await UsuarioActual.ObtenerAsync();
+
+            if (usuario.Id is not { } usuarioId || !await Identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio))
+            {
+                return todos;
+            }
+
+            return todos.Where(f => f.CustodioId == usuarioId).ToList();
         }
 
         /// <summary>

@@ -230,5 +230,28 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var usuario = await _userManager.FindByIdAsync(usuarioId);
             return usuario is not null && await _userManager.IsInRoleAsync(usuario, rol);
         }
+
+        public async Task<DateTime?> RegistrarAccesoAsync(string usuarioId)
+        {
+            // Proyeccion, no ObtenerPorIdAsync: no hace falta materializar (ni
+            // rastrear) la entidad completa solo para leer una columna.
+            var anterior = await _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .Select(u => u.UltimoAccesoUtc)
+                .FirstOrDefaultAsync();
+
+            // ExecuteUpdateAsync arma un UPDATE dirigido a esta columna y lo manda
+            // directo a SQL Server -- nunca pasa por SaveChanges, por lo tanto nunca
+            // por el ChangeTracker ni por AuditoriaInterceptor. Es una garantia
+            // estructural (no una lista negra que alguien tiene que recordar
+            // mantener) de que este toque a AspNetUsers, que ocurre en CADA login del
+            // sistema, jamas puede terminar copiando PasswordHash/SecurityStamp a
+            // LogsAuditoria.
+            await _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.UltimoAccesoUtc, DateTime.UtcNow));
+
+            return anterior;
+        }
     }
 }

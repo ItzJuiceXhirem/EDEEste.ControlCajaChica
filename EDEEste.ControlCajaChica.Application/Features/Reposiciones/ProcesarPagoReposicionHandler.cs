@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -26,15 +27,18 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
         private readonly IReposicionRepository _reposiciones;
         private readonly ICurrentUserService _usuarioActual;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
         public ProcesarPagoReposicionHandler(
             IReposicionRepository reposiciones,
             ICurrentUserService usuarioActual,
+            IAutorizacionService autorizacion,
             IApplicationDbContext contexto)
         {
             _reposiciones = reposiciones;
             _usuarioActual = usuarioActual;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -42,6 +46,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             ProcesarPagoReposicionCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.PagarReposicion, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para registrar el pago de una reposición.");
+            }
+
             var solicitud = await _reposiciones.ObtenerConDetalleAsync(comando.ReposicionId, cancellationToken);
             if (solicitud is null)
             {

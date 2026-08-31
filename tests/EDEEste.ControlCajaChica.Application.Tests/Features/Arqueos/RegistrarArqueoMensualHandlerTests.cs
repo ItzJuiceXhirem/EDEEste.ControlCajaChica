@@ -24,7 +24,8 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Arqueos
             var contexto = new FakeApplicationDbContext();
             var usuarioActual = new FakeCurrentUserService();
 
-            var handler = new RegistrarArqueoMensualHandler(fondos, gastos, arqueos, usuarioActual, contexto);
+            var handler = new RegistrarArqueoMensualHandler(
+                fondos, gastos, arqueos, usuarioActual, new FakeIdentityService(), new FakeAutorizacionService(), contexto);
 
             return (fondo, gastos, arqueos, contexto, handler);
         }

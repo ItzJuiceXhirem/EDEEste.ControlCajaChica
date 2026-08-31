@@ -14,8 +14,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         private const string CarpetaComprobantes = "comprobantes";
         private const string CarpetaReposiciones = "reposiciones";
 
-        // Raiz de todo lo que sube o genera la aplicacion (se inyectaría por configuración en producción)
-        private readonly string _rutaRaiz = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        // Raiz de todo lo que sube o genera la aplicacion (se inyectaría por
+        // configuración en producción). Fuera de wwwroot a propósito: MapStaticAssets
+        // solo sirve el manifiesto armado al compilar, así que hoy nada expone estos
+        // archivos por su ruta directa -- pero guardarlos bajo wwwroot los dejaba a
+        // un solo cambio de configuración (agregar UseStaticFiles, por ejemplo) de
+        // quedar servidos sin pasar por el permiso de GastoEndpoints/ReposicionEndpoints.
+        private readonly string _rutaRaiz = Path.Combine(Directory.GetCurrentDirectory(), "App_Data");
 
         public FileStorageService()
         {

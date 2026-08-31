@@ -32,7 +32,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
             gastos.Agregar(gasto);
 
             var contexto = new FakeApplicationDbContext();
-            var handler = new AnularGastoHandler(gastos, fondos, contexto);
+            var handler = new AnularGastoHandler(gastos, fondos, new FakeAutorizacionService(), contexto);
 
             return (fondo, gasto, gastos, contexto, handler);
         }

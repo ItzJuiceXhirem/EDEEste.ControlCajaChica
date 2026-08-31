@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
 using EDEEste.ControlCajaChica.Application.DTOs;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -40,11 +41,20 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         // (e-NCF, 13 caracteres). Nada mas pasa: ni espacios, ni guiones, ni otras letras.
         private static readonly Regex PatronNcf = new("^(B[01][0-9]{9}|E[34][0-9]{11})$", RegexOptions.Compiled);
 
+        // Firmas (magic bytes) de los unicos cuatro tipos que TiposMimePermitidos
+        // acepta. No hace falta una firma de PNG/JPEG separada por variante: los
+        // primeros bytes ya identifican el formato sin importar el resto del archivo.
+        private static readonly byte[] FirmaPdf = "%PDF"u8.ToArray();
+        private static readonly byte[] FirmaPng = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        private static readonly byte[] FirmaJpeg = [0xFF, 0xD8, 0xFF];
+
         private readonly IFondoRepository _fondos;
         private readonly ICategoriaGastoRepository _categorias;
         private readonly IGastoRepository _gastos;
         private readonly IFileStorageService _almacenamiento;
         private readonly ICurrentUserService _usuarioActual;
+        private readonly IIdentityService _identidad;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
         public RegistrarGastoHandler(
@@ -53,6 +63,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             IGastoRepository gastos,
             IFileStorageService almacenamiento,
             ICurrentUserService usuarioActual,
+            IIdentityService identidad,
+            IAutorizacionService autorizacion,
             IApplicationDbContext contexto)
         {
             _fondos = fondos;
@@ -60,6 +72,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             _gastos = gastos;
             _almacenamiento = almacenamiento;
             _usuarioActual = usuarioActual;
+            _identidad = identidad;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -67,10 +81,31 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             RegistrarGastoCommand comando,
             CancellationToken cancellationToken = default)
         {
+            // Defensa en profundidad: la pantalla ya exige este permiso, pero el
+            // handler no debe depender solo de eso.
+            if (!await _autorizacion.TienePermisoAsync(Permisos.RegistrarGasto, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para registrar gastos.");
+            }
+
             var fondo = await _fondos.ObtenerPorIdAsync(comando.FondoCajaChicaId, cancellationToken);
             if (fondo is null)
             {
                 return ResultadoOperacion<Guid>.Fallo("El fondo indicado no existe.");
+            }
+
+            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
+
+            // Defensa en profundidad: la pantalla ya solo le ofrece al Custodio su
+            // propio fondo en el desplegable, pero eso es filtrado de UI. Sin esta
+            // comprobacion, un Custodio podria armar la peticion contra el circuito de
+            // Blazor Server con el Id de otro fondo y descontarle el balance a otro
+            // custodio.
+            if (usuario.Id is { } usuarioIdRegistrar
+                && await _identidad.EstaEnRolAsync(usuarioIdRegistrar, RolesApp.Custodio)
+                && fondo.CustodioId != usuarioIdRegistrar)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para registrar gastos en el fondo de otro custodio.");
             }
 
             var categoria = await _categorias.ObtenerPorIdAsync(comando.CategoriaGastoId, cancellationToken);
@@ -80,12 +115,23 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             }
 
             var errores = Validar(comando, fondo, categoria);
+
+            // El TipoMime que llega aqui es el que reporta el navegador -- basta con
+            // renombrar un archivo para que declare cualquier extension/MIME de la
+            // lista blanca sin importar su contenido real. La firma (magic bytes) es
+            // lo unico que no se puede spoofear con solo cambiar el nombre.
+            foreach (var comprobante in comando.Comprobantes)
+            {
+                if (!await CoincideConFirmaEsperadaAsync(comprobante))
+                {
+                    errores.Add($"'{comprobante.NombreOriginal}' no coincide con su tipo declarado (contenido invalido).");
+                }
+            }
+
             if (errores.Count > 0)
             {
                 return ResultadoOperacion<Guid>.Fallo(errores);
             }
-
-            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
             var gasto = new Gasto
             {
@@ -260,6 +306,37 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             }
 
             return errores;
+        }
+
+        /// <summary>
+        /// Compara los primeros bytes del archivo contra la firma del tipo que declara
+        /// (TipoMime, ya validado contra la lista blanca en Validar). Deja el stream
+        /// en la posicion 0 al terminar: GuardarComprobanteAsync todavia necesita
+        /// leerlo completo desde el principio.
+        /// </summary>
+        private static async Task<bool> CoincideConFirmaEsperadaAsync(RegistrarGastoCommand.ComprobanteEntrada comprobante)
+        {
+            var firma = comprobante.TipoMime.ToLowerInvariant() switch
+            {
+                "application/pdf" => FirmaPdf,
+                "image/png" => FirmaPng,
+                "image/jpeg" or "image/jpg" => FirmaJpeg,
+                _ => null
+            };
+
+            // Un TipoMime fuera de la lista blanca ya lo rechaza Validar por su cuenta;
+            // aqui no hay firma con la que comparar, asi que no se declara coincidencia.
+            if (firma is null)
+            {
+                return false;
+            }
+
+            var buffer = new byte[firma.Length];
+            comprobante.Contenido.Position = 0;
+            var leidos = await comprobante.Contenido.ReadAsync(buffer.AsMemory(0, firma.Length));
+            comprobante.Contenido.Position = 0;
+
+            return leidos == firma.Length && buffer.AsSpan().SequenceEqual(firma);
         }
 
         /// <summary>

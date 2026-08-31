@@ -241,7 +241,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
                 if (resultado.Exitoso)
                 {
-                    urlResetGenerada = NavigationManager.ToAbsoluteUri($"Account/ResetPassword/{resultado.Valor}").AbsoluteUri;
+                    // El secreto va en la query (?t=) y no en la ruta: es lo unico que
+                    // hace que este enlace, y no el Id solo (que el solicitante ya
+                    // conoce), sirva para completar el cambio.
+                    urlResetGenerada = NavigationManager.ToAbsoluteUri(
+                        $"Account/ResetPassword/{resultado.Valor.SolicitudId}?t={Uri.EscapeDataString(resultado.Valor.Secreto)}").AbsoluteUri;
                 }
                 else
                 {

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -31,6 +32,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
         private readonly IPdfConsolidadorService _consolidador;
         private readonly IFileStorageService _almacenamiento;
         private readonly ICurrentUserService _usuarioActual;
+        private readonly IIdentityService _identidad;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
         public CrearSolicitudReposicionHandler(
@@ -40,6 +43,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             IPdfConsolidadorService consolidador,
             IFileStorageService almacenamiento,
             ICurrentUserService usuarioActual,
+            IIdentityService identidad,
+            IAutorizacionService autorizacion,
             IApplicationDbContext contexto)
         {
             _fondos = fondos;
@@ -48,6 +53,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             _consolidador = consolidador;
             _almacenamiento = almacenamiento;
             _usuarioActual = usuarioActual;
+            _identidad = identidad;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -55,10 +62,27 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             CrearSolicitudReposicionCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.SolicitarReposicion, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para solicitar una reposición.");
+            }
+
             var fondo = await _fondos.ObtenerPorIdAsync(comando.FondoCajaChicaId, cancellationToken);
             if (fondo is null)
             {
                 return ResultadoOperacion<Guid>.Fallo("El fondo indicado no existe.");
+            }
+
+            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
+
+            // Defensa en profundidad: sin esto, un Custodio podria solicitar la
+            // reposicion del fondo de otro custodio armando la peticion contra el
+            // circuito de Blazor Server, aunque la pantalla ya solo le ofrezca el suyo.
+            if (usuario.Id is { } usuarioIdSolicitar
+                && await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio)
+                && fondo.CustodioId != usuarioIdSolicitar)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para solicitar la reposicion del fondo de otro custodio.");
             }
 
             var pendientes = await _gastos.ListarPendientesDeReposicionAsync(fondo.Id, cancellationToken);
@@ -74,8 +98,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             {
                 return ResultadoOperacion<Guid>.Fallo(errores);
             }
-
-            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
             var solicitud = new SolicitudReposicion
             {

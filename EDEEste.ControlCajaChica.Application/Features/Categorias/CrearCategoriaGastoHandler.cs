@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Categorias
@@ -14,11 +15,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
         private const int LongitudMaximaCuentaContable = 50;
 
         private readonly ICategoriaGastoRepository _categorias;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
-        public CrearCategoriaGastoHandler(ICategoriaGastoRepository categorias, IApplicationDbContext contexto)
+        public CrearCategoriaGastoHandler(
+            ICategoriaGastoRepository categorias, IAutorizacionService autorizacion, IApplicationDbContext contexto)
         {
             _categorias = categorias;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -26,6 +30,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             CrearCategoriaGastoCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.ConfigurarCategorias, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para configurar categorías.");
+            }
+
             var nombre = comando.Nombre?.Trim() ?? string.Empty;
             var nombreDuplicado = nombre.Length > 0
                 && await _categorias.ExisteNombreAsync(nombre, cancellationToken: cancellationToken);

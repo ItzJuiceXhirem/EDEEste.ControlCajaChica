@@ -41,6 +41,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private IIdentityService Identidad { get; set; } = default!;
 
         [Inject]
+        private ICurrentUserService UsuarioActual { get; set; } = default!;
+
+        [Inject]
         private AuthenticationStateProvider EstadoDeAutenticacion { get; set; } = default!;
 
         [Inject]
@@ -92,7 +95,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             puedeAprobar = (await Autorizacion.AuthorizeAsync(usuario, Permisos.AprobarReposicion)).Succeeded;
             puedePagar = (await Autorizacion.AuthorizeAsync(usuario, Permisos.PagarReposicion)).Succeeded;
 
-            fondos = await Fondos.ListarAsync();
+            fondos = await FondosVisiblesAsync();
             await ResolverNombresDeUsuarioAsync(fondos.Select(f => f.CustodioId));
 
             if (fondos.Count > 0)
@@ -102,6 +105,25 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             }
 
             await CargarColasAsync();
+        }
+
+        /// <summary>
+        /// Un Custodio solo debe ver el fondo que tiene a cargo: sin este filtro, el
+        /// desplegable le dejaba elegir el fondo de cualquier otro custodio y ver
+        /// sus gastos pendientes y su historial de solicitudes. Gerente/Finanzas/
+        /// Auditor no tienen restriccion: trabajan por cola o por consulta general.
+        /// </summary>
+        private async Task<IReadOnlyList<FondoCajaChica>> FondosVisiblesAsync()
+        {
+            var todos = await Fondos.ListarAsync();
+            var usuario = await UsuarioActual.ObtenerAsync();
+
+            if (usuario.Id is not { } usuarioId || !await Identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio))
+            {
+                return todos;
+            }
+
+            return todos.Where(f => f.CustodioId == usuarioId).ToList();
         }
 
         /// <summary>

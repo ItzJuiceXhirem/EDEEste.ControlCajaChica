@@ -12,12 +12,15 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
     {
         private readonly IFondoRepository _fondos;
         private readonly IIdentityService _identidad;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
-        public ActualizarParametrosFondoHandler(IFondoRepository fondos, IIdentityService identidad, IApplicationDbContext contexto)
+        public ActualizarParametrosFondoHandler(
+            IFondoRepository fondos, IIdentityService identidad, IAutorizacionService autorizacion, IApplicationDbContext contexto)
         {
             _fondos = fondos;
             _identidad = identidad;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -25,6 +28,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             ActualizarParametrosFondoCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.ConfigurarFondos, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para configurar fondos.");
+            }
+
             var fondo = await _fondos.ObtenerPorIdAsync(comando.FondoCajaChicaId, cancellationToken);
             if (fondo is null)
             {

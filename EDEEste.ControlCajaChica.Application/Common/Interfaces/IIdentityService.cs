@@ -51,5 +51,17 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
 
         /// <summary>Gatilla la pantalla de configuracion inicial mientras sea false.</summary>
         Task<bool> ExisteAdministradorAsync();
+
+        /// <summary>
+        /// Marca "ahora" como el ultimo acceso y devuelve la fecha de la sesion
+        /// ANTERIOR a esta (null si es el primer inicio de sesion de la cuenta). No
+        /// emite la cookie -- eso lo sigue haciendo SignInManager en la pagina de
+        /// Login -- solo actualiza el dato. La implementacion debe escribir con un
+        /// UPDATE dirigido a esa unica columna, sin pasar por SaveChanges: esto se
+        /// llama en CADA login del sistema, y no debe poder generar una fila de
+        /// bitacora ni arrastrar el resto de la fila del usuario (PasswordHash
+        /// incluido).
+        /// </summary>
+        Task<DateTime?> RegistrarAccesoAsync(string usuarioId);
     }
 }

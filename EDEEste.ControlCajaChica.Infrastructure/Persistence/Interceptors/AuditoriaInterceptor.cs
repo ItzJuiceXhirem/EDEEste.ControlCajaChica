@@ -36,6 +36,24 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
     public class AuditoriaInterceptor : SaveChangesInterceptor
     {
         private const string UsuarioSistema = "Sistema";
+        private const string MarcadorRedactado = "***";
+
+        /// <summary>
+        /// Propiedades que jamas deben llegar a LogsAuditoria en claro, aunque
+        /// pertenezcan a una entidad legitima que si se audita (AspNetUsers,
+        /// SolicitudesPasswordReset). LogsAuditoria es una bitacora de negocio para
+        /// que un Auditor vea "quien cambio que" -- no un lugar donde deba poder leerse
+        /// un hash de contrasena o un secreto de un solo uso, ni siquiera un DBA con
+        /// acceso de lectura a la BDD.
+        /// </summary>
+        private static readonly HashSet<string> PropiedadesSensibles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            nameof(Identity.Usuario.PasswordHash),
+            nameof(Identity.Usuario.SecurityStamp),
+            nameof(Identity.Usuario.ConcurrencyStamp),
+            nameof(Identity.SolicitudPasswordReset.TokenReseteo),
+            nameof(Identity.SolicitudPasswordReset.HashSecreto),
+        };
 
         private readonly ICriptografiaService _criptografiaService;
         private readonly ILogger<AuditoriaInterceptor> _logger;
@@ -213,7 +231,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             if (estadoOriginal is EntityState.Modified or EntityState.Deleted)
             {
                 var valoresAnteriores = entry.OriginalValues.Properties
-                    .ToDictionary(p => p.Name, p => entry.OriginalValues[p]);
+                    .ToDictionary(p => p.Name, p => RedactarSiEsSensible(p.Name, entry.OriginalValues[p]));
                 log.ValoresAnteriores = JsonSerializer.Serialize(valoresAnteriores);
             }
 
@@ -222,12 +240,22 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             if (entry.State is EntityState.Added or EntityState.Modified)
             {
                 var valoresNuevos = entry.CurrentValues.Properties
-                    .ToDictionary(p => p.Name, p => entry.CurrentValues[p]);
+                    .ToDictionary(p => p.Name, p => RedactarSiEsSensible(p.Name, entry.CurrentValues[p]));
                 log.ValoresNuevos = JsonSerializer.Serialize(valoresNuevos);
             }
 
             return log;
         }
+
+        /// <summary>
+        /// Se redacta con un marcador en vez de omitir la clave: la bitacora sigue
+        /// dejando constancia de que ese campo cambio (para "SecurityStamp cambio" es
+        /// dato util -- indica un cierre de sesion forzado), sin revelar el valor.
+        /// </summary>
+        private static object? RedactarSiEsSensible(string nombrePropiedad, object? valor) =>
+            PropiedadesSensibles.Contains(nombrePropiedad) && valor is not null
+                ? MarcadorRedactado
+                : valor;
 
         /// <summary>
         /// Enlaza cada log con la firma del anterior. Romper un eslabon (borrar o

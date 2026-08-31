@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Features.Gastos;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using Microsoft.AspNetCore.Components;
@@ -34,6 +35,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         [Inject]
         private IIdentityService Identidad { get; set; } = default!;
+
+        [Inject]
+        private ICurrentUserService UsuarioActual { get; set; } = default!;
 
         [Inject]
         private IJSRuntime JsRuntime { get; set; } = default!;
@@ -114,7 +118,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            fondos = await Fondos.ListarAsync();
+            fondos = await FondosVisiblesAsync();
             await ResolverNombresAsync(fondos.Select(f => f.CustodioId));
 
             if (fondos.Count > 0)
@@ -122,6 +126,25 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 fondoSeleccionado = fondos[0].Id;
                 await CargarTodoAsync(fondoSeleccionado);
             }
+        }
+
+        /// <summary>
+        /// Un Custodio solo debe ver el fondo que tiene a cargo: sin este filtro,
+        /// el desplegable le dejaba elegir el fondo de cualquier otro custodio y ver
+        /// sus gastos y comprobantes. Los demas roles con VerGastos (Gerente,
+        /// Finanzas, Auditor, Administrador) conservan la vista sin restringir.
+        /// </summary>
+        private async Task<IReadOnlyList<FondoCajaChica>> FondosVisiblesAsync()
+        {
+            var todos = await Fondos.ListarAsync();
+            var usuario = await UsuarioActual.ObtenerAsync();
+
+            if (usuario.Id is not { } usuarioId || !await Identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio))
+            {
+                return todos;
+            }
+
+            return todos.Where(f => f.CustodioId == usuarioId).ToList();
         }
 
         /// <summary>

@@ -328,6 +328,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 // nvarchar(max).
                 .HasMaxLength(1000);
 
+            modelBuilder.Entity<Identity.SolicitudPasswordReset>()
+                .Property(s => s.HashSecreto)
+                // SHA-256 en hexadecimal son siempre 64 caracteres.
+                .HasMaxLength(64);
+
             AplicarLongitudDeIdsDeUsuario(modelBuilder);
         }
 

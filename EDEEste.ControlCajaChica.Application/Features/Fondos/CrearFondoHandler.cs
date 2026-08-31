@@ -18,12 +18,15 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
     {
         private readonly IFondoRepository _fondos;
         private readonly IIdentityService _identidad;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
-        public CrearFondoHandler(IFondoRepository fondos, IIdentityService identidad, IApplicationDbContext contexto)
+        public CrearFondoHandler(
+            IFondoRepository fondos, IIdentityService identidad, IAutorizacionService autorizacion, IApplicationDbContext contexto)
         {
             _fondos = fondos;
             _identidad = identidad;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -31,6 +34,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             CrearFondoCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.ConfigurarFondos, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para configurar fondos.");
+            }
+
             // La comprobacion de rol es asincrona y no puede vivir dentro de Validar
             // (estatico); se resuelve antes y entra como parametro, para no romper la
             // regla de acumular todos los errores en una sola pasada.

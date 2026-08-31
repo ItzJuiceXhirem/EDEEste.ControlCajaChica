@@ -31,7 +31,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
 
             var handler = new RegistrarGastoHandler(
                 fondos, categorias, new FakeGastoRepository(), new FakeFileStorageService(),
-                new FakeCurrentUserService(), contexto);
+                new FakeCurrentUserService(), new FakeIdentityService(), new FakeAutorizacionService(), contexto);
 
             return (fondo, categoria, contexto, handler);
         }
@@ -55,7 +55,9 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
                     TipoMime = "application/pdf",
                     TamanoBytes = 3,
                     Descripcion = "Factura de prueba",
-                    Contenido = new MemoryStream([1, 2, 3])
+                    // Firma real de PDF: sin esto, la comprobacion de magic bytes lo
+                    // rechaza antes de llegar a las validaciones que este archivo prueba.
+                    Contenido = new MemoryStream("%PDF-1.4"u8.ToArray())
                 }
             ]
         };
@@ -184,6 +186,23 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
 
             Assert.False(resultado.Exitoso);
             Assert.Contains(resultado.Errores, e => e.Contains("El ITBIS debe ser menor que el subtotal"));
+            Assert.Equal(0, contexto.VecesGuardado);
+        }
+
+        [Fact]
+        public async Task Comprobante_ConContenidoQueNoCoincideConTipoDeclarado_Falla()
+        {
+            var (fondo, categoria, contexto, handler) = CrearEscenario();
+            var comando = ComandoBase(fondo, categoria);
+            // Declara ser un PDF, pero el contenido real no trae la firma "%PDF": basta
+            // con renombrar un archivo para pasar el filtro de extension/MIME, asi que
+            // la firma es la unica comprobacion que un simple renombrado no evade.
+            comando.Comprobantes[0].Contenido = new MemoryStream([1, 2, 3]);
+
+            var resultado = await handler.EjecutarAsync(comando);
+
+            Assert.False(resultado.Exitoso);
+            Assert.Contains(resultado.Errores, e => e.Contains("no coincide con su tipo declarado"));
             Assert.Equal(0, contexto.VecesGuardado);
         }
 

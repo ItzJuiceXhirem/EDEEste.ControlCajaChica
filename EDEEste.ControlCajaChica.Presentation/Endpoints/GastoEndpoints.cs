@@ -22,6 +22,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
             endpoints.MapGet("/gastos/comprobantes/{id:guid}/archivo", async (
                 Guid id,
                 IGastoRepository gastos,
+                IFondoRepository fondos,
+                IIdentityService identidad,
+                ICurrentUserService usuarioActual,
                 IFileStorageService almacenamiento,
                 CancellationToken cancellationToken) =>
             {
@@ -30,6 +33,26 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 if (comprobante is null)
                 {
                     return Results.NotFound();
+                }
+
+                // VerGastos por si solo no basta: sin esto, un Custodio con el enlace de
+                // otro fondo (o simplemente probando Id consecutivos) podia abrir el
+                // comprobante de un custodio distinto. NotFound y no Forbid, para no
+                // confirmar que el Id corresponde a un comprobante real de otro fondo.
+                var gasto = await gastos.ObtenerPorIdAsync(comprobante.GastoId, cancellationToken);
+                if (gasto is null)
+                {
+                    return Results.NotFound();
+                }
+
+                var usuario = await usuarioActual.ObtenerAsync(cancellationToken);
+                if (usuario.Id is { } usuarioId && await identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio))
+                {
+                    var fondo = await fondos.ObtenerPorIdAsync(gasto.FondoCajaChicaId, cancellationToken);
+                    if (fondo is null || fondo.CustodioId != usuarioId)
+                    {
+                        return Results.NotFound();
+                    }
                 }
 
                 var contenido = await almacenamiento.LeerArchivoAsync(comprobante.RutaArchivo);

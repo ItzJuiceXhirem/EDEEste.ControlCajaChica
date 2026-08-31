@@ -8,6 +8,20 @@
 {
     <p><em>Redirigiendo...</em></p>
 }
+else if (tokenNoConfigurado)
+{
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="alert alert-warning">
+                Esta pantalla está deshabilitada hasta que se configure un token de
+                arranque. Sin él, cualquiera en la red podría crear el primer
+                Administrador. Configúrelo (fuera del control de versiones) y reinicie
+                la aplicación:
+                <pre class="mb-0 mt-2"><code>dotnet user-secrets set "ConfiguracionInicial:TokenArranque" "&lt;token-aleatorio&gt;" --project EDEEste.ControlCajaChica.Presentation</code></pre>
+            </div>
+        </div>
+    </div>
+}
 else
 {
     <div class="row">
@@ -34,6 +48,12 @@ else
                 <DataAnnotationsValidator />
                 <ValidationSummary class="text-danger" role="alert" />
 
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.Token" id="Input.Token" class="form-control"
+                               autocomplete="off" placeholder="token de arranque" />
+                    <label for="Input.Token">Token de arranque</label>
+                    <ValidationMessage For="() => Input.Token" class="text-danger" />
+                </div>
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
                                autocomplete="username" placeholder="nombre.apellido" />
