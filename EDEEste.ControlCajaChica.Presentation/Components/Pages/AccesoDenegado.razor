@@ -1,22 +1,33 @@
 @page "/acceso-denegado"
+@layout EDEEste.ControlCajaChica.Presentation.Components.Layout.AccesoLayout
 
 <PageTitle>Acceso denegado</PageTitle>
 
-<div class="row">
-    <div class="col-lg-7">
-        <h1>Acceso denegado</h1>
-
-        <div class="alert alert-danger">
-            <p class="mb-2">
-                Sus credenciales son correctas, pero un Administrador determinó que
-                esta cuenta no debe tener acceso al sistema de caja chica.
-            </p>
-            <p class="mb-0">
-                Si cree que se trata de un error, comuníquese con el Administrador
-                del sistema para que revise su caso.
-            </p>
-        </div>
-
-        <a class="btn btn-outline-secondary" href="Account/Login">Volver al inicio de sesión</a>
+<div class="cc-glow-wrap">
+    <div class="cc-glow" style="--mc:#FF9AA3;--mc-bg:rgba(255,154,163,.30)">
+        <svg class="cc-glow-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4.5 26 8v8.2c0 7-4.4 11.7-10 15-5.6-3.3-10-8-10-15V8Z" />
+            <path d="M12.5 13.5l7 7M19.5 13.5l-7 7" />
+        </svg>
     </div>
 </div>
+
+<p class="cc-kicker cc-center">ESTADO DE LA CUENTA</p>
+<h1 class="cc-center">Acceso denegado</h1>
+<p class="cc-note cc-center">
+    Sus credenciales son correctas, pero un Administrador determinó que esta cuenta
+    no debe tener acceso al sistema.
+</p>
+
+<div class="cc-next" style="--mc:#FF9AA3;--mc-bg2:rgba(255,154,163,.09)">
+    <p class="cc-next-lb">Qué hacer</p>
+    <p class="cc-next-txt">
+        Si cree que se trata de un error, comuníquese con el Administrador del
+        sistema para que revise su caso.
+    </p>
+</div>
+
+<a class="cc-cta" href="Account/Login">
+    Volver al inicio de sesión
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h11.5" /><path d="M11.4 5.8 15.6 10l-4.2 4.2" /></svg>
+</a>

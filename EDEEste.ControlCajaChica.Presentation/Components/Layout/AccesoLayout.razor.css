@@ -265,6 +265,15 @@
         box-shadow: 0 0 0 3px rgba(255, 195, 0, 0.15);
     }
 
+/* El ojito nativo de "mostrar contraseña" de Edge (::-ms-reveal, herencia de
+   EdgeHTML) sale gris por defecto y se pierde sobre el fondo oscuro del panel.
+   Firefox/Safari no muestran este boton nativo, asi que no hace falta un
+   equivalente para ellos. */
+.cc-panel ::deep input[type="password"]::-ms-reveal {
+    color: var(--cc-gold-lt);
+    background-color: transparent;
+}
+
 .cc-panel ::deep .cc-hint {
     font-size: 11.5px;
     color: rgba(255, 253, 245, 0.4);
@@ -314,15 +323,39 @@
     align-items: center;
     justify-content: center;
     gap: 9px;
+    text-decoration: none;
+    transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
 
+    /* Especificidad a propósito por encima de ".cc-panel ::deep a:hover" de más
+       abajo: sin esto, esa regla genérica le gana en :hover al color propio del
+       botón y el texto (tinta) se volvía dorado sobre fondo dorado -- invisible. */
     .cc-panel ::deep .cc-cta:hover {
-        background: var(--cc-gold-lt);
+        background: #FFAA00;
+        color: var(--cc-ink);
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -8px rgba(0, 0, 0, .55);
+    }
+
+    .cc-panel ::deep .cc-cta:active {
+        transform: translateY(0);
+        box-shadow: none;
     }
 
     .cc-panel ::deep .cc-cta:focus-visible {
         outline: 3px solid rgba(255, 253, 245, 0.5);
         outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .cc-panel ::deep .cc-cta {
+            transition: background .15s ease;
+        }
+
+        .cc-panel ::deep .cc-cta:hover {
+            transform: none;
+        }
     }
 
     .cc-panel ::deep .cc-cta svg {
@@ -395,6 +428,237 @@
     .cc-panel ::deep .alert-info a {
         color: #7EE7FF;
         text-decoration: underline;
+    }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Ícono de estado ("escena ilustrada", dirección aprobada en el explorador de
+   mockups): un resplandor radial detrás de un ícono de trazo propio de cada
+   pantalla. --mc y --mc-bg los fija cada página inline, según su semántica
+   (dorado = neutro/accionable, rojo claro = denegado/bloqueado, verde/celeste
+   claro = sub-estados de la confirmación, ivory tenue = neutro/borde).
+   ══════════════════════════════════════════════════════════════════════════ */
+.cc-panel ::deep .cc-glow-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 20px;
+}
+
+.cc-panel ::deep .cc-glow {
+    width: 126px;
+    height: 126px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle, var(--mc-bg, rgba(255, 195, 0, .3)) 0%, rgba(255, 253, 245, 0) 72%);
+}
+
+    .cc-panel ::deep .cc-glow.cc-sm {
+        width: 96px;
+        height: 96px;
+    }
+
+.cc-panel ::deep .cc-glow-icon {
+    width: 52px;
+    height: 52px;
+    color: var(--mc, #FFC300);
+}
+
+    .cc-panel ::deep .cc-glow.cc-sm .cc-glow-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+/* Caja de contexto ("Siguiente paso" / "Qué hacer"): la variante ilustrada de
+   la caja de aviso neutra que ya existía (::deep .alert-*), con una etiqueta
+   propia en el color semántico del ícono en vez de un solo tono fijo. */
+.cc-panel ::deep .cc-next {
+    background: var(--mc-bg2, rgba(255, 195, 0, .09));
+    border-radius: 10px;
+    padding: 15px 17px;
+    margin: 18px 0 0;
+    text-align: left;
+}
+
+.cc-panel ::deep .cc-next-lb {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--mc, #FFC300);
+    margin: 0 0 5px;
+}
+
+.cc-panel ::deep .cc-next-txt {
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255, 253, 245, .72);
+    margin: 0;
+}
+
+/* Utilidad para las pantallas de solo-mensaje (sin formulario): el kicker/h1/
+   nota/enlaces de Login van alineados a la izquierda porque un formulario los
+   sigue -- aquí no hay campos que alinear, así que centrar se lee mejor. */
+.cc-panel ::deep .cc-center {
+    text-align: center;
+}
+
+.cc-panel ::deep .cc-pulse {
+    font-size: 12.5px;
+    color: rgba(255, 253, 245, .4);
+    text-align: center;
+    margin: 12px 0 0;
+    font-style: italic;
+}
+
+/* Bloque de código monoespaciado (instrucciones de configuración). */
+.cc-panel ::deep .cc-code {
+    background: rgba(0, 0, 0, .35);
+    border-radius: 6px;
+    padding: 11px 13px;
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: #7EE7FF;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin-top: 9px;
+    word-break: break-all;
+}
+
+/* Rastreador de 3 pasos del ciclo de recuperación de acceso (Olvidé mi
+   contraseña → Solicitud enviada → Definir contraseña), con etiqueta en cada
+   paso -- más explícito que un simple punto, y ninguna de las tres pantallas
+   del ciclo compite por espacio con un formulario largo. */
+.cc-panel ::deep .cc-steps-b {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin: 0 0 22px;
+}
+
+.cc-panel ::deep .cc-step-b {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: rgba(255, 253, 245, .4);
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+    .cc-panel ::deep .cc-step-b span {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: rgba(255, 253, 245, .12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9.5px;
+        font-weight: 700;
+        color: rgba(255, 253, 245, .5);
+        flex: none;
+    }
+
+    .cc-panel ::deep .cc-step-b.cc-step-b-done span,
+    .cc-panel ::deep .cc-step-b.cc-step-b-now span {
+        background: var(--cc-gold);
+        color: var(--cc-ink);
+    }
+
+    .cc-panel ::deep .cc-step-b.cc-step-b-now {
+        color: var(--cc-ivory);
+    }
+
+.cc-panel ::deep .cc-step-b-line {
+    width: 24px;
+    height: 1px;
+    background: rgba(255, 253, 245, .18);
+}
+
+    .cc-panel ::deep .cc-step-b-line.cc-step-b-line-done {
+        background: var(--cc-gold);
+    }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Mensajes de estado / recuperacion de acceso (todo lo que no es Login o
+   Register): el panel se centra en vez de flotar a la derecha, para que se
+   lea como un aviso y no como la puerta de entrada. Ver AccesoLayout.razor.
+
+   Estas pantallas usan ademas proporciones propias -- panel mas ancho, titulo
+   y campos algo mas compactos -- para que el icono grande y las cajas de
+   contexto respiren sin alargar la pantalla. Todo va acotado a .cc-centrado:
+   la puerta de entrada (Login/Register) no se toca.
+   ══════════════════════════════════════════════════════════════════════════ */
+.cc-acceso.cc-centrado {
+    justify-content: center;
+}
+
+    .cc-acceso.cc-centrado .cc-side {
+        width: 640px;
+    }
+
+    .cc-acceso.cc-centrado .cc-panel {
+        padding: 38px 44px 42px;
+    }
+
+        .cc-acceso.cc-centrado .cc-panel ::deep h1 {
+            font-size: 29px;
+        }
+
+        /* Login le pone el margen inline a su bajada; aquí la clase lo trae por
+           defecto, porque estas pantallas la usan siempre bajo el título. */
+        .cc-acceso.cc-centrado .cc-panel ::deep .cc-note {
+            margin: 10px 0 0;
+        }
+
+        .cc-acceso.cc-centrado .cc-panel ::deep .cc-fields {
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .cc-acceso.cc-centrado .cc-panel ::deep .cc-f {
+            gap: 5px;
+        }
+
+        .cc-acceso.cc-centrado .cc-panel ::deep .cc-lb {
+            font-size: 10.5px;
+        }
+
+        .cc-acceso.cc-centrado .cc-panel ::deep .form-control {
+            height: 46px;
+            padding: 0 14px;
+            font-size: 14px;
+        }
+
+        /* A diferencia de Login -- donde el boton vive DENTRO de .cc-fields y lo
+           separa el gap del contenedor -- aqui el boton y el separador quedan
+           fuera, asi que su respiro tiene que venir de un margen propio. Sin
+           esto quedan pegados al ultimo campo o a la caja de contexto. */
+        .cc-acceso.cc-centrado .cc-panel ::deep .cc-cta {
+            height: 50px;
+            font-size: 15px;
+            margin-top: 20px;
+        }
+
+        .cc-acceso.cc-centrado .cc-panel ::deep .cc-sep {
+            margin: 20px 0 14px;
+        }
+
+        .cc-acceso.cc-centrado .cc-panel ::deep .cc-lnk-row {
+            gap: 9px;
+            font-size: 13px;
+        }
+
+.cc-id {
+    text-decoration: none;
+}
+
+    .cc-id:focus-visible {
+        outline: 2px solid var(--cc-gold);
+        outline-offset: 4px;
+        border-radius: 6px;
     }
 
 /* ── Pantallas angostas: el panel deja de flotar y la página fluye ───────── */

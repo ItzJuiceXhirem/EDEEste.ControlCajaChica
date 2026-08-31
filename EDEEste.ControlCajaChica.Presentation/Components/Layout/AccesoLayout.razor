@@ -1,10 +1,16 @@
 @inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
 
 @* Marco de las pantallas de acceso (DESIGN.md §5.4). Iniciar sesión y Solicitar
    acceso son las únicas pantallas sin sidebar: son la puerta de entrada, no una
    vista de trabajo. El layout pone la atmósfera y la marca; cada página solo
-   aporta el contenido del panel. *@
-<div class="cc-acceso">
+   aporta el contenido del panel.
+
+   Login/Register mantienen el panel flotando a la derecha (tratamiento
+   original); las demás pantallas de acceso (pendiente/denegado/bloqueada/
+   recuperación/etc.) lo centran, para diferenciarlas visualmente de ser una
+   "puerta de entrada" y leerse como un mensaje de estado. *@
+<div class="cc-acceso @(EsLoginORegister ? "" : "cc-centrado")">
     @* Campo de denominaciones: las mismas de la calculadora de Arqueos, en muy
        baja opacidad, para que la textura salga del propio producto. *@
     <div class="cc-field" aria-hidden="true">
@@ -23,8 +29,10 @@
     <div class="cc-ghost" aria-hidden="true">CAJA
 CHICA</div>
 
-    <div class="cc-id">
-        @* §5.10 y §5.11: el cofre va dibujado en línea y pinta con currentColor. *@
+    @* §5.10 y §5.11: el cofre va dibujado en línea y pinta con currentColor.
+       Clickeable hacia el login: en cualquiera de las pantallas de mensaje/error
+       de esta capa, es la salida obvia de vuelta al inicio. *@
+    <a class="cc-id" href="Account/Login" aria-label="Ir al inicio de sesión">
         <span class="cc-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32">
                 <g fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
@@ -39,7 +47,7 @@ CHICA</div>
             </svg>
         </span>
         <span class="cc-wordmark">Control de Caja Chica</span>
-    </div>
+    </a>
 
     <div class="cc-side">
         <div class="cc-panel">
@@ -58,6 +66,15 @@ CHICA</div>
 </div>
 
 @code {
+    // Las unicas dos pantallas que conservan el panel flotando a la derecha
+    // (tratamiento original de la seccion 5.4); todo lo demas que use este
+    // layout (mensajes de estado, recuperacion de acceso, etc.) lo centra.
+    private static readonly string[] RutasAlineadasALaDerecha = ["account/login", "account/register"];
+
+    private bool EsLoginORegister =>
+        RutasAlineadasALaDerecha.Contains(
+            NavigationManager.ToBaseRelativePath(NavigationManager.Uri).TrimEnd('/').ToLowerInvariant());
+
     private sealed record Ficha(
         string Valor,
         bool EsMoneda,

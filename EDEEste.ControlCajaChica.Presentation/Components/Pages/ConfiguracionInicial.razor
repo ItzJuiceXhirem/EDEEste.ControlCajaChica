@@ -1,89 +1,98 @@
 @page "/configuracion-inicial"
+@layout EDEEste.ControlCajaChica.Presentation.Components.Layout.AccesoLayout
 
 <PageTitle>Configuración inicial</PageTitle>
 
-<h1>Configuración inicial</h1>
-
 @if (yaHayAdministrador)
 {
-    <p><em>Redirigiendo...</em></p>
-}
-else if (tokenNoConfigurado)
-{
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="alert alert-warning">
-                Esta pantalla está deshabilitada hasta que se configure un token de
-                arranque. Sin él, cualquiera en la red podría crear el primer
-                Administrador. Configúrelo (fuera del control de versiones) y reinicie
-                la aplicación:
-                <pre class="mb-0 mt-2"><code>dotnet user-secrets set "ConfiguracionInicial:TokenArranque" "&lt;token-aleatorio&gt;" --project EDEEste.ControlCajaChica.Presentation</code></pre>
-            </div>
-        </div>
-    </div>
+    <p class="cc-note cc-center"><em>Redirigiendo...</em></p>
 }
 else
 {
-    <div class="row">
-        <div class="col-lg-6">
-            <p class="text-muted">
-                El sistema todavía no tiene ningún Administrador. Cree el primero para
-                poder aprobar los accesos del resto del equipo. Esta pantalla dejará de
-                estar disponible en cuanto exista un Administrador.
-            </p>
-
-            @if (errores.Count > 0)
-            {
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach (var error in errores)
-                        {
-                            <li>@error</li>
-                        }
-                    </ul>
-                </div>
-            }
-
-            <EditForm Model="Input" method="post" OnValidSubmit="CrearAdministradorAsync" FormName="config-inicial">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" role="alert" />
-
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Token" id="Input.Token" class="form-control"
-                               autocomplete="off" placeholder="token de arranque" />
-                    <label for="Input.Token">Token de arranque</label>
-                    <ValidationMessage For="() => Input.Token" class="text-danger" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
-                               autocomplete="username" placeholder="nombre.apellido" />
-                    <label for="Input.Usuario">Usuario</label>
-                    <div class="form-text">Formato nombre.apellido, igual que en Windows.</div>
-                    <ValidationMessage For="() => Input.Usuario" class="text-danger" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control"
-                               autocomplete="name" placeholder="Juan Pérez" />
-                    <label for="Input.Nombre">Nombre completo</label>
-                    <ValidationMessage For="() => Input.Nombre" class="text-danger" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
-                               autocomplete="new-password" placeholder="contraseña" />
-                    <label for="Input.Password">Contraseña</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control"
-                               autocomplete="new-password" placeholder="contraseña" />
-                    <label for="Input.ConfirmPassword">Confirmar contraseña</label>
-                    <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-                </div>
-
-                <button type="submit" class="w-100 btn btn-lg btn-primary" disabled="@creando">
-                    @(creando ? "Creando..." : "Crear Administrador")
-                </button>
-            </EditForm>
+    <div class="cc-glow-wrap">
+        <div class="cc-glow" style="--mc:#FFC300;--mc-bg:rgba(255,195,0,.32)">
+            <svg class="cc-glow-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="5.2" />
+                <path d="M14.8 14.8 26 26M22 22l3-3M18 18l2.6-2.6" />
+            </svg>
         </div>
     </div>
+
+    <p class="cc-kicker cc-center">CONFIGURACIÓN INICIAL</p>
+    <h1 class="cc-center">Crear el primer Administrador</h1>
+
+    @if (tokenNoConfigurado)
+    {
+        <p class="cc-note cc-center">Esta pantalla está deshabilitada hasta configurar un token de arranque.</p>
+        <div class="cc-next" style="--mc:#FFC300;--mc-bg2:rgba(255,195,0,.09)">
+            <p class="cc-next-lb">Cómo habilitarla</p>
+            <p class="cc-next-txt">
+                Sin él, cualquiera en la red podría crear el primer Administrador.
+                Configúrelo fuera del control de versiones y reinicie la aplicación:
+            </p>
+            <div class="cc-code">dotnet user-secrets set "ConfiguracionInicial:TokenArranque" "&lt;token-aleatorio&gt;" --project EDEEste.ControlCajaChica.Presentation</div>
+        </div>
+    }
+    else
+    {
+        <p class="cc-note cc-center">
+            El sistema todavía no tiene ningún Administrador. Cree el primero para
+            poder aprobar los accesos del resto del equipo.
+        </p>
+
+        @if (errores.Count > 0)
+        {
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach (var error in errores)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="CrearAdministradorAsync" FormName="config-inicial">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+
+            <div class="cc-fields">
+                <div class="cc-f">
+                    <label class="cc-lb" for="Input.Token">Token de arranque</label>
+                    <InputText type="password" @bind-Value="Input.Token" id="Input.Token" class="form-control"
+                               autocomplete="off" placeholder="token de arranque" />
+                    <ValidationMessage For="() => Input.Token" class="text-danger" />
+                </div>
+                <div class="cc-f">
+                    <label class="cc-lb" for="Input.Usuario">Usuario</label>
+                    <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
+                               autocomplete="username" placeholder="nombre.apellido" />
+                    <span class="cc-hint">Formato nombre.apellido, igual que en Windows.</span>
+                    <ValidationMessage For="() => Input.Usuario" class="text-danger" />
+                </div>
+                <div class="cc-f">
+                    <label class="cc-lb" for="Input.Nombre">Nombre completo</label>
+                    <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control"
+                               autocomplete="name" placeholder="Juan Pérez" />
+                    <ValidationMessage For="() => Input.Nombre" class="text-danger" />
+                </div>
+                <div class="cc-f">
+                    <label class="cc-lb" for="Input.Password">Contraseña</label>
+                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
+                               autocomplete="new-password" placeholder="contraseña" />
+                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                </div>
+                <div class="cc-f">
+                    <label class="cc-lb" for="Input.ConfirmPassword">Confirmar contraseña</label>
+                    <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control"
+                               autocomplete="new-password" placeholder="contraseña" />
+                    <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+                </div>
+            </div>
+
+            <button type="submit" class="cc-cta" disabled="@creando">
+                @(creando ? "Creando..." : "Crear Administrador")
+            </button>
+        </EditForm>
+    }
 }
