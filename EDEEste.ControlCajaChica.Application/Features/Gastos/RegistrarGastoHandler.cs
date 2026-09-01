@@ -120,9 +120,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             // renombrar un archivo para que declare cualquier extension/MIME de la
             // lista blanca sin importar su contenido real. La firma (magic bytes) es
             // lo unico que no se puede spoofear con solo cambiar el nombre.
+            //
+            // Solo se comprueba si el formato ya paso EsFormatoAceptado: para un MIME
+            // fuera de la lista blanca, CoincideConFirmaEsperadaAsync siempre devuelve
+            // false (no tiene con que comparar), asi que llamarla ahi solo duplicaria
+            // con otro texto el mismo error que Validar ya agrego para ese archivo.
             foreach (var comprobante in comando.Comprobantes)
             {
-                if (!await CoincideConFirmaEsperadaAsync(comprobante))
+                if (EsFormatoAceptado(comprobante) && !await CoincideConFirmaEsperadaAsync(comprobante))
                 {
                     errores.Add($"'{comprobante.NombreOriginal}' no coincide con su tipo declarado (contenido invalido).");
                 }
@@ -179,7 +184,17 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             fondo.BalanceActual -= comando.MontoTotal;
 
             await _gastos.AgregarAsync(gasto, cancellationToken);
-            await _contexto.SaveChangesAsync(cancellationToken);
+
+            // fondo.BalanceActual es token de concurrencia (ver ApplicationDbContext):
+            // sin IntentarGuardarCambiosAsync, un choque real lanzaba
+            // DbUpdateConcurrencyException sin traducir y dejaba el ChangeTracker
+            // sucio -- en Blazor Server el contexto vive todo el circuito, asi que el
+            // siguiente clic del usuario reintentaria este mismo guardado fallido.
+            if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo(
+                    "Otro usuario modificó este fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+            }
 
             return ResultadoOperacion<Guid>.Ok(gasto.Id);
         }
@@ -289,12 +304,10 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
             foreach (var comprobante in comando.Comprobantes)
             {
-                var extension = Path.GetExtension(comprobante.NombreOriginal);
-
                 // Se validan las dos cosas: el navegador reporta el MIME y es facil de
                 // falsear, pero la extension es la que decide como se abre el archivo
                 // despues.
-                if (!TiposMimePermitidos.Contains(comprobante.TipoMime) || !ExtensionesPermitidas.Contains(extension))
+                if (!EsFormatoAceptado(comprobante))
                 {
                     errores.Add($"'{comprobante.NombreOriginal}' no es un formato aceptado (solo PDF, JPG, JPEG o PNG).");
                 }
@@ -307,6 +320,17 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
             return errores;
         }
+
+        /// <summary>
+        /// MIME y extension, la unica comprobacion que no necesita leer el contenido
+        /// del archivo. Comparte el mismo criterio entre Validar (el mensaje de "no es
+        /// un formato aceptado") y el chequeo de firma en EjecutarAsync -- este ultimo
+        /// se salta por completo cuando esto ya dio false, para no repetir el mismo
+        /// problema con un segundo mensaje.
+        /// </summary>
+        private static bool EsFormatoAceptado(RegistrarGastoCommand.ComprobanteEntrada comprobante) =>
+            TiposMimePermitidos.Contains(comprobante.TipoMime)
+            && ExtensionesPermitidas.Contains(Path.GetExtension(comprobante.NombreOriginal));
 
         /// <summary>
         /// Compara los primeros bytes del archivo contra la firma del tipo que declara

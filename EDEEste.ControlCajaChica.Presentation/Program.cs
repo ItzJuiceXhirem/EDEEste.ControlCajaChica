@@ -105,7 +105,7 @@ builder.Services.AddIdentityCore<Usuario>(options =>
         // decisión de seguridad de esta app (ver Login.razor.cs), no un detalle que
         // deba quedar implícito en el framework.
         options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
         options.Lockout.AllowedForNewUsers = true;
     })
     .AddRoles<IdentityRole>()

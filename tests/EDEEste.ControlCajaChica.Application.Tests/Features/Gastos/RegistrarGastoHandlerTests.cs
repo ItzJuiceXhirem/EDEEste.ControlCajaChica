@@ -190,6 +190,20 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
         }
 
         [Fact]
+        public async Task Guardado_ConConflictoDeConcurrencia_FallaYNoCuentaComoGuardado()
+        {
+            var (fondo, categoria, contexto, handler) = CrearEscenario();
+            var comando = ComandoBase(fondo, categoria);
+            contexto.FallarPorConcurrencia = true;
+
+            var resultado = await handler.EjecutarAsync(comando);
+
+            Assert.False(resultado.Exitoso);
+            Assert.Contains(resultado.Errores, e => e.Contains("Otro usuario modificó"));
+            Assert.Equal(0, contexto.VecesGuardado);
+        }
+
+        [Fact]
         public async Task Comprobante_ConContenidoQueNoCoincideConTipoDeclarado_Falla()
         {
             var (fondo, categoria, contexto, handler) = CrearEscenario();
@@ -203,6 +217,25 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
 
             Assert.False(resultado.Exitoso);
             Assert.Contains(resultado.Errores, e => e.Contains("no coincide con su tipo declarado"));
+            Assert.Equal(0, contexto.VecesGuardado);
+        }
+
+        [Fact]
+        public async Task Comprobante_ConMimeFueraDeListaBlanca_DaUnSoloError()
+        {
+            var (fondo, categoria, contexto, handler) = CrearEscenario();
+            var comando = ComandoBase(fondo, categoria);
+            // El contenido SI trae la firma real de PDF: si el chequeo de firma se
+            // ejecutara igual (el bug que se esta probando que no reaparezca),
+            // CoincideConFirmaEsperadaAsync no reconoceria este MIME y agregaria un
+            // segundo error redundante para el mismo archivo.
+            comando.Comprobantes[0].TipoMime = "text/html";
+
+            var resultado = await handler.EjecutarAsync(comando);
+
+            Assert.False(resultado.Exitoso);
+            Assert.Contains(resultado.Errores, e => e.Contains("no es un formato aceptado"));
+            Assert.DoesNotContain(resultado.Errores, e => e.Contains("no coincide con su tipo declarado"));
             Assert.Equal(0, contexto.VecesGuardado);
         }
 

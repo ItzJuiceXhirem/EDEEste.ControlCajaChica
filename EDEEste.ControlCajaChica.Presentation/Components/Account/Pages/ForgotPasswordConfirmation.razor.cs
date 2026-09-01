@@ -50,7 +50,16 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
             {
                 while (await temporizador.WaitForNextTickAsync(cancellationToken))
                 {
-                    var estado = await PasswordResetService.ObtenerEstadoAsync(solicitudId);
+                    // Por InvokeAsync y no directo: esta consulta usa el mismo DbContext
+                    // con scope del circuito. Sin este envoltorio, si esta pantalla algun
+                    // dia gana un boton que tambien lo toque, el sondeo de fondo y ese
+                    // clic podrian pisarse (EF Core no admite dos operaciones a la vez
+                    // sobre el mismo DbContext) -- InvokeAsync serializa los dos contra
+                    // el mismo despachador del circuito, igual que ya hace StateHasChanged
+                    // mas abajo. InvokeAsync no tiene una sobrecarga que devuelva un
+                    // valor, asi que se captura en una variable local dentro del lambda.
+                    EstadoSolicitudPasswordReset? estado = null;
+                    await InvokeAsync(async () => estado = await PasswordResetService.ObtenerEstadoAsync(solicitudId));
 
                     if (estado == EstadoSolicitudPasswordReset.Aprobada)
                     {

@@ -22,7 +22,11 @@
     <p class="cc-next-txt">Si necesita acceso, comuníquese con el Administrador del sistema para que revise sus permisos.</p>
 </div>
 
-<a class="cc-cta" href="Account/Login">
+@* Esta pantalla la ve un usuario ya autenticado al que le falta un permiso
+   puntual (a diferencia de AccesoDenegado.razor, que es para una cuenta a la
+   que un Administrador le negó el acceso antes de iniciar sesión) -- así que
+   "volver al inicio" es el panel de la app, no el login. *@
+<a class="cc-cta" href="/">
     Volver al inicio
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h11.5" /><path d="M11.4 5.8 15.6 10l-4.2 4.2" /></svg>
 </a>

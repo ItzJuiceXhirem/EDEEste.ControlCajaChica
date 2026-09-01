@@ -79,7 +79,13 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
             // Identity.
             if (usuario is not null && await UserManager.IsLockedOutAsync(usuario))
             {
-                RedirectManager.RedirectTo("Account/Lockout");
+                // Se manda la hora exacta de fin del bloqueo (y no un "espere unos
+                // minutos" generico) para que Lockout.razor pinte un countdown real
+                // sin necesitar su propia consulta a la base de datos.
+                RedirectManager.RedirectTo("Account/Lockout", new Dictionary<string, object?>
+                {
+                    ["hasta"] = usuario.LockoutEnd?.UtcDateTime.ToString("o", CultureInfo.InvariantCulture)
+                });
                 return;
             }
 

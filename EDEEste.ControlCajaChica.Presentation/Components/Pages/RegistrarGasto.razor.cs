@@ -287,6 +287,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 if (!resultado.Exitoso)
                 {
                     errores.AddRange(resultado.Errores);
+
+                    // Un fallo de concurrencia deja el balance mostrado desactualizado
+                    // (otro usuario ya lo cambió) hasta que alguien recargue a mano; se
+                    // releen los fondos aqui mismo para que el mensaje de error y el
+                    // balance en pantalla queden consistentes de una vez.
+                    fondos = await FondosVisiblesAsync();
                     return;
                 }
 
@@ -295,7 +301,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 adjuntos.Clear();
 
                 // El balance del fondo cambió, hay que releerlo para el próximo registro.
-                fondos = await Fondos.ListarAsync();
+                // FondosVisiblesAsync() y no Fondos.ListarAsync(): esta segunda recarga se
+                // habia quedado sin el filtro de custodio, y un Custodio volvia a ver
+                // todos los fondos del sistema apenas registraba un gasto.
+                fondos = await FondosVisiblesAsync();
             }
             catch (Exception ex)
             {

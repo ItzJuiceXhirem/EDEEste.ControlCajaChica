@@ -31,9 +31,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// <summary>
         /// Resuelve la ruta relativa guardada en BDD a una ruta fisica en disco.
         ///
-        /// Se valida que el resultado siga colgando de wwwroot: si una ruta con ".."
-        /// llegara desde la BDD (fila manipulada, migracion de datos vieja), sin esta
-        /// comprobacion se podria leer o borrar cualquier archivo del servidor.
+        /// Se valida que el resultado siga colgando de _rutaRaiz (App_Data): si una
+        /// ruta con ".." llegara desde la BDD (fila manipulada, migracion de datos
+        /// vieja), sin esta comprobacion se podria leer o borrar cualquier archivo
+        /// del servidor.
         /// </summary>
         public string ObtenerRutaFisica(string rutaRelativa)
         {

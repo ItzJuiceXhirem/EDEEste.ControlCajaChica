@@ -81,11 +81,17 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 .OrderBy(s => s.FechaSolicitud)
                 .ToListAsync();
 
+            // Un solo batch en vez de un FindByIdAsync por solicitud: con la bandeja
+            // llena, esto era N consultas secuenciales para pintar una sola pantalla.
+            var idsUsuarios = pendientes.Select(s => s.UsuarioId).ToList();
+            var usuariosPorId = await _userManager.Users
+                .Where(u => idsUsuarios.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id);
+
             var resumen = new List<SolicitudPasswordResetResumenDto>(pendientes.Count);
             foreach (var solicitud in pendientes)
             {
-                var usuario = await _userManager.FindByIdAsync(solicitud.UsuarioId);
-                if (usuario is null)
+                if (!usuariosPorId.TryGetValue(solicitud.UsuarioId, out var usuario))
                 {
                     // La cuenta se borro despues de pedir el reseteo; no hay a quien
                     // devolverle acceso, asi que no tiene sentido mostrar la fila.
@@ -138,7 +144,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return ResultadoOperacion<EnlaceRestablecimientoDto>.Ok(new EnlaceRestablecimientoDto(solicitud.Id.ToString(), secreto));
         }
 
-        public async Task<ResultadoOperacion<string>> IgnorarAsync(string solicitudId)
+        public async Task<ResultadoOperacion<string>> IgnorarAsync(string solicitudId, string administradorId)
         {
             var solicitud = await ObtenerPorIdAsync(solicitudId);
             if (solicitud is null || solicitud.Estado != EstadoSolicitudPasswordReset.Pendiente)
@@ -148,6 +154,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             solicitud.Estado = EstadoSolicitudPasswordReset.Ignorada;
             solicitud.FechaResolucion = DateTime.UtcNow;
+            // Mismo campo que AceptarAsync: sin esto, la bitacora de auditoria mostraba
+            // que la solicitud paso a Ignorada, pero no quien tomo esa decision.
+            solicitud.ResueltaPorUsuarioId = administradorId;
 
             await _context.SaveChangesAsync();
 

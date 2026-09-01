@@ -21,6 +21,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
         {
             endpoints.MapGet("/gastos/comprobantes/{id:guid}/archivo", async (
                 Guid id,
+                HttpContext contexto,
                 IGastoRepository gastos,
                 IFondoRepository fondos,
                 IIdentityService identidad,
@@ -60,6 +61,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 {
                     return Results.NotFound();
                 }
+
+                // Un comprobante es informacion sensible de un tercero; sin esto, un
+                // proxy o el propio cache de disco del navegador (relevante en una PC
+                // compartida de oficina) podria conservarlo mas alla de esta respuesta.
+                contexto.Response.Headers.CacheControl = "private, no-store";
 
                 return Results.File(contenido, comprobante.TipoMime);
             })

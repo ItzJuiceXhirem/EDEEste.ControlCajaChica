@@ -72,8 +72,23 @@ CHICA</div>
     private static readonly string[] RutasAlineadasALaDerecha = ["account/login", "account/register"];
 
     private bool EsLoginORegister =>
-        RutasAlineadasALaDerecha.Contains(
-            NavigationManager.ToBaseRelativePath(NavigationManager.Uri).TrimEnd('/').ToLowerInvariant());
+        RutasAlineadasALaDerecha.Contains(RutaSinConsultaNiFragmento());
+
+    // ToBaseRelativePath conserva el query string y el fragmento: sin recortarlos,
+    // "Account/Login?ReturnUrl=..." (la ruta real cuando el login llega por una
+    // redireccion desde una pagina protegida) no calzaba con "account/login" y el
+    // panel se centraba en vez de quedarse a la derecha.
+    private string RutaSinConsultaNiFragmento()
+    {
+        var ruta = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        var indiceCorte = ruta.IndexOfAny(['?', '#']);
+        if (indiceCorte >= 0)
+        {
+            ruta = ruta[..indiceCorte];
+        }
+
+        return ruta.TrimEnd('/').ToLowerInvariant();
+    }
 
     private sealed record Ficha(
         string Valor,

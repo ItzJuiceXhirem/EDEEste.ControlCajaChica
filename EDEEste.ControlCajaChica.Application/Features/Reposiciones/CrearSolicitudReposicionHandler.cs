@@ -128,7 +128,17 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             solicitud.RutaPdfConsolidado = archivo.RutaRelativa;
 
             await _reposiciones.AgregarAsync(solicitud, cancellationToken);
-            await _contexto.SaveChangesAsync(cancellationToken);
+
+            // gasto.Estado es token de concurrencia (ver ApplicationDbContext): sin
+            // IntentarGuardarCambiosAsync, un choque real (por ejemplo dos solicitudes
+            // armadas a la vez sobre los mismos gastos pendientes) lanzaba
+            // DbUpdateConcurrencyException sin traducir y dejaba el ChangeTracker
+            // sucio para el resto del circuito de Blazor Server.
+            if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo(
+                    "Otro usuario modificó los gastos de este fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+            }
 
             return ResultadoOperacion<Guid>.Ok(solicitud.Id);
         }

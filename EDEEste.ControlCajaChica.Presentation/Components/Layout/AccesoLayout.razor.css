@@ -324,8 +324,17 @@
     justify-content: center;
     gap: 9px;
     text-decoration: none;
-    transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+    transition: background .15s ease, transform .15s ease, box-shadow .15s ease, opacity .15s ease;
 }
+
+    /* Botón de Lockout.razor mientras corre el countdown: sin pointer-events, un
+       clic (o un Enter llegado por teclado, que no respeta pointer-events) no
+       tiene a dónde ir -- el href apunta a "#", así que como mucho recarga la
+       misma pantalla. */
+    .cc-panel ::deep .cc-cta-deshabilitado {
+        pointer-events: none;
+        opacity: .4;
+    }
 
     /* Especificidad a propósito por encima de ".cc-panel ::deep a:hover" de más
        abajo: sin esto, esa regla genérica le gana en :hover al color propio del
@@ -430,6 +439,22 @@
         text-decoration: underline;
     }
 
+/* Único de los cuatro que faltaba: sin esto cae en el amarillo pálido de
+   Bootstrap por defecto, y el enlace de dentro (con el dorado que usa el
+   resto del panel para fondo oscuro) queda casi invisible sobre ese fondo
+   claro. Mismo patrón que los otros tres: fondo del tono base de Bootstrap,
+   texto/enlace en la variante clara pensada para fondo oscuro. */
+.cc-panel ::deep .alert-warning {
+    background: rgba(255, 193, 7, 0.14);
+    border-color: rgba(255, 224, 102, 0.4);
+    color: #FFE066;
+}
+
+    .cc-panel ::deep .alert-warning a {
+        color: #FFE066;
+        text-decoration: underline;
+    }
+
 /* ══════════════════════════════════════════════════════════════════════════
    Ícono de estado ("escena ilustrada", dirección aprobada en el explorador de
    mockups): un resplandor radial detrás de un ícono de trazo propio de cada
@@ -451,6 +476,7 @@
     align-items: center;
     justify-content: center;
     background: radial-gradient(circle, var(--mc-bg, rgba(255, 195, 0, .3)) 0%, rgba(255, 253, 245, 0) 72%);
+    transition: background .5s ease .2s;
 }
 
     .cc-panel ::deep .cc-glow.cc-sm {
@@ -462,12 +488,35 @@
     width: 52px;
     height: 52px;
     color: var(--mc, #FFC300);
+    transition: color .5s ease .2s;
 }
 
     .cc-panel ::deep .cc-glow.cc-sm .cc-glow-icon {
         width: 40px;
         height: 40px;
     }
+
+/* Countdown de "Cuenta bloqueada" (Lockout.razor): el aro del candado gira sobre
+   su esquina inferior izquierda -- transform-box:fill-box hace que el origen se
+   calcule sobre el propio path, no sobre el viewBox entero del svg -- y el resto
+   del icono se queda fijo, igual que un candado real abriendose. */
+.cc-panel ::deep .cc-shackle {
+    transform-box: fill-box;
+    transform-origin: 0% 100%;
+    transition: transform .7s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.cc-panel ::deep .cc-shackle-abierto {
+    transform: rotate(-35deg);
+}
+
+.cc-panel ::deep .cc-glow-terminado {
+    background: radial-gradient(circle, rgba(133, 224, 179, .30) 0%, rgba(255, 253, 245, 0) 72%);
+}
+
+.cc-panel ::deep .cc-glow-icon-terminado {
+    color: #85E0B3;
+}
 
 /* Caja de contexto ("Siguiente paso" / "Qué hacer"): la variante ilustrada de
    la caja de aviso neutra que ya existía (::deep .alert-*), con una etiqueta
@@ -478,6 +527,7 @@
     padding: 15px 17px;
     margin: 18px 0 0;
     text-align: left;
+    transition: background .4s ease .2s;
 }
 
 .cc-panel ::deep .cc-next-lb {
@@ -487,6 +537,7 @@
     text-transform: uppercase;
     color: var(--mc, #FFC300);
     margin: 0 0 5px;
+    transition: color .4s ease .2s;
 }
 
 .cc-panel ::deep .cc-next-txt {
@@ -494,6 +545,38 @@
     line-height: 1.6;
     color: rgba(255, 253, 245, .72);
     margin: 0;
+}
+
+/* Estado final del countdown de Lockout: mismo truco que .cc-glow-terminado, una
+   regla declarada despues de la base le gana en especificidad identica. */
+.cc-panel ::deep .cc-next-terminado {
+    background: rgba(133, 224, 179, .09);
+}
+
+.cc-panel ::deep .cc-next-lb-terminado {
+    color: #85E0B3;
+}
+
+.cc-panel ::deep .cc-next-time {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 253, 245, .1);
+}
+
+.cc-panel ::deep .cc-next-time-lb {
+    font-size: 12px;
+    color: rgba(255, 253, 245, .55);
+}
+
+.cc-panel ::deep .cc-next-time-val {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--cc-ivory);
+    font-variant-numeric: tabular-nums;
 }
 
 /* Utilidad para las pantallas de solo-mensaje (sin formulario): el kicker/h1/

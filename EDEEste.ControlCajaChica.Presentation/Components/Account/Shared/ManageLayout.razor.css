@@ -118,25 +118,32 @@
     margin-bottom: 16px;
 }
 
-.mgl-tab {
+/* .mgl-tab y .mgl-tab-on van en el <NavLink>, no en un elemento nativo de este
+   archivo. Sin ::deep, Blazor igual le pone su atributo de ambito al ULTIMO
+   selector de la cadena (aqui, .mgl-tab), y como el <a> que renderiza NavLink
+   nunca lleva ese atributo, la regla compila pero no hace match con nada --
+   ::deep le dice al compilador que deje de escopar a partir de ahi. Mismo
+   patrón que .cc-navlist ::deep .cc-navlink en NavMenu.razor.css. */
+.mgl-tabs ::deep .mgl-tab {
     padding: 8px 18px;
     border-radius: 7px;
     font-size: 13px;
     font-weight: 600;
     color: #6B7482;
+    text-decoration: none;
 }
 
-    .mgl-tab:hover {
+    .mgl-tabs ::deep .mgl-tab:hover {
         color: var(--cc-navy);
     }
 
-.mgl-tab-on {
+.mgl-tabs ::deep .mgl-tab-on {
     background: var(--cc-surface);
     color: var(--cc-navy);
     box-shadow: 0 1px 3px rgba(0, 53, 102, .18);
 }
 
-    .mgl-tab-on:hover {
+    .mgl-tabs ::deep .mgl-tab-on:hover {
         color: var(--cc-navy);
     }
 

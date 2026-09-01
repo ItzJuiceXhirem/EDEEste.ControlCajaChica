@@ -32,7 +32,7 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
         /// </summary>
         Task<ResultadoOperacion<EnlaceRestablecimientoDto>> AceptarAsync(string solicitudId, string administradorId);
 
-        Task<ResultadoOperacion<string>> IgnorarAsync(string solicitudId);
+        Task<ResultadoOperacion<string>> IgnorarAsync(string solicitudId, string administradorId);
 
         /// <summary>
         /// Si la solicitud existe, esta Aprobada, no expiro y el secreto coincide --

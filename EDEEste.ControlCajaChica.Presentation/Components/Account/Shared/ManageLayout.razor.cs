@@ -21,13 +21,23 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Shared
         private string rol = "Sin rol";
         private string iniciales = "?";
         private DateTime? ultimaSesionAnterior;
+        private Task<Usuario?> cuentaTask = default!;
 
         protected override async Task OnInitializedAsync()
         {
+            // Se guarda la Task (no solo se espera) y se cascadea tal cual a Index y
+            // ChangePassword: si cada pagina llamara GetUserAsync por su cuenta, Blazor
+            // arranca la inicializacion del hijo sin esperar a que termine la de este
+            // layout, y dos consultas a la vez sobre el mismo DbContext con scope de la
+            // peticion tumban el render con ConcurrencyDetector ("A second operation
+            // was started on this context instance..."). Esperar la MISMA Task desde
+            // varios sitios es seguro -- la consulta real a la BDD ocurre una sola vez.
+            cuentaTask = UserManager.GetUserAsync(HttpContext.User);
+
             // Si la cuenta ya no existe, la propia pagina hija (Index/ChangePassword)
             // redirige a InvalidUser -- este layout solo se queda sin datos que
             // mostrar, no le corresponde a el decidir la redireccion.
-            var cuenta = await UserManager.GetUserAsync(HttpContext.User);
+            var cuenta = await cuentaTask;
             if (cuenta is null)
             {
                 return;

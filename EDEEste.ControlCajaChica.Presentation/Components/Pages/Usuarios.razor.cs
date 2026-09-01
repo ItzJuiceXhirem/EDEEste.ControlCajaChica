@@ -29,6 +29,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private string? mensaje;
         private string? error;
         private string? urlResetGenerada;
+        private string? personaResetGenerada;
         private bool copiadoAlPortapapeles;
 
         private FiltroDirectorio filtroDirectorio = FiltroDirectorio.Todos;
@@ -166,6 +167,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             mensaje = null;
             error = null;
             urlResetGenerada = null;
+            personaResetGenerada = null;
             copiadoAlPortapapeles = false;
             procesandoId = usuario.Id;
 
@@ -199,12 +201,14 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             mensaje = null;
             error = null;
             urlResetGenerada = null;
+            personaResetGenerada = null;
             copiadoAlPortapapeles = false;
             procesandoResetId = solicitud.Id;
 
             try
             {
-                var resultado = await PasswordResetService.IgnorarAsync(solicitud.Id);
+                var administrador = await CurrentUserService.ObtenerAsync();
+                var resultado = await PasswordResetService.IgnorarAsync(solicitud.Id, administrador.Id ?? string.Empty);
                 if (resultado.Exitoso)
                 {
                     mensaje = $"Se ignoró la solicitud de '{solicitud.Usuario}'. Su contraseña no cambió.";
@@ -231,6 +235,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             mensaje = null;
             error = null;
             urlResetGenerada = null;
+            personaResetGenerada = null;
             copiadoAlPortapapeles = false;
             procesandoResetId = solicitud.Id;
 
@@ -239,13 +244,14 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 var administrador = await CurrentUserService.ObtenerAsync();
                 var resultado = await PasswordResetService.AceptarAsync(solicitud.Id, administrador.Id ?? string.Empty);
 
-                if (resultado.Exitoso)
+                if (resultado is { Exitoso: true, Valor: { } enlace })
                 {
                     // El secreto va en la query (?t=) y no en la ruta: es lo unico que
                     // hace que este enlace, y no el Id solo (que el solicitante ya
                     // conoce), sirva para completar el cambio.
                     urlResetGenerada = NavigationManager.ToAbsoluteUri(
-                        $"Account/ResetPassword/{resultado.Valor.SolicitudId}?t={Uri.EscapeDataString(resultado.Valor.Secreto)}").AbsoluteUri;
+                        $"Account/ResetPassword/{enlace.SolicitudId}?t={Uri.EscapeDataString(enlace.Secreto)}").AbsoluteUri;
+                    personaResetGenerada = $"{solicitud.Nombre} ({solicitud.Usuario})";
                 }
                 else
                 {
