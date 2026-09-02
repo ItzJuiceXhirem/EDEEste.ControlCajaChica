@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -24,29 +23,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
     /// </summary>
     public sealed class RegistrarGastoHandler
     {
-        private static readonly HashSet<string> TiposMimePermitidos = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "application/pdf",
-            "image/jpeg",
-            "image/jpg",
-            "image/png"
-        };
-
-        private static readonly HashSet<string> ExtensionesPermitidas = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ".pdf", ".jpg", ".jpeg", ".png"
-        };
-
         // 'B' + 0/1 + 9 digitos (NCF de papel, 11 caracteres) o 'E' + 3/4 + 11 digitos
         // (e-NCF, 13 caracteres). Nada mas pasa: ni espacios, ni guiones, ni otras letras.
         private static readonly Regex PatronNcf = new("^(B[01][0-9]{9}|E[34][0-9]{11})$", RegexOptions.Compiled);
-
-        // Firmas (magic bytes) de los unicos cuatro tipos que TiposMimePermitidos
-        // acepta. No hace falta una firma de PNG/JPEG separada por variante: los
-        // primeros bytes ya identifican el formato sin importar el resto del archivo.
-        private static readonly byte[] FirmaPdf = "%PDF"u8.ToArray();
-        private static readonly byte[] FirmaPng = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
-        private static readonly byte[] FirmaJpeg = [0xFF, 0xD8, 0xFF];
 
         private readonly IFondoRepository _fondos;
         private readonly ICategoriaGastoRepository _categorias;
@@ -127,7 +106,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             // con otro texto el mismo error que Validar ya agrego para ese archivo.
             foreach (var comprobante in comando.Comprobantes)
             {
-                if (EsFormatoAceptado(comprobante) && !await CoincideConFirmaEsperadaAsync(comprobante))
+                if (ValidadorComprobante.EsFormatoAceptado(comprobante.NombreOriginal, comprobante.TipoMime)
+                    && !await ValidadorComprobante.CoincideConFirmaEsperadaAsync(
+                        comprobante.Contenido, comprobante.TipoMime, cancellationToken))
                 {
                     errores.Add($"'{comprobante.NombreOriginal}' no coincide con su tipo declarado (contenido invalido).");
                 }
@@ -304,10 +285,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
             foreach (var comprobante in comando.Comprobantes)
             {
-                // Se validan las dos cosas: el navegador reporta el MIME y es facil de
-                // falsear, pero la extension es la que decide como se abre el archivo
-                // despues.
-                if (!EsFormatoAceptado(comprobante))
+                if (!ValidadorComprobante.EsFormatoAceptado(comprobante.NombreOriginal, comprobante.TipoMime))
                 {
                     errores.Add($"'{comprobante.NombreOriginal}' no es un formato aceptado (solo PDF, JPG, JPEG o PNG).");
                 }
@@ -319,48 +297,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             }
 
             return errores;
-        }
-
-        /// <summary>
-        /// MIME y extension, la unica comprobacion que no necesita leer el contenido
-        /// del archivo. Comparte el mismo criterio entre Validar (el mensaje de "no es
-        /// un formato aceptado") y el chequeo de firma en EjecutarAsync -- este ultimo
-        /// se salta por completo cuando esto ya dio false, para no repetir el mismo
-        /// problema con un segundo mensaje.
-        /// </summary>
-        private static bool EsFormatoAceptado(RegistrarGastoCommand.ComprobanteEntrada comprobante) =>
-            TiposMimePermitidos.Contains(comprobante.TipoMime)
-            && ExtensionesPermitidas.Contains(Path.GetExtension(comprobante.NombreOriginal));
-
-        /// <summary>
-        /// Compara los primeros bytes del archivo contra la firma del tipo que declara
-        /// (TipoMime, ya validado contra la lista blanca en Validar). Deja el stream
-        /// en la posicion 0 al terminar: GuardarComprobanteAsync todavia necesita
-        /// leerlo completo desde el principio.
-        /// </summary>
-        private static async Task<bool> CoincideConFirmaEsperadaAsync(RegistrarGastoCommand.ComprobanteEntrada comprobante)
-        {
-            var firma = comprobante.TipoMime.ToLowerInvariant() switch
-            {
-                "application/pdf" => FirmaPdf,
-                "image/png" => FirmaPng,
-                "image/jpeg" or "image/jpg" => FirmaJpeg,
-                _ => null
-            };
-
-            // Un TipoMime fuera de la lista blanca ya lo rechaza Validar por su cuenta;
-            // aqui no hay firma con la que comparar, asi que no se declara coincidencia.
-            if (firma is null)
-            {
-                return false;
-            }
-
-            var buffer = new byte[firma.Length];
-            comprobante.Contenido.Position = 0;
-            var leidos = await comprobante.Contenido.ReadAsync(buffer.AsMemory(0, firma.Length));
-            comprobante.Contenido.Position = 0;
-
-            return leidos == firma.Length && buffer.AsSpan().SequenceEqual(firma);
         }
 
         /// <summary>
