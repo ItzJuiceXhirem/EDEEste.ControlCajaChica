@@ -61,7 +61,7 @@ builder.Services.AddScoped<IAutorizacionService, AutorizacionService>();
 
 // DbContext, interceptores de auditoría/integridad, criptografía, repositorios e
 // IIdentityService.
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath);
 
 // Los casos de uso viven en Application, pero se registran aquí: Application no
 // referencia ningún paquete (ni siquiera el de DI) a propósito, y Presentation es el
@@ -143,7 +143,33 @@ builder.Services.AddRateLimiter(opciones =>
             QueueLimit = 0
         });
     });
+
+    // Cuota anti-DoS de la subida de comprobantes a staging. Por Id de usuario y
+    // no por IP: el NAT de la oficina pondria a toda la empresa en la misma
+    // cubeta. Cae a la IP solo si por algun motivo no hubiera usuario resuelto
+    // todavia -- no deberia pasar detras de RequireAuthorization, pero el
+    // particionador no puede asumirlo.
+    opciones.AddPolicy("subida-comprobantes", contexto =>
+    {
+        var clave = contexto.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? contexto.Connection.RemoteIpAddress?.ToString()
+            ?? "desconocido";
+
+        return RateLimitPartition.GetFixedWindowLimiter(clave, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 40,
+            Window = TimeSpan.FromMinutes(5),
+            QueueLimit = 0
+        });
+    });
 });
+
+// El limite por defecto de multipart es 128 MB; un comprobante no debe superar
+// los 10 MB que ya exige el endpoint de subida, asi que esto es solo el techo
+// duro del servidor -- corta ANTES de que el endpoint llegue a ver el archivo
+// completo, no reemplaza esa validacion.
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(opciones =>
+    opciones.MultipartBodyLengthLimit = 11 * 1024 * 1024);
 
 var app = builder.Build();
 

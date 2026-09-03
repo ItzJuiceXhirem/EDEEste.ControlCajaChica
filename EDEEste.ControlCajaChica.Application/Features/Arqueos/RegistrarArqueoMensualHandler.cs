@@ -64,12 +64,18 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
 
             var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
+            // El Id resuelto tambien queda como RealizadoPorUsuarioId mas abajo -- sin
+            // poder identificarlo, esto falla cerrado en vez de dejar un registro con
+            // el campo vacio (y sin poder verificar tampoco que el fondo sea el suyo).
+            if (usuario.Id is not { } usuarioIdArquear)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
+            }
+
             // Defensa en profundidad: sin esto, un Custodio podria arquear el fondo de
             // otro custodio armando la peticion contra el circuito de Blazor Server,
             // aunque la pantalla ya solo le ofrezca el suyo en el desplegable.
-            if (usuario.Id is { } usuarioIdArquear
-                && await _identidad.EstaEnRolAsync(usuarioIdArquear, RolesApp.Custodio)
-                && fondo.CustodioId != usuarioIdArquear)
+            if (await _identidad.EstaEnRolAsync(usuarioIdArquear, RolesApp.Custodio) && fondo.CustodioId != usuarioIdArquear)
             {
                 return ResultadoOperacion<Guid>.Fallo("No tiene permiso para arquear el fondo de otro custodio.");
             }
@@ -107,7 +113,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
                 Diferencia = diferencia,
                 Resultado = resultado,
                 Observaciones = string.IsNullOrWhiteSpace(comando.Observaciones) ? null : comando.Observaciones.Trim(),
-                RealizadoPorUsuarioId = usuario.Id ?? string.Empty
+                RealizadoPorUsuarioId = usuarioIdArquear
             };
 
             // Solo se guardan las denominaciones que de verdad se contaron: una fila

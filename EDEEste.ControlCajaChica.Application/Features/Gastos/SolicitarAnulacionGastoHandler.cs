@@ -63,11 +63,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             }
 
             var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
+            if (usuario.Id is not { } usuarioIdSolicitar)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
+            }
 
             // Defensa en profundidad: sin esto, un Custodio podria pedir la anulacion
             // de un gasto de otro fondo con solo conocer (o adivinar) su GastoId.
-            if (usuario.Id is { } usuarioIdSolicitar
-                && await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio))
+            if (await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio))
             {
                 var fondo = await _fondos.ObtenerPorIdAsync(gasto.FondoCajaChicaId, cancellationToken);
                 if (fondo is null || fondo.CustodioId != usuarioIdSolicitar)

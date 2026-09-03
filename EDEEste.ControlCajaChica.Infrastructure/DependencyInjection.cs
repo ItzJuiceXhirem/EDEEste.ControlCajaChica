@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Infrastructure.Configuration;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
@@ -20,9 +21,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure
     /// </summary>
     public static class DependencyInjection
     {
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddInfrastructure(
+            this IServiceCollection services,
+            IConfiguration configuration,
+            string rutaRaizContenido)
         {
             AgregarCriptografia(services, configuration);
+            AgregarAlmacenamiento(services, rutaRaizContenido);
             AgregarPersistencia(services, configuration);
             AgregarAutenticacion(services, configuration);
             AgregarConfiguracionInicial(services, configuration);
@@ -33,6 +38,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             services.AddScoped<IFileStorageService, FileStorageService>();
             services.AddScoped<IPdfConsolidadorService, PdfConsolidadorService>();
             services.AddScoped<InicializadorIdentidad>();
+            services.AddHostedService<LimpiezaStagingBackgroundService>();
 
             AgregarRepositorios(services);
 
@@ -155,6 +161,15 @@ namespace EDEEste.ControlCajaChica.Infrastructure
         private static void AgregarConfiguracionInicial(IServiceCollection services, IConfiguration configuration) =>
             services.Configure<OpcionesConfiguracionInicial>(
                 configuration.GetSection(OpcionesConfiguracionInicial.Seccion));
+
+        /// <summary>
+        /// rutaRaizContenido llega desde IHostEnvironment.ContentRootPath, resuelto
+        /// en Program.cs -- Infrastructure no referencia los paquetes de Hosting
+        /// solo para esto, recibe la ruta ya calculada.
+        /// </summary>
+        private static void AgregarAlmacenamiento(IServiceCollection services, string rutaRaizContenido) =>
+            services.Configure<OpcionesAlmacenamiento>(
+                opciones => opciones.RutaRaiz = Path.Combine(rutaRaizContenido, "App_Data"));
 
         private static void AgregarCriptografia(IServiceCollection services, IConfiguration configuration)
         {

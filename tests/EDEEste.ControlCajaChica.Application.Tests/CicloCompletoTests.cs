@@ -48,14 +48,20 @@ namespace EDEEste.ControlCajaChica.Application.Tests
             var autorizacion = new FakeAutorizacionService();
             var identidad = new FakeIdentityService();
 
+            var almacenamiento = new FakeFileStorageService();
             var registrarGasto = new RegistrarGastoHandler(
-                fondos, categorias, gastos, new FakeFileStorageService(), usuarioActual, identidad, autorizacion, contexto);
+                fondos, categorias, gastos, almacenamiento, usuarioActual, identidad, autorizacion, contexto);
 
             var crearSolicitud = new CrearSolicitudReposicionHandler(
                 fondos, gastos, reposiciones, new FakePdfConsolidadorService(), new FakeFileStorageService(), usuarioActual, identidad, autorizacion, contexto);
 
             var aprobar = new AprobarReposicionHandler(reposiciones, usuarioActual, autorizacion, contexto);
             var pagar = new ProcesarPagoReposicionHandler(reposiciones, usuarioActual, autorizacion, contexto);
+
+            // El comprobante llega como referencia a staging (ver GastoEndpoints), no
+            // como stream: se sube primero, como haria el endpoint real.
+            var referenciaComprobante = await almacenamiento.GuardarComprobanteEnStagingAsync(
+                "usuario-prueba", "factura.pdf", ".pdf", new MemoryStream("%PDF-1.4"u8.ToArray()));
 
             // 1. Registrar un gasto que deja el fondo por debajo del 30% (umbral de
             //    alerta por defecto), para que la reposicion se pueda solicitar.
@@ -73,11 +79,8 @@ namespace EDEEste.ControlCajaChica.Application.Tests
                 [
                     new RegistrarGastoCommand.ComprobanteEntrada
                     {
-                        NombreOriginal = "factura.pdf",
-                        TipoMime = "application/pdf",
-                        TamanoBytes = 3,
-                        Descripcion = "Factura de prueba",
-                        Contenido = new MemoryStream("%PDF-1.4"u8.ToArray())
+                        Referencia = referenciaComprobante,
+                        Descripcion = "Factura de prueba"
                     }
                 ]
             });

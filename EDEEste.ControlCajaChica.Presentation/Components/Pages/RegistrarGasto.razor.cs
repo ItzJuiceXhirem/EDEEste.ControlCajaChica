@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
@@ -15,11 +14,6 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 {
     public partial class RegistrarGasto
     {
-        // Los adjuntos de una factura son fotos o PDF de pocas páginas; 10 MB deja
-        // holgura de sobra y evita que el límite de 512 KB que trae InputFile por
-        // defecto corte una foto de celular.
-        private const long TamanoMaximoArchivo = 10 * 1024 * 1024;
-
         [Inject]
         private IFondoRepository Fondos { get; set; } = default!;
 
@@ -33,16 +27,36 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private ICurrentUserService UsuarioActual { get; set; } = default!;
 
         [Inject]
+        private IFileStorageService Almacenamiento { get; set; } = default!;
+
+        [Inject]
         private RegistrarGastoHandler Handler { get; set; } = default!;
 
         [Inject]
         private IJSRuntime JsRuntime { get; set; } = default!;
+
+        // Sirve el token antiforgery que la subida manda por fetch(): la subida va
+        // por HTTP normal (GastoEndpoints), fuera del circuito de Blazor Server, asi
+        // que necesita el mismo token que llevaria un <form> comun. Este componente
+        // no lo captura del DOM ni lo pide por separado -- es el mismo que ya quedo
+        // persistido para todo el circuito al servir la pagina.
+        [Inject]
+        private AntiforgeryStateProvider Antiforgery { get; set; } = default!;
 
         // Referencias para conectar el arrastrar-y-soltar sobre la zona de carga: sin
         // esto, soltar un archivo lo abre en una pestaña del navegador en vez de
         // entregarlo al <input type="file"> real que renderiza InputFile.
         private ElementReference zonaDropRef;
         private InputFile? inputFileRef;
+
+        // Falso hasta que el circuito interactivo complete su primer render. La
+        // pagina prerenderiza como HTML estatico antes de que el circuito conecte, y
+        // en esa ventana el <input type="file"> ya es real y aceptaria un archivo sin
+        // que ningun manejador de C# este conectado todavia -- la seleccion se
+        // perderia en silencio. OnAfterRenderAsync solo corre dentro de un circuito ya
+        // conectado, asi que su primera pasada es la confirmacion de que ya es seguro
+        // dejar interactuar con la zona de carga.
+        private bool listo;
 
         private IReadOnlyList<FondoCajaChica>? fondos;
         private IReadOnlyList<CategoriaGasto>? categorias;
@@ -88,16 +102,24 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         }
 
         /// <summary>
-        /// No se limita a "firstRender": mientras se cargan fondos/categorias la
-        /// pantalla todavia muestra "Cargando...", asi que la zona de arrastre (y su
-        /// InputFile) no existen en ese primer render -- solo aparecen despues, en un
-        /// render posterior. El propio JS es idempotente (ver dataset.ccWired en
-        /// interop.js), asi que llamarlo de mas en renders subsiguientes no duplica
-        /// los listeners; sin ese chequeo alli, esto tendria que llevar su propio
-        /// booleano de "ya conectado".
+        /// No se limita a "firstRender" para conectar el arrastrar-y-soltar: mientras
+        /// se cargan fondos/categorias la pantalla todavia muestra "Cargando...", asi
+        /// que la zona de arrastre (y su InputFile) no existen en ese primer render --
+        /// solo aparecen despues, en un render posterior. El propio JS es idempotente
+        /// (ver dataset.ccWired en interop.js), asi que llamarlo de mas en renders
+        /// subsiguientes no duplica los listeners.
+        ///
+        /// "listo" si se pone una sola vez en el primer render interactivo -- ver su
+        /// comentario -- y de ahi en adelante ya no importa que markup se muestre.
         /// </summary>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
+            if (firstRender)
+            {
+                listo = true;
+                StateHasChanged();
+            }
+
             if (inputFileRef?.Element is { } elementoInput)
             {
                 await JsRuntime.InvokeVoidAsync("ccDragDrop.wire", zonaDropRef, elementoInput);
@@ -183,21 +205,123 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         private sealed record AvisoDeTope(bool DentroDelTope, string Mensaje);
 
-        private void SeleccionarArchivos(InputFileChangeEventArgs e)
+        /// <summary>
+        /// No lee los bytes del archivo en ningun momento -- eso es justo lo que se
+        /// queria sacar del circuito. Arma la fila (metadatos nomas, gratis) y le pide
+        /// al JS que suba el <input> real via fetch(); cuando esa promesa resuelve, se
+        /// actualiza cada fila con su referencia de staging o su error.
+        /// </summary>
+        private async Task SeleccionarArchivosAsync(InputFileChangeEventArgs e)
         {
             errores.Clear();
+
+            // Los adjuntos de una seleccion anterior se descartan tambien del lado
+            // del servidor: sin esto, cada vez que alguien cambia de opinion sobre
+            // que archivos adjuntar, los viejos quedarian huerfanos en staging hasta
+            // que los alcance el barrido de 24 horas. Sin esperarlo -- la fila ya sale
+            // de la lista sin importar que devuelva el descarte.
+            foreach (var previo in adjuntos.Where(a => a.Referencia is not null))
+            {
+                _ = DescartarSiEsPosibleAsync(previo.Referencia!.Value);
+            }
+
             adjuntos.Clear();
 
             foreach (var archivo in e.GetMultipleFiles(maximumFileCount: 20))
             {
-                adjuntos.Add(new AdjuntoSeleccionado(archivo));
+                adjuntos.Add(new AdjuntoSeleccionado
+                {
+                    NombreOriginal = archivo.Name,
+                    TamanoBytes = archivo.Size,
+                    Subiendo = true
+                });
+            }
+
+            if (adjuntos.Count == 0)
+            {
+                return;
+            }
+
+            // Se muestra "Subiendo..." de inmediato; la subida real puede tardar.
+            StateHasChanged();
+
+            if (inputFileRef?.Element is not { } elementoInput)
+            {
+                MarcarErrorEnTodos("No se pudo acceder al selector de archivos.");
+                return;
+            }
+
+            var token = Antiforgery.GetAntiforgeryToken();
+            if (token is null)
+            {
+                MarcarErrorEnTodos("No se pudo preparar la subida. Recargue la página e intente de nuevo.");
+                return;
+            }
+
+            ResultadoSubidaJs[] resultados;
+            try
+            {
+                resultados = await JsRuntime.InvokeAsync<ResultadoSubidaJs[]>(
+                    "ccSubidas.subir", elementoInput, "/gastos/comprobantes/staging", token.FormFieldName, token.Value);
+            }
+            catch (JSException)
+            {
+                MarcarErrorEnTodos("No se pudo conectar con el servidor para subir los archivos.");
+                return;
+            }
+
+            for (var i = 0; i < adjuntos.Count; i++)
+            {
+                var adjunto = adjuntos[i];
+                adjunto.Subiendo = false;
+
+                var resultado = i < resultados.Length ? resultados[i] : null;
+                if (resultado?.Referencia is { } referencia)
+                {
+                    adjunto.Referencia = referencia;
+                }
+                else
+                {
+                    adjunto.Error = resultado?.Error ?? "No se pudo subir el archivo.";
+                }
             }
         }
 
-        private void QuitarAdjunto(AdjuntoSeleccionado adjunto)
+        private void MarcarErrorEnTodos(string mensaje)
+        {
+            foreach (var adjunto in adjuntos)
+            {
+                adjunto.Subiendo = false;
+                adjunto.Error = mensaje;
+            }
+        }
+
+        private async Task QuitarAdjuntoAsync(AdjuntoSeleccionado adjunto)
         {
             adjuntos.Remove(adjunto);
             errores.Clear();
+
+            if (adjunto.Referencia is { } referencia)
+            {
+                await DescartarSiEsPosibleAsync(referencia);
+            }
+        }
+
+        /// <summary>
+        /// El descarte llama directo a IFileStorageService y no al endpoint HTTP de
+        /// borrado: esta pagina ya corre dentro de un circuito autenticado con
+        /// inyeccion de dependencias, asi que salir por HTTP (con su propio token
+        /// antiforgery) seria un viaje de mas para lo mismo. El endpoint sigue
+        /// existiendo para quien no tenga ese contexto -- por ejemplo, JS puro sin
+        /// circuito detras.
+        /// </summary>
+        private async Task DescartarSiEsPosibleAsync(Guid referencia)
+        {
+            var usuario = await UsuarioActual.ObtenerAsync();
+            if (usuario.Id is { } usuarioId)
+            {
+                await Almacenamiento.EliminarStagingAsync(usuarioId, referencia);
+            }
         }
 
         /// <summary>
@@ -238,11 +362,20 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             errores.Clear();
             exito = null;
-            guardando = true;
 
-            // Los streams de IBrowserFile se abren aquí, dentro del envío, y se cierran al
-            // terminar: no se pueden guardar abiertos entre interacciones.
-            var abiertos = new List<Stream>();
+            if (adjuntos.Any(a => a.Subiendo))
+            {
+                errores.Add("Espere a que terminen de subir los comprobantes.");
+                return;
+            }
+
+            if (adjuntos.Any(a => a.Referencia is null))
+            {
+                errores.Add("Uno o más comprobantes no se pudieron subir. Quítelos o inténtelo de nuevo antes de guardar.");
+                return;
+            }
+
+            guardando = true;
 
             try
             {
@@ -262,23 +395,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
                 foreach (var adjunto in adjuntos)
                 {
-                    // Se vuelca a un MemoryStream (con seek) en vez de pasar el stream
-                    // de IBrowserFile tal cual: ese stream es de solo avance, y el
-                    // handler necesita leer los primeros bytes para comprobar la firma
-                    // del archivo y luego rebobinar para guardarlo completo.
-                    using var origen = adjunto.Archivo.OpenReadStream(TamanoMaximoArchivo);
-                    var contenido = new MemoryStream();
-                    await origen.CopyToAsync(contenido);
-                    contenido.Position = 0;
-                    abiertos.Add(contenido);
-
                     comando.Comprobantes.Add(new RegistrarGastoCommand.ComprobanteEntrada
                     {
-                        NombreOriginal = adjunto.Archivo.Name,
-                        TipoMime = adjunto.Archivo.ContentType,
-                        TamanoBytes = adjunto.Archivo.Size,
-                        Descripcion = adjunto.Descripcion,
-                        Contenido = contenido
+                        Referencia = adjunto.Referencia!.Value,
+                        Descripcion = adjunto.Descripcion
                     });
                 }
 
@@ -312,21 +432,27 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             }
             finally
             {
-                foreach (var stream in abiertos)
-                {
-                    await stream.DisposeAsync();
-                }
-
                 guardando = false;
             }
         }
 
         private sealed class AdjuntoSeleccionado
         {
-            public AdjuntoSeleccionado(IBrowserFile archivo) => Archivo = archivo;
-
-            public IBrowserFile Archivo { get; }
+            public string NombreOriginal { get; set; } = string.Empty;
+            public long TamanoBytes { get; set; }
             public string Descripcion { get; set; } = string.Empty;
+
+            // Null mientras sube o si la subida fallo -- ver Subiendo/Error.
+            public Guid? Referencia { get; set; }
+            public bool Subiendo { get; set; }
+            public string? Error { get; set; }
+        }
+
+        /// <summary>Forma exacta del objeto que devuelve ccSubidas.subir() en interop.js.</summary>
+        private sealed class ResultadoSubidaJs
+        {
+            public Guid? Referencia { get; set; }
+            public string? Error { get; set; }
         }
 
         private sealed class EntradaGasto

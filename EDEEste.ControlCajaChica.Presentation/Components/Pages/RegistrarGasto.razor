@@ -152,10 +152,23 @@ else
 
                 @* La zona de arrastre envuelve al <input type="file">, que va oculto pero
                    sigue siendo el control real: así conserva el teclado y el lector de
-                   pantalla que un <div> con onclick perdería. *@
-                <label class="rg-drop" @ref="zonaDropRef">
-                    <InputFile @ref="inputFileRef" OnChange="SeleccionarArchivos" multiple accept=".pdf,.jpg,.jpeg,.png" class="rg-file" />
-                    <span>Arrastre los archivos aquí o <b>búsquelos en el equipo</b></span>
+                   pantalla que un <div> con onclick perdería.
+
+                   Deshabilitada hasta "listo": la página prerenderiza como HTML estático
+                   antes de que el circuito conecte, y en esa ventana el <input> ya
+                   aceptaría un archivo sin que ningún manejador de C# esté conectado
+                   todavía -- la selección se perdería en silencio. *@
+                <label class="rg-drop @(listo ? "" : "rg-drop-deshabilitada")" @ref="zonaDropRef">
+                    <InputFile @ref="inputFileRef" OnChange="SeleccionarArchivosAsync" multiple accept=".pdf,.jpg,.jpeg,.png"
+                               class="rg-file" disabled="@(!listo)" />
+                    @if (listo)
+                    {
+                        <span>Arrastre los archivos aquí o <b>búsquelos en el equipo</b></span>
+                    }
+                    else
+                    {
+                        <span>Preparando…</span>
+                    }
                 </label>
 
                 @if (adjuntos.Count > 0)
@@ -174,20 +187,29 @@ else
                                 {
                                     <tr>
                                         <td>
-                                            <span class="rg-file-n">@adjunto.Archivo.Name</span>
-                                            <span class="rg-help cc-num">@(adjunto.Archivo.Size / 1024) KB</span>
+                                            <span class="rg-file-n">@adjunto.NombreOriginal</span>
+                                            <span class="rg-help cc-num">@(adjunto.TamanoBytes / 1024) KB</span>
+                                            @if (adjunto.Subiendo)
+                                            {
+                                                <br /><span class="rg-help">Subiendo…</span>
+                                            }
+                                            else if (adjunto.Error is not null)
+                                            {
+                                                <br /><span class="rg-help rg-help-bad">@adjunto.Error</span>
+                                            }
                                         </td>
                                         <td>
                                             <input class="rg-input" maxlength="200"
                                                    placeholder="Ej: Factura de la ferretería"
                                                    value="@adjunto.Descripcion"
+                                                   disabled="@(adjunto.Subiendo)"
                                                    @oninput="e => adjunto.Descripcion = e.Value?.ToString() ?? string.Empty" />
                                         </td>
                                         <td class="rg-act">
                                             <button type="button" class="rg-xsm"
                                                     title="Quitar este archivo"
-                                                    aria-label="Quitar @adjunto.Archivo.Name"
-                                                    @onclick="() => QuitarAdjunto(adjunto)">✕</button>
+                                                    aria-label="Quitar @adjunto.NombreOriginal"
+                                                    @onclick="() => QuitarAdjuntoAsync(adjunto)">✕</button>
                                         </td>
                                     </tr>
                                 }
@@ -199,7 +221,7 @@ else
 
             <div class="rg-foot">
                 <a class="rg-btn rg-btn-ghost" href="/gastos">Cancelar</a>
-                <button type="submit" class="rg-btn rg-btn-pri" disabled="@guardando">
+                <button type="submit" class="rg-btn rg-btn-pri" disabled="@(guardando || adjuntos.Any(a => a.Subiendo))">
                     @(guardando ? "Guardando..." : "Registrar gasto")
                 </button>
             </div>

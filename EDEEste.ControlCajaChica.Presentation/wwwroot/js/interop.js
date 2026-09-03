@@ -131,3 +131,58 @@ window.ccDragDrop = {
         });
     }
 };
+
+// Sube los comprobantes por fetch(), fuera del circuito de SignalR: un archivo
+// real (varios MB) choca contra el limite de mensaje de SignalR o retrasa los
+// pings de mantenimiento mas alla de su margen, y bajo IIS eso tumba el
+// circuito entero, no solo la subida (ver GastoEndpoints.cs).
+//
+// Dos reglas duras, porque esto reemplaza "la subida mata el circuito" -- si
+// esta llamada pudiera lanzar, se reemplazaria el bug por si mismo:
+//   1. Nunca rechaza (reject): cada archivo resuelve su propio {referencia,
+//      error}, nunca deja que un fallo de red o un cuerpo que no es JSON (el
+//      404.13 de IIS Request Filtering, por ejemplo, devuelve HTML) tumbe la
+//      promesa completa.
+//   2. Nunca toca el DOM: los nombres de archivo vuelven a C#, donde Blazor
+//      los escapa. Pintarlos aqui con innerHTML reintroduciria XSS por la
+//      puerta de atras.
+window.ccSubidas = {
+    subir: async function (input, url, nombreCampoToken, valorToken) {
+        var archivos = (input && input.files) ? Array.from(input.files) : [];
+        var resultados = [];
+
+        // Secuencial y no en paralelo: preserva el orden de input.files, que es
+        // el mismo orden en que Blazor (GetMultipleFiles) ya enumero los mismos
+        // archivos del lado de C# -- ahi es donde se correlacionan de vuelta.
+        for (var i = 0; i < archivos.length; i++) {
+            resultados.push(await subirUnArchivo(archivos[i], url, nombreCampoToken, valorToken));
+        }
+
+        return resultados;
+    }
+};
+
+async function subirUnArchivo(archivo, url, nombreCampoToken, valorToken) {
+    try {
+        var datos = new FormData();
+        datos.append(nombreCampoToken, valorToken);
+        datos.append("archivo", archivo);
+
+        var respuesta = await fetch(url, { method: "POST", body: datos, credentials: "same-origin" });
+
+        var cuerpo = null;
+        try {
+            cuerpo = await respuesta.json();
+        } catch (errorJson) {
+            cuerpo = null;
+        }
+
+        if (!respuesta.ok) {
+            return { referencia: null, error: (cuerpo && cuerpo.error) || "No se pudo subir el archivo." };
+        }
+
+        return { referencia: (cuerpo && cuerpo.referencia) || null, error: null };
+    } catch (errorRed) {
+        return { referencia: null, error: "No se pudo conectar con el servidor." };
+    }
+}

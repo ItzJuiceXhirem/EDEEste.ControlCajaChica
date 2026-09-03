@@ -75,12 +75,18 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
+            // El Id resuelto tambien queda como SolicitoUsuarioId mas abajo -- sin
+            // poder identificarlo, esto falla cerrado en vez de dejar un registro con
+            // el campo vacio (y sin poder verificar tampoco que el fondo sea el suyo).
+            if (usuario.Id is not { } usuarioIdSolicitar)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
+            }
+
             // Defensa en profundidad: sin esto, un Custodio podria solicitar la
             // reposicion del fondo de otro custodio armando la peticion contra el
             // circuito de Blazor Server, aunque la pantalla ya solo le ofrezca el suyo.
-            if (usuario.Id is { } usuarioIdSolicitar
-                && await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio)
-                && fondo.CustodioId != usuarioIdSolicitar)
+            if (await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio) && fondo.CustodioId != usuarioIdSolicitar)
             {
                 return ResultadoOperacion<Guid>.Fallo("No tiene permiso para solicitar la reposicion del fondo de otro custodio.");
             }
@@ -105,7 +111,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                 FondoCajaChica = fondo,
                 MontoReclamado = montoReclamado,
                 FechaSolicitud = DateTime.UtcNow,
-                SolicitoUsuarioId = usuario.Id ?? string.Empty,
+                SolicitoUsuarioId = usuarioIdSolicitar,
                 Estado = EstadoReposicion.PendienteAprobacion
             };
 

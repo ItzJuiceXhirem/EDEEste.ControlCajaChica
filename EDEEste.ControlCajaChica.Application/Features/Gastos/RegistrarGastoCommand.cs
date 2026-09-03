@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 {
@@ -25,17 +24,18 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         public List<ComprobanteEntrada> Comprobantes { get; set; } = new();
 
         /// <summary>
-        /// Un archivo adjunto y su transcripcion. El contenido viaja como Stream para
-        /// no cargar en memoria facturas grandes: FileStorageService lo copia a disco
-        /// por bloques.
+        /// Un comprobante ya subido a staging (ver GastoEndpoints, endpoint POST
+        /// /gastos/comprobantes/staging) y la transcripcion que le puso el usuario.
+        ///
+        /// No lleva nombre, MIME, tamaño ni contenido: esos datos nunca se confia en
+        /// ellos si vienen del cliente -- el handler los resuelve del lado del
+        /// servidor a partir de Referencia (via IFileStorageService), leyendolos del
+        /// manifiesto firmado que se guardo al subir el archivo.
         /// </summary>
         public sealed class ComprobanteEntrada
         {
-            public string NombreOriginal { get; set; } = string.Empty;
-            public string TipoMime { get; set; } = string.Empty;
-            public long TamanoBytes { get; set; }
+            public Guid Referencia { get; set; }
             public string Descripcion { get; set; } = string.Empty;
-            public Stream Contenido { get; set; } = Stream.Null;
         }
     }
 }

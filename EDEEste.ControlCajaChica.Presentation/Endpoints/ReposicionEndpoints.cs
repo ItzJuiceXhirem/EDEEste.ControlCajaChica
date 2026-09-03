@@ -27,11 +27,22 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 IFileStorageService almacenamiento,
                 CancellationToken cancellationToken) =>
             {
+                // Una sola respuesta para las tres ramas de abajo, mismo motivo que
+                // GastoEndpoints: un mensaje distinto por rama ("no existe" vs "no
+                // tiene permiso" vs "el archivo no esta") volveria el texto de la
+                // respuesta un canal para distinguir "el Id no existe" de "existe pero
+                // no es tuyo". Con cuerpo y no vacio para que
+                // UseStatusCodePagesWithReExecute (Program.cs) no la reejecute contra
+                // /not-found (ver el comentario del DELETE de staging en GastoEndpoints).
+                static IResult ExpedienteNoDisponible() => Results.Json(
+                    new { error = "La reposición no existe o no tiene acceso a su expediente." },
+                    statusCode: StatusCodes.Status404NotFound);
+
                 var solicitud = await reposiciones.ObtenerConDetalleAsync(id, cancellationToken);
 
                 if (solicitud is null || string.IsNullOrWhiteSpace(solicitud.RutaPdfConsolidado))
                 {
-                    return Results.NotFound();
+                    return ExpedienteNoDisponible();
                 }
 
                 // Mismo motivo que GastoEndpoints: sin esto, un Custodio con el Id de
@@ -43,17 +54,20 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 // si por lo que sea no viniera cargado, "null != usuarioId" da true y
                 // se niega el acceso. Falla cerrado, que es lo correcto aqui.
                 var usuario = await usuarioActual.ObtenerAsync(cancellationToken);
-                if (usuario.Id is { } usuarioId
-                    && await identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio)
-                    && solicitud.FondoCajaChica?.CustodioId != usuarioId)
+                if (usuario.Id is not { } usuarioId)
                 {
-                    return Results.NotFound();
+                    return ExpedienteNoDisponible();
+                }
+
+                if (await identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio) && solicitud.FondoCajaChica?.CustodioId != usuarioId)
+                {
+                    return ExpedienteNoDisponible();
                 }
 
                 var contenido = await almacenamiento.LeerArchivoAsync(solicitud.RutaPdfConsolidado);
                 if (contenido is null)
                 {
-                    return Results.NotFound();
+                    return ExpedienteNoDisponible();
                 }
 
                 // Mismo motivo que GastoEndpoints: un expediente es informacion

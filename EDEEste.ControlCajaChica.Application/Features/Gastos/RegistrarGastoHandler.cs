@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -16,6 +17,13 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
     /// <summary>
     /// Registra un gasto con sus comprobantes y descuenta el monto del fondo.
     ///
+    /// Los comprobantes llegan como referencias a archivos ya subidos a staging
+    /// (ver GastoEndpoints, POST /gastos/comprobantes/staging) y no como streams:
+    /// la subida va por HTTP normal, fuera del circuito de Blazor Server, porque
+    /// bajo IIS un archivo real choca con el limite de mensaje de SignalR y tumba
+    /// el circuito entero. Este handler solo promueve (copia) esos archivos a su
+    /// ubicacion final al confirmar el gasto.
+    ///
     /// Todo se confirma en un solo SaveChangesAsync: el gasto, sus comprobantes y el
     /// nuevo balance del fondo. Si algo falla, no queda un gasto registrado sin
     /// descontar (ni al reves). Los interceptores de auditoria e integridad se
@@ -26,6 +34,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         // 'B' + 0/1 + 9 digitos (NCF de papel, 11 caracteres) o 'E' + 3/4 + 11 digitos
         // (e-NCF, 13 caracteres). Nada mas pasa: ni espacios, ni guiones, ni otras letras.
         private static readonly Regex PatronNcf = new("^(B[01][0-9]{9}|E[34][0-9]{11})$", RegexOptions.Compiled);
+
+        // Antes vivia solo del lado del cliente (GetMultipleFiles(maximumFileCount: 20),
+        // que ademas lanzaba si se pasaba). Aqui es la regla de negocio real: una lista,
+        // un comando, una transaccion -- sin la carrera que tendria contar archivos en
+        // una carpeta de staging.
+        private const int LimiteComprobantesPorGasto = 20;
 
         private readonly IFondoRepository _fondos;
         private readonly ICategoriaGastoRepository _categorias;
@@ -75,14 +89,21 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
             var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
+            // Ademas de identificar quien registra, usuarioId es la carpeta de staging
+            // donde se buscan los comprobantes -- sin un Id resuelto no hay a donde ir
+            // a buscarlos, asi que esto falla cerrado (a diferencia de la comprobacion
+            // de dueño de mas abajo, que antes se saltaba entera si esto era null).
+            if (usuario.Id is not { } usuarioId)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
+            }
+
             // Defensa en profundidad: la pantalla ya solo le ofrece al Custodio su
             // propio fondo en el desplegable, pero eso es filtrado de UI. Sin esta
             // comprobacion, un Custodio podria armar la peticion contra el circuito de
             // Blazor Server con el Id de otro fondo y descontarle el balance a otro
             // custodio.
-            if (usuario.Id is { } usuarioIdRegistrar
-                && await _identidad.EstaEnRolAsync(usuarioIdRegistrar, RolesApp.Custodio)
-                && fondo.CustodioId != usuarioIdRegistrar)
+            if (await _identidad.EstaEnRolAsync(usuarioId, RolesApp.Custodio) && fondo.CustodioId != usuarioId)
             {
                 return ResultadoOperacion<Guid>.Fallo("No tiene permiso para registrar gastos en el fondo de otro custodio.");
             }
@@ -94,24 +115,27 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             }
 
             var errores = Validar(comando, fondo, categoria);
-
-            // El TipoMime que llega aqui es el que reporta el navegador -- basta con
-            // renombrar un archivo para que declare cualquier extension/MIME de la
-            // lista blanca sin importar su contenido real. La firma (magic bytes) es
-            // lo unico que no se puede spoofear con solo cambiar el nombre.
-            //
-            // Solo se comprueba si el formato ya paso EsFormatoAceptado: para un MIME
-            // fuera de la lista blanca, CoincideConFirmaEsperadaAsync siempre devuelve
-            // false (no tiene con que comparar), asi que llamarla ahi solo duplicaria
-            // con otro texto el mismo error que Validar ya agrego para ese archivo.
-            foreach (var comprobante in comando.Comprobantes)
+            if (errores.Count > 0)
             {
-                if (ValidadorComprobante.EsFormatoAceptado(comprobante.NombreOriginal, comprobante.TipoMime)
-                    && !await ValidadorComprobante.CoincideConFirmaEsperadaAsync(
-                        comprobante.Contenido, comprobante.TipoMime, cancellationToken))
+                return ResultadoOperacion<Guid>.Fallo(errores);
+            }
+
+            // Fase A: leer y validar TODOS los manifiestos de staging antes de
+            // promover ninguno. El formato, el MIME y la firma del archivo ya se
+            // comprobaron al subirlo (GastoEndpoints); esto solo confirma que la
+            // referencia sigue siendo del usuario actual y sigue existiendo -- pudo
+            // haberla descartado, o haberla alcanzado el barrido de staging.
+            var manifiestos = new List<(RegistrarGastoCommand.ComprobanteEntrada Entrada, ComprobanteStagingDto Manifiesto)>();
+            foreach (var entrada in comando.Comprobantes)
+            {
+                var manifiesto = await _almacenamiento.LeerManifiestoStagingAsync(usuarioId, entrada.Referencia, cancellationToken);
+                if (manifiesto is null)
                 {
-                    errores.Add($"'{comprobante.NombreOriginal}' no coincide con su tipo declarado (contenido invalido).");
+                    errores.Add($"El comprobante '{entrada.Descripcion}' ya no está disponible; vuelva a adjuntarlo.");
+                    continue;
                 }
+
+                manifiestos.Add((entrada, manifiesto));
             }
 
             if (errores.Count > 0)
@@ -134,30 +158,52 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 MontoTotal = comando.MontoTotal,
                 FechaGasto = comando.FechaGasto,
                 Estado = EstadoGasto.PendienteReposicion,
-                RegistradoPorUsuarioId = usuario.Id ?? string.Empty
+                RegistradoPorUsuarioId = usuarioId
             };
 
-            foreach (var entrada in comando.Comprobantes)
+            // Fase B: promover (copiar, nunca mover) cada archivo a su ubicacion
+            // final. Copiar y no mover es lo que hace que un fallo mas abajo (el mas
+            // comun: un choque de concurrencia en el balance del fondo, no algo
+            // exotico) no deje las referencias del usuario colgadas -- el original en
+            // staging sigue intacto y el reintento no depende de volver a adjuntar
+            // nada.
+            foreach (var (entrada, manifiesto) in manifiestos)
             {
-                var guardado = await _almacenamiento.GuardarComprobanteAsync(new SubirComprobanteDto
+                var promovido = await _almacenamiento.PromoverComprobanteAsync(usuarioId, manifiesto, cancellationToken);
+
+                // Se vuelve a comprobar la firma sobre el archivo YA copiado: el
+                // contenido paso este mismo control al subirse, asi que esto solo
+                // puede fallar si algo lo altero entre la subida y este guardado (por
+                // ejemplo, escritura directa a App_Data). Los que ya se promovieron en
+                // este mismo bucle quedan huerfanos en disco -- aceptable, el mismo
+                // trade-off que CrearSolicitudReposicionHandler ya documenta: un
+                // huerfano en disco esta bien, una fila que apunte a un archivo
+                // invalido nunca lo esta.
+                var bytesFinal = await _almacenamiento.LeerArchivoAsync(promovido.RutaRelativa);
+                if (bytesFinal is null
+                    || !await ValidadorComprobante.CoincideConFirmaEsperadaAsync(
+                        new MemoryStream(bytesFinal), promovido.TipoMime, cancellationToken))
                 {
-                    NombreOriginal = entrada.NombreOriginal,
-                    TipoMime = entrada.TipoMime,
-                    TamanoBytes = entrada.TamanoBytes,
-                    ContenidoArchivo = entrada.Contenido
-                });
+                    errores.Add($"El comprobante '{entrada.Descripcion}' no pasó la verificación de contenido.");
+                    continue;
+                }
 
                 gasto.Comprobantes.Add(new ComprobanteAdjunto
                 {
                     GastoId = gasto.Id,
-                    NombreOriginal = entrada.NombreOriginal,
+                    NombreOriginal = promovido.NombreOriginal,
                     Descripcion = entrada.Descripcion.Trim(),
-                    RutaArchivo = guardado.RutaRelativa,
-                    TipoMime = entrada.TipoMime,
-                    TamanoBytes = entrada.TamanoBytes,
-                    HashSHA256 = guardado.HashSha256,
+                    RutaArchivo = promovido.RutaRelativa,
+                    TipoMime = promovido.TipoMime,
+                    TamanoBytes = promovido.TamanoBytes,
+                    HashSHA256 = promovido.HashSha256,
                     FechaSubida = DateTime.UtcNow
                 });
+            }
+
+            if (errores.Count > 0)
+            {
+                return ResultadoOperacion<Guid>.Fallo(errores);
             }
 
             // El fondo baja por el monto del gasto: es lo que sostiene la invariante
@@ -175,6 +221,15 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             {
                 return ResultadoOperacion<Guid>.Fallo(
                     "Otro usuario modificó este fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+            }
+
+            // Los comprobantes ya quedaron a salvo en su ubicacion final y la fila del
+            // gasto se guardo con exito: recien ahora se descarta el original de
+            // staging. Best-effort -- si esto fallara, el barrido de staging lo limpia
+            // igual mas tarde, y no hay ninguna fila que dependa de que suceda ahora.
+            foreach (var (entrada, _) in manifiestos)
+            {
+                await _almacenamiento.EliminarStagingAsync(usuarioId, entrada.Referencia, cancellationToken);
             }
 
             return ResultadoOperacion<Guid>.Ok(gasto.Id);
@@ -283,16 +338,19 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 errores.Add("Debe adjuntar al menos un comprobante.");
             }
 
-            foreach (var comprobante in comando.Comprobantes)
+            if (comando.Comprobantes.Count > LimiteComprobantesPorGasto)
             {
-                if (!ValidadorComprobante.EsFormatoAceptado(comprobante.NombreOriginal, comprobante.TipoMime))
-                {
-                    errores.Add($"'{comprobante.NombreOriginal}' no es un formato aceptado (solo PDF, JPG, JPEG o PNG).");
-                }
+                errores.Add($"No se pueden adjuntar mas de {LimiteComprobantesPorGasto} comprobantes.");
+            }
 
-                if (string.IsNullOrWhiteSpace(comprobante.Descripcion))
+            // El formato/MIME/firma del archivo ya se comprobaron al subirlo a
+            // staging (GastoEndpoints); aqui solo queda la transcripcion, que es un
+            // dato que el usuario escribe en esta misma pantalla.
+            for (var i = 0; i < comando.Comprobantes.Count; i++)
+            {
+                if (string.IsNullOrWhiteSpace(comando.Comprobantes[i].Descripcion))
                 {
-                    errores.Add($"Falta la transcripcion de '{comprobante.NombreOriginal}'.");
+                    errores.Add($"Falta la transcripcion del comprobante #{i + 1}.");
                 }
             }
 

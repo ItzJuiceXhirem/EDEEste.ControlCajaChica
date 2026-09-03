@@ -45,6 +45,11 @@
     max-width: 78ch;
 }
 
+/* Mismo rojo que .rg-a-bad: error de subida de un comprobante puntual. */
+.rg-help-bad {
+    color: #B02A37;
+}
+
 .rg-mt14 { margin-top: 14px; }
 .rg-mt18 { margin-top: 18px; }
 
@@ -248,6 +253,19 @@
         border-color: var(--cc-navy);
         box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
     }
+
+    /* Mientras el circuito interactivo todavia no confirmo su primer render (ver
+       "listo" en RegistrarGasto.razor.cs): el <input> real ya existiria en el HTML
+       prerenderizado sin que ningun manejador de C# este conectado todavia. */
+    .rg-drop.rg-drop-deshabilitada {
+        cursor: not-allowed;
+        opacity: .6;
+    }
+
+        .rg-drop.rg-drop-deshabilitada:hover {
+            border-color: #D8DDE4;
+            background: #FAFBFC;
+        }
 
 /* ::deep: el <input type="file"> lo renderiza el componente InputFile. Oculto
    visualmente pero no con display:none, para que siga siendo enfocable. */
