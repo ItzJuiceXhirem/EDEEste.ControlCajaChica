@@ -225,6 +225,19 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return usuario?.UserName;
         }
 
+        public async Task<IReadOnlyDictionary<string, string>> ObtenerNombresUsuarioAsync(IEnumerable<string> usuarioIds)
+        {
+            var ids = usuarioIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<string, string>();
+            }
+
+            return await _userManager.Users
+                .Where(u => ids.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.UserName ?? u.Id);
+        }
+
         public async Task<bool> EstaEnRolAsync(string usuarioId, string rol)
         {
             var usuario = await _userManager.FindByIdAsync(usuarioId);

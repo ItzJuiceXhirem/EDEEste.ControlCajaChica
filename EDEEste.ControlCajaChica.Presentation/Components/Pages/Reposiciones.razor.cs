@@ -136,12 +136,19 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             var pendientesDeResolver = ids
                 .Where(id => !string.IsNullOrEmpty(id) && !nombresDeUsuario.ContainsKey(id!))
+                .Select(id => id!)
                 .Distinct()
                 .ToList();
 
+            if (pendientesDeResolver.Count == 0)
+            {
+                return;
+            }
+
+            var resueltos = await Identidad.ObtenerNombresUsuarioAsync(pendientesDeResolver);
             foreach (var id in pendientesDeResolver)
             {
-                nombresDeUsuario[id!] = await Identidad.ObtenerNombreUsuarioAsync(id!) ?? id!;
+                nombresDeUsuario[id] = resueltos.GetValueOrDefault(id, id);
             }
         }
 

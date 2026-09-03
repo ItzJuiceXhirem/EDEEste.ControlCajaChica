@@ -88,10 +88,13 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         private async Task ResolverNombresDeCustodioAsync()
         {
+            var ids = fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+            var resueltos = await Identidad.ObtenerNombresUsuarioAsync(ids);
+
             var mapa = new Dictionary<string, string>();
-            foreach (var id in fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+            foreach (var id in ids)
             {
-                mapa[id] = await Identidad.ObtenerNombreUsuarioAsync(id) ?? id;
+                mapa[id] = resueltos.GetValueOrDefault(id, id);
             }
 
             nombresDeCustodio = mapa;

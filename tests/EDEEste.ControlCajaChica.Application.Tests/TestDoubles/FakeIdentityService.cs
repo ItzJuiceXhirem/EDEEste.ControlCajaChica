@@ -29,6 +29,9 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
 
         public Task<string?> ObtenerNombreUsuarioAsync(string usuarioId) => throw new NotImplementedException();
 
+        public Task<IReadOnlyDictionary<string, string>> ObtenerNombresUsuarioAsync(IEnumerable<string> usuarioIds) =>
+            throw new NotImplementedException();
+
         public Task<ResultadoIdentidad> CrearUsuarioAsync(string usuario, string password, string nombre, string rol) =>
             throw new NotImplementedException();
 

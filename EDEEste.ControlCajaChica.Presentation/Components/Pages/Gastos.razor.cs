@@ -183,12 +183,19 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         /// </summary>
         private async Task ResolverNombresAsync(IEnumerable<string> ids)
         {
-            foreach (var id in ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+            var pendientes = ids.Where(id => !string.IsNullOrWhiteSpace(id) && !nombresDeUsuario.ContainsKey(id))
+                .Distinct()
+                .ToList();
+
+            if (pendientes.Count == 0)
             {
-                if (!nombresDeUsuario.ContainsKey(id))
-                {
-                    nombresDeUsuario[id] = await Identidad.ObtenerNombreUsuarioAsync(id) ?? id;
-                }
+                return;
+            }
+
+            var resueltos = await Identidad.ObtenerNombresUsuarioAsync(pendientes);
+            foreach (var id in pendientes)
+            {
+                nombresDeUsuario[id] = resueltos.GetValueOrDefault(id, id);
             }
         }
 

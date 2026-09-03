@@ -18,6 +18,15 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
     {
         Task<string?> ObtenerNombreUsuarioAsync(string usuarioId);
 
+        /// <summary>
+        /// Version en lote de <see cref="ObtenerNombreUsuarioAsync"/>: una sola
+        /// consulta para varios ids en vez de una por id. Los ids que no
+        /// correspondan a ningun usuario simplemente no aparecen en el
+        /// resultado -- el llamador decide el valor de respaldo (normalmente el
+        /// propio id) igual que hoy hace con el "?? usuarioId" del metodo singular.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, string>> ObtenerNombresUsuarioAsync(IEnumerable<string> usuarioIds);
+
         Task<bool> EstaEnRolAsync(string usuarioId, string rol);
 
         /* Crea el usuario y le asigna el rol de forma atomica: si falla la asignacion
