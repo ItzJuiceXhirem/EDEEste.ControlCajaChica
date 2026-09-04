@@ -32,9 +32,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             AgregarAutenticacion(services, configuration);
             AgregarConfiguracionInicial(services, configuration);
 
+            // Una sola vez por proceso, no por peticion: GlobalFontSettings.FontResolver
+            // es estatico y PDFsharp lanza si se reasigna despues del primer uso. Ver
+            // ResolutorFuentesEmbebidas.Registrar().
+            ResolutorFuentesEmbebidas.Registrar();
+
             services.AddScoped<IIdentityService, IdentityService>();
             services.AddScoped<IPasswordResetService, PasswordResetService>();
-            services.AddScoped<IReporteGastosService, QuestPdfReporteService>();
             services.AddScoped<IFileStorageService, FileStorageService>();
             services.AddScoped<IPdfConsolidadorService, PdfConsolidadorService>();
             services.AddScoped<InicializadorIdentidad>();

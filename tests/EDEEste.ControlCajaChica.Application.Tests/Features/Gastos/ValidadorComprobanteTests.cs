@@ -12,7 +12,15 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
     /// </summary>
     public class ValidadorComprobanteTests
     {
-        private static MemoryStream ContenidoPdf() => new("%PDF-1.4"u8.ToArray());
+        // Bastante mas grande que el piso de tamano de ValidadorComprobante (512
+        // bytes): un PDF real, aunque sea minimo, nunca se acerca a ese piso. Lo que
+        // haya despues de la firma es irrelevante para estas pruebas.
+        private static MemoryStream ContenidoPdf()
+        {
+            var bytes = new byte[600];
+            "%PDF-1.4"u8.CopyTo(bytes);
+            return new MemoryStream(bytes);
+        }
 
         [Fact]
         public void EsFormatoAceptado_ConPdfValido_Pasa() =>
@@ -83,6 +91,32 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
         {
             await using var contenido = new StreamSoloAvance("%PDF-1.4"u8.ToArray());
             Assert.False(await ValidadorComprobante.CoincideConFirmaEsperadaAsync(contenido, "application/pdf"));
+        }
+
+        /// <summary>
+        /// El caso real que motivo este piso: una subida cortada por un corte de red
+        /// puede dejar en disco solo la cabecera "%PDF-1.4" (8 bytes) y nada mas. Esos
+        /// bytes coinciden con la firma esperada igual que un PDF completo -- el
+        /// piso de tamano es lo unico que distingue los dos casos.
+        /// </summary>
+        [Fact]
+        public async Task CoincideConFirmaEsperada_PorDebajoDelTamanoMinimo_Falla()
+        {
+            await using var contenido = new MemoryStream("%PDF-1.4"u8.ToArray());
+            Assert.False(await ValidadorComprobante.CoincideConFirmaEsperadaAsync(contenido, "application/pdf"));
+        }
+
+        /// <summary>
+        /// Exactamente en el piso (512 bytes): confirma que el limite es inclusive y
+        /// no rechaza un comprobante legitimo que caiga justo ahi.
+        /// </summary>
+        [Fact]
+        public async Task CoincideConFirmaEsperada_EnElTamanoMinimo_Pasa()
+        {
+            var bytes = new byte[512];
+            "%PDF-1.4"u8.CopyTo(bytes);
+            await using var contenido = new MemoryStream(bytes);
+            Assert.True(await ValidadorComprobante.CoincideConFirmaEsperadaAsync(contenido, "application/pdf"));
         }
 
         [Fact]

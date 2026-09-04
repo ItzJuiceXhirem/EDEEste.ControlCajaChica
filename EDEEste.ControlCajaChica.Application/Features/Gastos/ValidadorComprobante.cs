@@ -40,6 +40,17 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         private static readonly byte[] FirmaPng = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
         private static readonly byte[] FirmaJpeg = [0xFF, 0xD8, 0xFF];
 
+        // Un PDF valido minimo ronda los 400 bytes; 512 deja margen de sobra sin
+        // arriesgarse a rechazar un comprobante real (una foto o un PDF escaneado
+        // real nunca se acercan a este piso). Sin este chequeo, un archivo truncado a
+        // mitad de una subida (por ejemplo un corte de red) puede colar solo la
+        // cabecera "%PDF" -- pasa el chequeo de firma de mas abajo igual que un PDF
+        // completo -- y quedar guardado como comprobante ilegible: se ve en la
+        // pantalla, pero PdfConsolidadorService no puede abrirlo despues al generar
+        // el expediente (ver el try/catch en AgregarComprobante, que existe
+        // precisamente porque este piso no estaba antes).
+        private const int TamanoMinimoValido = 512;
+
         /// <summary>
         /// MIME y extension, la unica comprobacion que no necesita leer el contenido
         /// del archivo. Se validan las dos cosas: el navegador reporta el MIME y es
@@ -71,6 +82,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             // cuenta; aqui no hay firma con la que comparar, asi que no se declara
             // coincidencia.
             if (firma is null || !contenido.CanSeek)
+            {
+                return false;
+            }
+
+            if (contenido.Length < TamanoMinimoValido)
             {
                 return false;
             }

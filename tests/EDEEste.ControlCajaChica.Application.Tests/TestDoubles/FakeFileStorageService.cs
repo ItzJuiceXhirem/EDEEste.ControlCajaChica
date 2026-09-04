@@ -135,12 +135,29 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
             _ => "application/octet-stream"
         };
 
-        private static byte[] FirmaDe(string tipoMime) => tipoMime switch
+        // 512 bytes, no solo la firma: coincide con el piso de tamano minimo que
+        // ValidadorComprobante.CoincideConFirmaEsperadaAsync exige ahora (el mismo
+        // que motivo el try/catch de PdfConsolidadorService.AgregarComprobante). Con
+        // solo la firma (8 bytes para un PDF) esta prueba fallaria en la
+        // reverificacion del handler por la misma razon que el bug real.
+        private static byte[] FirmaDe(string tipoMime)
         {
-            "application/pdf" => "%PDF-1.4"u8.ToArray(),
-            "image/png" => [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
-            "image/jpeg" => [0xFF, 0xD8, 0xFF],
-            _ => []
-        };
+            byte[] firma = tipoMime switch
+            {
+                "application/pdf" => "%PDF-1.4"u8.ToArray(),
+                "image/png" => [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+                "image/jpeg" => [0xFF, 0xD8, 0xFF],
+                _ => []
+            };
+
+            if (firma.Length == 0)
+            {
+                return firma;
+            }
+
+            var contenido = new byte[512];
+            firma.CopyTo(contenido, 0);
+            return contenido;
+        }
     }
 }

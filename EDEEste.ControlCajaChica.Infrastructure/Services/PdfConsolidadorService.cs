@@ -4,12 +4,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Domain.Entities;
-using PdfSharpCore.Drawing;
-using PdfSharpCore.Pdf;
-using PdfSharpCore.Pdf.IO;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
+using MigraDoc.DocumentObjectModel;
+using MigraDoc.DocumentObjectModel.Tables;
+using MigraDoc.Rendering;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 
 namespace EDEEste.ControlCajaChica.Infrastructure.Services
 {
@@ -19,15 +19,26 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
     /// transcripcion (los datos del gasto + la etiqueta que digito el custodio) y
     /// despues el archivo original.
     ///
-    /// QuestPDF genera cada pieza (paginas nuevas, texto, imagenes) pero no puede
+    /// MigraDoc genera cada pieza (paginas nuevas, texto, imagenes) pero no puede
     /// insertar paginas de un PDF que no genero el; por eso el ensamblaje final usa
-    /// PdfSharpCore solo para concatenar paginas ya generadas -- el PDF original de
-    /// cada comprobante se copia tal cual, nunca se reabre para editarlo ni se
+    /// PDFsharp solo para concatenar paginas ya generadas -- el PDF original de cada
+    /// comprobante se copia tal cual, nunca se reabre para editarlo ni se
     /// re-renderiza, asi que el archivo guardado en disco (y su HashSHA256) no se
     /// tocan en ningun momento.
     /// </summary>
     public class PdfConsolidadorService : IPdfConsolidadorService
     {
+        // Aproximan la paleta Material Design que usaba QuestPDF.Helpers.Colors, para
+        // que el expediente cambie de motor de PDF sin cambiar de aspecto:
+        // Blue.Darken3, Grey.Lighten3, Grey.Lighten2, Grey.Darken1 y Red.Medium.
+        private static readonly Color AzulOscuro = new(0x15, 0x65, 0xC0);
+        private static readonly Color GrisClaro = new(0xEE, 0xEE, 0xEE);
+        private static readonly Color GrisClaro2 = new(0xE0, 0xE0, 0xE0);
+        private static readonly Color GrisOscuro = new(0x75, 0x75, 0x75);
+        private static readonly Color RojoMedio = new(0xF4, 0x43, 0x36);
+
+        private static readonly Unit MargenPagina = Unit.FromCentimeter(1.5);
+
         private readonly IFileStorageService _fileStorageService;
         private readonly IIdentityService _identityService;
 
@@ -39,8 +50,6 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
         public async Task<byte[]> ConsolidarComprobantesAsync(SolicitudReposicion solicitud, CancellationToken cancellationToken = default)
         {
-            QuestPDF.Settings.License = LicenseType.Community;
-
             using var documentoFinal = new PdfDocument();
 
             var nombreCustodio = await ResolverNombreCustodioAsync(solicitud.FondoCajaChica?.CustodioId);
@@ -58,6 +67,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             EstamparNumerosDePagina(documentoFinal);
 
             using var salida = new MemoryStream();
+            // closeStream: false a proposito: por defecto Save() cierra el stream que
+            // recibe, y si lo cerrara aca, salida.ToArray() de la linea siguiente
+            // fallaria con ObjectDisposedException porque el stream ya no existiria.
             documentoFinal.Save(salida, closeStream: false);
             return salida.ToArray();
         }
@@ -66,7 +78,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// Numera el expediente completo al final, cuando ya se sabe cuantas paginas
         /// tiene.
         ///
-        /// No se puede hacer con el footer de QuestPDF: el documento se arma juntando
+        /// No se puede hacer con un footer de MigraDoc: el documento se arma juntando
         /// varios PDF chicos independientes (y los originales de los comprobantes, que
         /// ni siquiera generamos nosotros), asi que cada pieza numeraria desde 1 por su
         /// cuenta. Para un expediente contable la numeracion continua importa: es lo
@@ -74,7 +86,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// </summary>
         private static void EstamparNumerosDePagina(PdfDocument documento)
         {
-            var fuente = new XFont("Arial", 8, XFontStyle.Regular);
+            var fuente = new XFont("Lato", 8, XFontStyleEx.Regular);
             var total = documento.PageCount;
 
             for (var indice = 0; indice < total; indice++)
@@ -111,40 +123,41 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var rutaFisica = _fileStorageService.ObtenerRutaFisica(comprobante.RutaArchivo);
             var esImagen = comprobante.TipoMime.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
 
+            var portada = NuevoDocumento();
+            ComponerPortada(portada.LastSection, gasto, comprobante);
+            AgregarPaginas(documentoFinal, Renderizar(portada));
+
             if (esImagen)
             {
-                // Portada e imagen conviven en un mismo documento QuestPDF: no hace
-                // falta fusionar nada, QuestPDF ya sabe dibujar ambas paginas.
-                var paginas = Document.Create(container =>
-                {
-                    container.Page(pagina => ComponerPagina(pagina, c => ComponerPortada(c, gasto, comprobante)));
-                    container.Page(pagina => ComponerPagina(pagina, c => ComponerImagen(c, rutaFisica)));
-                }).GeneratePdf();
-
-                AgregarPaginas(documentoFinal, paginas);
+                var imagen = NuevoDocumento();
+                ComponerImagen(imagen.LastSection, rutaFisica);
+                AgregarPaginas(documentoFinal, Renderizar(imagen));
                 return;
             }
 
-            // Un PDF original no puede dibujarse dentro de un documento QuestPDF, asi
-            // que la portada se genera aparte y se fusiona con PdfSharpCore.
-            var portada = Document.Create(container =>
+            if (!File.Exists(rutaFisica))
             {
-                container.Page(pagina => ComponerPagina(pagina, c => ComponerPortada(c, gasto, comprobante)));
-            }).GeneratePdf();
-            AgregarPaginas(documentoFinal, portada);
+                AgregarPaginas(documentoFinal, GenerarAviso("El comprobante no existe en el servidor."));
+                return;
+            }
 
-            if (File.Exists(rutaFisica))
+            // Un PDF guardado pero truncado o corrupto (por ejemplo, una subida
+            // cortada por un corte de red) pasa el chequeo de magic bytes de
+            // ValidadorComprobante -- que solo mira que el archivo EMPIECE con "%PDF"
+            // -- pero PdfReader.Open no puede parsearlo despues. Sin este try/catch,
+            // CrearSolicitudReposicionHandler genera este PDF ANTES de guardar la
+            // solicitud, asi que un solo comprobante ilegible tumbaba la reposicion
+            // completa; y el custodio no tiene como resolverlo por su cuenta, porque
+            // ComprobanteAdjunto ya esta firmado con HMAC y es inmutable. Se prefiere
+            // dejar constancia visible del problema dentro del propio expediente,
+            // igual que ya se hacia para un archivo faltante.
+            try
             {
                 AgregarPaginas(documentoFinal, File.ReadAllBytes(rutaFisica));
             }
-            else
+            catch (Exception)
             {
-                var aviso = Document.Create(container =>
-                {
-                    container.Page(pagina => ComponerPagina(pagina, c =>
-                        c.AlignCenter().AlignMiddle().Text("[Archivo adjunto no encontrado en servidor]").FontColor(Colors.Red.Medium)));
-                }).GeneratePdf();
-                AgregarPaginas(documentoFinal, aviso);
+                AgregarPaginas(documentoFinal, GenerarAviso("El comprobante no se pudo leer (archivo dañado o incompleto)."));
             }
         }
 
@@ -158,122 +171,249 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             }
         }
 
-        private static void ComponerPagina(PageDescriptor pagina, Action<IContainer> contenido)
+        private static Document NuevoDocumento()
         {
-            pagina.Size(PageSizes.A4);
-            pagina.Margin(1.5f, Unit.Centimetre);
-            pagina.PageColor(Colors.White);
-            pagina.DefaultTextStyle(x => x.FontSize(10));
-            pagina.Content().Element(c => contenido(c));
+            var documento = new Document();
+            var seccion = documento.AddSection();
+            seccion.PageSetup.PageFormat = PageFormat.A4;
+            seccion.PageSetup.LeftMargin = MargenPagina;
+            seccion.PageSetup.RightMargin = MargenPagina;
+            seccion.PageSetup.TopMargin = MargenPagina;
+            seccion.PageSetup.BottomMargin = MargenPagina;
+            documento.Styles["Normal"]!.Font.Name = "Lato";
+            documento.Styles["Normal"]!.Font.Size = 10;
+            return documento;
         }
 
-        private static void ComponerPortada(IContainer container, Gasto gasto, ComprobanteAdjunto comprobante)
+        /// <summary>
+        /// Ancho y alto del area de contenido (formato de pagina menos margenes),
+        /// para dimensionar tablas e imagenes.
+        ///
+        /// OJO: no se puede leer seccion.PageSetup.PageWidth/PageHeight para esto --
+        /// esas propiedades devuelven CERO si se consultan antes de renderizar el
+        /// documento (MigraDoc solo las calcula durante el render, no al asignar
+        /// PageFormat). Usar ese cero produjo anchos de columna negativos y un
+        /// colapso visible de todas las tablas del expediente -- detectado
+        /// rasterizando el PDF a imagen y comparando contra el resultado esperado,
+        /// no fue evidente sin verlo. PageSetup.GetPageSize es el metodo estatico
+        /// que da las dimensiones reales de un formato de pagina sin depender del
+        /// estado de render de ningun documento.
+        /// </summary>
+        private static (Unit Ancho, Unit Alto) ObtenerAreaDeContenido()
         {
-            container.Padding(20).Column(col =>
-            {
-                col.Item().Text("Comprobante de gasto").Bold().FontSize(16).FontColor(Colors.Blue.Darken3);
-                col.Item().PaddingTop(4).Text(comprobante.Descripcion).Italic().FontSize(12);
-
-                col.Item().PaddingTop(15).Background(Colors.Grey.Lighten3).Padding(10).Column(datos =>
-                {
-                    datos.Item().Text(t => { t.Span("Proveedor: ").Bold(); t.Span(gasto.Proveedor); });
-                    datos.Item().Text(t => { t.Span("RNC/Cedula: ").Bold(); t.Span(gasto.RNCProveedor); });
-                    datos.Item().Text(t => { t.Span("NCF: ").Bold(); t.Span(gasto.NCF); });
-                    datos.Item().Text(t => { t.Span("Concepto: ").Bold(); t.Span(gasto.Concepto ?? "-"); });
-                    datos.Item().Text(t => { t.Span("Fecha del gasto: ").Bold(); t.Span(gasto.FechaGasto.ToString("dd/MM/yyyy")); });
-                    datos.Item().Text(t => { t.Span("Monto total: ").Bold(); t.Span($"RD$ {gasto.MontoTotal:N2}"); });
-                });
-
-                col.Item().PaddingTop(10).Text("Archivo original a continuacion:").FontSize(9).Italic().FontColor(Colors.Grey.Darken1);
-            });
+            PageSetup.GetPageSize(PageFormat.A4, out var anchoPagina, out var altoPagina);
+            return (anchoPagina - MargenPagina - MargenPagina, altoPagina - MargenPagina - MargenPagina);
         }
 
-        private static void ComponerImagen(IContainer container, string rutaFisica)
+        private static byte[] Renderizar(Document documento)
         {
-            if (File.Exists(rutaFisica))
+            var renderizador = new PdfDocumentRenderer { Document = documento };
+            renderizador.RenderDocument();
+
+            using var ms = new MemoryStream();
+            renderizador.PdfDocument.Save(ms, closeStream: false);
+            return ms.ToArray();
+        }
+
+        private static void ComponerPortada(Section seccion, Gasto gasto, ComprobanteAdjunto comprobante)
+        {
+            var titulo = seccion.AddParagraph();
+            titulo.AddFormattedText("Comprobante de gasto", TextFormat.Bold);
+            titulo.Format.Font.Size = 16;
+            titulo.Format.Font.Color = AzulOscuro;
+
+            var descripcion = seccion.AddParagraph(comprobante.Descripcion);
+            descripcion.Format.Font.Italic = true;
+            descripcion.Format.Font.Size = 12;
+            descripcion.Format.SpaceBefore = Unit.FromPoint(4);
+
+            var datos = seccion.AddParagraph();
+            datos.Format.Shading.Color = GrisClaro;
+            datos.Format.SpaceBefore = Unit.FromPoint(15);
+            datos.Format.LeftIndent = Unit.FromPoint(10);
+            AgregarEtiquetaValor(datos, "Proveedor: ", gasto.Proveedor);
+            datos.AddLineBreak();
+            AgregarEtiquetaValor(datos, "RNC/Cedula: ", gasto.RNCProveedor);
+            datos.AddLineBreak();
+            AgregarEtiquetaValor(datos, "NCF: ", gasto.NCF);
+            datos.AddLineBreak();
+            AgregarEtiquetaValor(datos, "Concepto: ", gasto.Concepto ?? "-");
+            datos.AddLineBreak();
+            AgregarEtiquetaValor(datos, "Fecha del gasto: ", gasto.FechaGasto.ToString("dd/MM/yyyy"));
+            datos.AddLineBreak();
+            AgregarEtiquetaValor(datos, "Monto total: ", $"RD$ {gasto.MontoTotal:N2}");
+
+            var nota = seccion.AddParagraph("Archivo original a continuacion:");
+            nota.Format.Font.Size = 9;
+            nota.Format.Font.Italic = true;
+            nota.Format.Font.Color = GrisOscuro;
+            nota.Format.SpaceBefore = Unit.FromPoint(10);
+        }
+
+        private static void AgregarEtiquetaValor(Paragraph parrafo, string etiqueta, string valor)
+        {
+            parrafo.AddFormattedText(etiqueta, TextFormat.Bold);
+            parrafo.AddText(valor);
+        }
+
+        private static void ComponerImagen(Section seccion, string rutaFisica)
+        {
+            if (!File.Exists(rutaFisica))
             {
-                // FitArea es necesario: sin un modificador de ajuste, QuestPDF puede
-                // pedir mas espacio del que el contenedor tiene disponible y lanzar
-                // DocumentLayoutException con imagenes grandes.
-                container.Padding(20).AlignCenter().MaxHeight(700).Image(rutaFisica).FitArea();
+                var aviso = seccion.AddParagraph("El comprobante no existe en el servidor.");
+                aviso.Format.Alignment = ParagraphAlignment.Center;
+                aviso.Format.Font.Color = RojoMedio;
+                return;
             }
-            else
+
+            var imagen = seccion.AddImage(rutaFisica);
+            imagen.LockAspectRatio = true;
+
+            // Equivalente al MaxHeight(700).FitArea() de QuestPDF: sin un tope, una
+            // imagen de camara moderna (varios miles de px de alto) desborda la
+            // pagina. 700 puntos ~= 24.7 cm, el mismo limite que se usaba antes.
+            var altoMaximo = Unit.FromPoint(700);
+            var (anchoContenido, _) = ObtenerAreaDeContenido();
+            imagen.Height = altoMaximo;
+            if (imagen.Width > anchoContenido)
             {
-                container.Padding(20).AlignCenter().Text("[Archivo adjunto no encontrado en servidor]").FontColor(Colors.Red.Medium);
+                imagen.Width = anchoContenido;
             }
+        }
+
+        /// <summary>
+        /// Pagina de aviso centrada (vertical y horizontalmente), en rojo. Comparte
+        /// texto y estilo entre "no existe" y "no se pudo leer" -- ver el comentario en
+        /// AgregarComprobante sobre por que un comprobante ilegible no puede bloquear
+        /// la reposicion completa.
+        ///
+        /// MigraDoc no tiene un AlignMiddle de pagina como QuestPDF: se aproxima con
+        /// una tabla de una sola celda cuya fila ocupa toda el area de contenido
+        /// (PageWidth/Height menos margenes, calculado a mano porque las propiedades
+        /// Effective* estan obsoletas desde 6.x y ahora describen otra cosa --
+        /// orientacion, no margenes) y centra el texto verticalmente adentro.
+        /// </summary>
+        private static byte[] GenerarAviso(string mensaje)
+        {
+            var documento = NuevoDocumento();
+            var seccion = documento.LastSection;
+
+            var (anchoContenido, altoContenido) = ObtenerAreaDeContenido();
+
+            var tabla = seccion.AddTable();
+            tabla.Borders.Width = 0;
+            tabla.AddColumn(anchoContenido);
+
+            var fila = tabla.AddRow();
+            fila.Height = altoContenido;
+            fila.HeightRule = RowHeightRule.Exactly;
+            fila.VerticalAlignment = VerticalAlignment.Center;
+
+            var parrafo = fila.Cells[0].AddParagraph(mensaje);
+            parrafo.Format.Alignment = ParagraphAlignment.Center;
+            parrafo.Format.Font.Color = RojoMedio;
+
+            return Renderizar(documento);
         }
 
         private static byte[] GenerarResumen(SolicitudReposicion solicitud, string nombreCustodio)
         {
-            return Document.Create(container =>
+            var documento = NuevoDocumento();
+            var seccion = documento.LastSection;
+            var (anchoContenido, _) = ObtenerAreaDeContenido();
+
+            // Fila de encabezado: titulo+subtitulo a la izquierda, fecha+id a la
+            // derecha, igual que el Row(row => row.RelativeItem()/.ConstantItem(150))
+            // de QuestPDF.
+            const int anchoColumnaFecha = 150;
+            var tablaEncabezado = seccion.AddTable();
+            tablaEncabezado.Borders.Width = 0;
+            tablaEncabezado.AddColumn(anchoContenido - Unit.FromPoint(anchoColumnaFecha));
+            tablaEncabezado.AddColumn(Unit.FromPoint(anchoColumnaFecha));
+
+            var filaEncabezado = tablaEncabezado.AddRow();
+
+            var pTitulo = filaEncabezado.Cells[0].AddParagraph();
+            pTitulo.AddFormattedText("CONTROL DE CAJA CHICA", TextFormat.Bold);
+            pTitulo.Format.Font.Size = 18;
+            pTitulo.Format.Font.Color = AzulOscuro;
+            var pSubtitulo = filaEncabezado.Cells[0].AddParagraph("Expediente Consolidado de Reposicion");
+            pSubtitulo.Format.Font.Size = 12;
+            pSubtitulo.Format.Font.Color = GrisOscuro;
+
+            filaEncabezado.Cells[1].Format.Alignment = ParagraphAlignment.Right;
+            filaEncabezado.Cells[1].AddParagraph($"Fecha: {solicitud.FechaSolicitud:dd/MM/yyyy}");
+            var pSolicitud = filaEncabezado.Cells[1].AddParagraph($"Solicitud: {solicitud.Id.ToString()[..8]}");
+            pSolicitud.Format.Font.Size = 9;
+
+            var custodio = seccion.AddParagraph();
+            custodio.Format.Shading.Color = GrisClaro;
+            custodio.Format.SpaceBefore = Unit.FromPoint(15);
+            custodio.Format.LeftIndent = Unit.FromPoint(10);
+            custodio.AddFormattedText("Custodio: ", TextFormat.Bold);
+            custodio.AddText(nombreCustodio);
+
+            var tituloDetalle = seccion.AddParagraph("Detalle de comprobantes a reponer");
+            tituloDetalle.Format.Font.Bold = true;
+            tituloDetalle.Format.Font.Size = 12;
+            tituloDetalle.Format.SpaceBefore = Unit.FromPoint(15);
+
+            // Mismas proporciones que QuestPDF: Fecha y NCF fijas, Proveedor:Concepto
+            // en razon 2:3, Monto fija.
+            const int anchoFecha = 75;
+            const int anchoNcf = 90;
+            const int anchoMonto = 90;
+            var anchoVariable = anchoContenido - Unit.FromPoint(anchoFecha + anchoNcf + anchoMonto);
+            var unidad = anchoVariable.Point / 5.0;
+
+            var tabla = seccion.AddTable();
+            tabla.Borders.Width = 0;
+            tabla.TopPadding = Unit.FromPoint(5);
+            tabla.BottomPadding = Unit.FromPoint(5);
+            tabla.LeftPadding = Unit.FromPoint(5);
+            tabla.RightPadding = Unit.FromPoint(5);
+            tabla.AddColumn(Unit.FromPoint(anchoFecha));
+            tabla.AddColumn(Unit.FromPoint(anchoNcf));
+            tabla.AddColumn(Unit.FromPoint(unidad * 2));
+            tabla.AddColumn(Unit.FromPoint(unidad * 3));
+            tabla.AddColumn(Unit.FromPoint(anchoMonto));
+
+            var cabecera = tabla.AddRow();
+            cabecera.Shading.Color = AzulOscuro;
+            cabecera.Format.Font.Color = Colors.White;
+            cabecera.Format.Font.Bold = true;
+            string[] titulos = { "Fecha", "NCF", "Proveedor", "Concepto", "Monto" };
+            for (var i = 0; i < titulos.Length; i++)
             {
-                container.Page(pagina =>
-                {
-                    pagina.Size(PageSizes.A4);
-                    pagina.Margin(1.5f, Unit.Centimetre);
-                    pagina.PageColor(Colors.White);
-                    pagina.DefaultTextStyle(x => x.FontSize(10));
+                cabecera.Cells[i].AddParagraph(titulos[i]);
+            }
+            cabecera.Cells[4].Format.Alignment = ParagraphAlignment.Right;
 
-                    pagina.Header().Row(row =>
-                    {
-                        row.RelativeItem().Column(col =>
-                        {
-                            col.Item().Text("CONTROL DE CAJA CHICA").Bold().FontSize(18).FontColor(Colors.Blue.Darken3);
-                            col.Item().Text("Expediente Consolidado de Reposicion").FontSize(12).FontColor(Colors.Grey.Darken1);
-                        });
-                        row.ConstantItem(150).Column(col =>
-                        {
-                            col.Item().AlignRight().Text($"Fecha: {solicitud.FechaSolicitud:dd/MM/yyyy}");
-                            col.Item().AlignRight().Text($"Solicitud: {solicitud.Id.ToString()[..8]}").FontSize(9);
-                        });
-                    });
+            foreach (var gasto in solicitud.Gastos)
+            {
+                var fila = tabla.AddRow();
+                fila.Borders.Bottom.Width = 1;
+                fila.Borders.Bottom.Color = GrisClaro2;
+                fila.Cells[0].AddParagraph(gasto.FechaGasto.ToString("dd/MM/yyyy"));
+                fila.Cells[1].AddParagraph(gasto.NCF);
+                fila.Cells[2].AddParagraph(gasto.Proveedor);
+                fila.Cells[3].AddParagraph(gasto.Concepto ?? "-");
+                fila.Cells[4].AddParagraph($"RD$ {gasto.MontoTotal:N2}");
+                fila.Cells[4].Format.Alignment = ParagraphAlignment.Right;
+            }
 
-                    pagina.Content().PaddingTop(15).Column(col =>
-                    {
-                        col.Item().Background(Colors.Grey.Lighten3).Padding(10).Text(t =>
-                        {
-                            t.Span("Custodio: ").Bold();
-                            t.Span(nombreCustodio);
-                        });
+            var filaTotal = tabla.AddRow();
+            filaTotal.Shading.Color = GrisClaro;
+            filaTotal.Cells[0].MergeRight = 3;
+            var pTotalEtiqueta = filaTotal.Cells[0].AddParagraph("TOTAL RECLAMADO:");
+            pTotalEtiqueta.Format.Alignment = ParagraphAlignment.Right;
+            pTotalEtiqueta.Format.Font.Bold = true;
+            var pTotalMonto = filaTotal.Cells[4].AddParagraph($"RD$ {solicitud.MontoReclamado:N2}");
+            pTotalMonto.Format.Alignment = ParagraphAlignment.Right;
+            pTotalMonto.Format.Font.Bold = true;
+            pTotalMonto.Format.Font.Color = AzulOscuro;
 
-                        col.Item().PaddingTop(15).Text("Detalle de comprobantes a reponer").Bold().FontSize(12);
-
-                        col.Item().PaddingTop(8).Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
-                            {
-                                columns.ConstantColumn(75);
-                                columns.ConstantColumn(90);
-                                columns.RelativeColumn(2);
-                                columns.RelativeColumn(3);
-                                columns.ConstantColumn(90);
-                            });
-
-                            table.Header(header =>
-                            {
-                                header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Fecha").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("NCF").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Proveedor").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Concepto").FontColor(Colors.White).Bold();
-                                header.Cell().Background(Colors.Blue.Darken3).Padding(5).AlignRight().Text("Monto").FontColor(Colors.White).Bold();
-                            });
-
-                            foreach (var gasto in solicitud.Gastos)
-                            {
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(gasto.FechaGasto.ToString("dd/MM/yyyy"));
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(gasto.NCF);
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(gasto.Proveedor);
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(gasto.Concepto ?? "-");
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).AlignRight().Text($"RD$ {gasto.MontoTotal:N2}");
-                            }
-
-                            table.Cell().ColumnSpan(4).Background(Colors.Grey.Lighten3).Padding(6).AlignRight().Text("TOTAL RECLAMADO:").Bold();
-                            table.Cell().Background(Colors.Grey.Lighten3).Padding(6).AlignRight()
-                                .Text($"RD$ {solicitud.MontoReclamado:N2}").Bold().FontColor(Colors.Blue.Darken3);
-                        });
-                    });
-                });
-            }).GeneratePdf();
+            return Renderizar(documento);
         }
     }
 }
