@@ -126,6 +126,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             }
         }
 
+        /// <summary>
+        /// A diferencia de ResolverNombresAsync (Arqueos/Gastos/Reposiciones), este no es
+        /// incremental: reconstruye el mapa completo desde <c>fondos</c> en cada llamada, sin
+        /// reusar lo ya resuelto. Nombre distinto a proposito -- es una operacion distinta.
+        /// </summary>
         private async Task ResolverNombresDeCustodioAsync()
         {
             var ids = fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
@@ -230,7 +235,13 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
             adjuntos.Clear();
 
-            foreach (var archivo in e.GetMultipleFiles(maximumFileCount: 20))
+            if (!IntentarObtenerArchivosSeleccionados(e, out var seleccionados))
+            {
+                errores.Add($"No se pueden adjuntar mas de {LimitesGasto.ComprobantesPorGasto} comprobantes.");
+                return;
+            }
+
+            foreach (var archivo in seleccionados)
             {
                 adjuntos.Add(new AdjuntoSeleccionado
                 {
@@ -288,6 +299,43 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                     adjunto.Error = resultado?.Error ?? "No se pudo subir el archivo.";
                 }
             }
+        }
+
+        // Muy por encima de LimitesGasto.ComprobantesPorGasto a proposito: es un
+        // margen tecnico para GetMultipleFiles, no el limite de negocio. Ningun
+        // selector de archivos normal deberia acercarse a este numero -- el limite
+        // real se comprueba aparte, con Count, para poder mostrar un error amigable.
+        private const int TechoTecnicoSeleccion = 100;
+
+        /// <summary>
+        /// GetMultipleFiles lanza InvalidOperationException si se le pasan mas
+        /// archivos que el maximo indicado. Pasarle directamente
+        /// LimitesGasto.ComprobantesPorGasto dejaria esa excepcion sin capturar en
+        /// cuanto alguien seleccionara un archivo de mas -- y una excepcion sin
+        /// capturar en un manejador de evento tumba el circuito de Blazor Server
+        /// entero (mismo riesgo que documenta AGENTS.md para una llamada de JS
+        /// interop sin try/catch, solo que aqui la llamada peligrosa es sincrona).
+        ///
+        /// Por eso el techo que se le pasa a GetMultipleFiles es generoso
+        /// (TechoTecnicoSeleccion) y el limite real se comprueba aparte, a mano, con
+        /// Count -- eso es lo que permite mostrar "no se pueden adjuntar mas de 20"
+        /// en vez de perder el formulario. El catch es un respaldo adicional para el
+        /// caso extremo de superar incluso el techo tecnico.
+        /// </summary>
+        private static bool IntentarObtenerArchivosSeleccionados(
+            InputFileChangeEventArgs e, out IReadOnlyList<IBrowserFile> archivos)
+        {
+            try
+            {
+                archivos = e.GetMultipleFiles(maximumFileCount: TechoTecnicoSeleccion);
+            }
+            catch (InvalidOperationException)
+            {
+                archivos = Array.Empty<IBrowserFile>();
+                return false;
+            }
+
+            return archivos.Count <= LimitesGasto.ComprobantesPorGasto;
         }
 
         private void MarcarErrorEnTodos(string mensaje)

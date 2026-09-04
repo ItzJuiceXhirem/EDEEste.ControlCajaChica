@@ -91,5 +91,25 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
         Task<int> LimpiarStagingAbandonadoAsync(
             TimeSpan antiguedad,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Guarda (o reemplaza) la foto de perfil del usuario y devuelve su ruta
+        /// relativa, para guardarla en la fila del usuario.
+        ///
+        /// No pasa por staging, a diferencia de un comprobante: aquel existe porque el
+        /// gasto se confirma en una transaccion aparte que puede fallar por
+        /// concurrencia, y hasta entonces el archivo no tiene dueño. Una foto de perfil
+        /// se escribe y se referencia en el acto, sobre la propia fila del usuario.
+        ///
+        /// El archivo anterior NO se borra aqui: si la extension cambia, el nombre
+        /// cambia, y quien llama (que es quien conoce la ruta anterior guardada en la
+        /// BDD) decide cuando borrarlo -- despues de actualizar la fila, nunca antes,
+        /// para no dejar una fila apuntando a un archivo que ya no existe.
+        /// </summary>
+        Task<string> GuardarFotoPerfilAsync(
+            string usuarioId,
+            string extension,
+            Stream contenido,
+            CancellationToken cancellationToken = default);
     }
 }

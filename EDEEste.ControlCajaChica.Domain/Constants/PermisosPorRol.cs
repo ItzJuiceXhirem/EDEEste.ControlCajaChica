@@ -25,6 +25,13 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
     ///    devolver el dinero) y el Gerente tiene <see cref="Permisos.AnularGasto"/>,
     ///    que es el que efectivamente devuelve el efectivo al fondo. Con un solo
     ///    permiso, quien registra el gasto podría deshacerlo sin que nadie lo revise.
+    ///
+    /// 4. <see cref="Permisos.GestionarPerfilPropio"/> lo tienen TODOS los roles: no es
+    ///    una acción de negocio sujeta a segregación de funciones, sino algo que
+    ///    cualquiera hace sobre su propia cuenta. Se reparte por la matriz igual que el
+    ///    resto para que no haya excepciones que buscar sueltas por los endpoints. Una
+    ///    cuenta sin rol (Pendiente de aprobación) sigue sin tenerlo, que es lo
+    ///    correcto: todavía no debería poder tocar nada.
     /// </summary>
     public static class PermisosPorRol
     {
@@ -41,14 +48,16 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
                     Permisos.VerReposiciones,
                     Permisos.SolicitarReposicion,
                     Permisos.DescargarExpediente,
-                    Permisos.ConsultarHistorial
+                    Permisos.ConsultarHistorial,
+                    Permisos.GestionarPerfilPropio
                 },
 
                 [RolesApp.Administrador] = new HashSet<string>
                 {
                     Permisos.ConfigurarFondos,
                     Permisos.ConfigurarCategorias,
-                    Permisos.AdministrarUsuarios
+                    Permisos.AdministrarUsuarios,
+                    Permisos.GestionarPerfilPropio
                 },
 
                 [RolesApp.Gerente] = new HashSet<string>
@@ -60,14 +69,16 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
                     Permisos.VerReposiciones,
                     Permisos.AprobarReposicion,
                     Permisos.DescargarExpediente,
-                    Permisos.ConsultarHistorial
+                    Permisos.ConsultarHistorial,
+                    Permisos.GestionarPerfilPropio
                 },
 
                 [RolesApp.Finanzas] = new HashSet<string>
                 {
                     Permisos.VerReposiciones,
                     Permisos.PagarReposicion,
-                    Permisos.DescargarExpediente
+                    Permisos.DescargarExpediente,
+                    Permisos.GestionarPerfilPropio
                 },
 
                 [RolesApp.Auditor] = new HashSet<string>
@@ -76,7 +87,8 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
                     Permisos.VerArqueos,
                     Permisos.VerReposiciones,
                     Permisos.DescargarExpediente,
-                    Permisos.ConsultarHistorial
+                    Permisos.ConsultarHistorial,
+                    Permisos.GestionarPerfilPropio
                 }
             };
 

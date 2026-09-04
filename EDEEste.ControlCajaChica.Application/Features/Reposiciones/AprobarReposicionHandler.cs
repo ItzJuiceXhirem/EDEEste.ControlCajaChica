@@ -106,23 +106,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                     $"Esta solicitud esta en estado {solicitud.Estado}.");
             }
 
-            if (!solicitud.IntegridadVerificada)
-            {
-                errores.Add("La solicitud tiene la firma de integridad comprometida y no se puede procesar.");
-            }
-
-            foreach (var gasto in solicitud.Gastos)
-            {
-                if (gasto.Estado != EstadoGasto.EnProcesoReposicion)
-                {
-                    errores.Add($"El gasto {gasto.NCF} no esta en proceso de reposicion; la solicitud esta inconsistente.");
-                }
-
-                if (!gasto.IntegridadVerificada)
-                {
-                    errores.Add($"El gasto {gasto.NCF} tiene la firma de integridad comprometida.");
-                }
-            }
+            ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);
+            ValidadorSolicitudReposicion.ValidarGastosEnProceso(errores, solicitud);
 
             return errores;
         }

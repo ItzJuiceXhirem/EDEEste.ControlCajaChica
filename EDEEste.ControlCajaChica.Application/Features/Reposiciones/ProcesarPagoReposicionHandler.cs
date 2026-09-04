@@ -132,28 +132,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                     $"RD$ {fondo.MontoFijo:N2}. Verifique que la reposicion no se haya pagado ya.");
             }
 
-            if (!solicitud.IntegridadVerificada)
-            {
-                errores.Add("La solicitud tiene la firma de integridad comprometida y no se puede procesar.");
-            }
+            ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);
 
             if (!fondo.IntegridadVerificada)
             {
                 errores.Add("El fondo tiene la firma de integridad comprometida.");
             }
 
-            foreach (var gasto in solicitud.Gastos)
-            {
-                if (gasto.Estado != EstadoGasto.EnProcesoReposicion)
-                {
-                    errores.Add($"El gasto {gasto.NCF} no esta en proceso de reposicion; la solicitud esta inconsistente.");
-                }
-
-                if (!gasto.IntegridadVerificada)
-                {
-                    errores.Add($"El gasto {gasto.NCF} tiene la firma de integridad comprometida.");
-                }
-            }
+            ValidadorSolicitudReposicion.ValidarGastosEnProceso(errores, solicitud);
 
             return errores;
         }

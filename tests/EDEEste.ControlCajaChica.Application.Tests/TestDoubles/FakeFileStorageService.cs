@@ -127,6 +127,16 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
             CancellationToken cancellationToken = default) =>
             Task.FromResult(0);
 
+        // Ningun handler de Application sube fotos de perfil (eso vive en un endpoint
+        // de Presentation), asi que aqui basta con devolver una ruta con la forma
+        // correcta para que la interfaz quede satisfecha.
+        public Task<string> GuardarFotoPerfilAsync(
+            string usuarioId,
+            string extension,
+            Stream contenido,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult($"uploads/perfil/{usuarioId}{extension}");
+
         private static string TipoMimePorExtension(string extension) => extension.ToLowerInvariant() switch
         {
             ".pdf" => "application/pdf",

@@ -9,6 +9,7 @@ using EDEEste.ControlCajaChica.Application.Features.Reposiciones;
 using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
+using EDEEste.ControlCajaChica.Presentation.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -17,8 +18,6 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 {
     public partial class Reposiciones
     {
-        private const decimal PorcentajeAlertaPorDefecto = 30m;
-
         [Inject]
         private IFondoRepository Fondos { get; set; } = default!;
 
@@ -96,7 +95,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             puedePagar = (await Autorizacion.AuthorizeAsync(usuario, Permisos.PagarReposicion)).Succeeded;
 
             fondos = await FondosVisiblesAsync();
-            await ResolverNombresDeUsuarioAsync(fondos.Select(f => f.CustodioId));
+            await ResolverNombresAsync(fondos.Select(f => f.CustodioId));
 
             if (fondos.Count > 0)
             {
@@ -132,7 +131,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         /// usuario ya se resolvio antes (por ejemplo, el mismo gerente aprobando
         /// varias solicitudes).
         /// </summary>
-        private async Task ResolverNombresDeUsuarioAsync(IEnumerable<string?> ids)
+        private async Task ResolverNombresAsync(IEnumerable<string?> ids)
         {
             var pendientesDeResolver = ids
                 .Where(id => !string.IsNullOrEmpty(id) && !nombresDeUsuario.ContainsKey(id!))
@@ -168,12 +167,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             porAprobar = await RepositorioReposiciones.ListarPorEstadoAsync(EstadoReposicion.PendienteAprobacion);
             porPagar = await RepositorioReposiciones.ListarPorEstadoAsync(EstadoReposicion.Aprobada);
 
-            await ResolverNombresDeUsuarioAsync(porAprobar.Select(s => s.FondoCajaChica?.CustodioId));
-            await ResolverNombresDeUsuarioAsync(porPagar.Select(s => s.FondoCajaChica?.CustodioId));
+            await ResolverNombresAsync(porAprobar.Select(s => s.FondoCajaChica?.CustodioId));
+            await ResolverNombresAsync(porPagar.Select(s => s.FondoCajaChica?.CustodioId));
         }
 
         private static decimal PorcentajeAlerta(FondoCajaChica fondo) =>
-            fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : PorcentajeAlertaPorDefecto;
+            fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : LimitesFondo.AlertaReposicionPorDefecto;
 
         private decimal Umbral => fondoActual is null ? 0m : fondoActual.MontoFijo * (PorcentajeAlerta(fondoActual) / 100m);
 
@@ -243,7 +242,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             pendientes = await RepositorioGastos.ListarPendientesDeReposicionAsync(fondoId);
             solicitudes = await RepositorioReposiciones.ListarPorFondoAsync(fondoId);
 
-            await ResolverNombresDeUsuarioAsync(solicitudes.SelectMany(s => new[] { s.GerenteUsuarioId, s.FinanzasUsuarioId }));
+            await ResolverNombresAsync(solicitudes.SelectMany(s => new[] { s.GerenteUsuarioId, s.FinanzasUsuarioId }));
         }
 
         private async Task GenerarAsync()
@@ -462,8 +461,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private static string FormatoFechaHora(DateTime fechaUtc)
         {
             var local = fechaUtc.ToLocalTime();
-            var sufijo = local.Hour < 12 ? "a.m." : "p.m.";
-            return local.ToString("dd/MM/yyyy h:mm", CultureInfo.InvariantCulture) + " " + sufijo;
+            return local.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) + " " + FormatoHora.HoraCorta(local);
         }
 
         private static string FormatoFechaHoraOpcional(DateTime? fechaUtc) =>

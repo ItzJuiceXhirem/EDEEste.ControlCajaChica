@@ -54,5 +54,10 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
         public Task<bool> ExisteAdministradorAsync() => throw new NotImplementedException();
 
         public Task<DateTime?> RegistrarAccesoAsync(string usuarioId) => throw new NotImplementedException();
+
+        public Task<string?> ObtenerRutaFotoPerfilAsync(string usuarioId) => throw new NotImplementedException();
+
+        public Task ActualizarFotoPerfilAsync(string usuarioId, string? rutaRelativa) =>
+            throw new NotImplementedException();
     }
 }

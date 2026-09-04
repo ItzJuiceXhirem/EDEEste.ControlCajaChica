@@ -72,5 +72,24 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
         /// incluido).
         /// </summary>
         Task<DateTime?> RegistrarAccesoAsync(string usuarioId);
+
+        // --- Foto de perfil ---
+
+        /// <summary>
+        /// Ruta relativa de la foto de perfil, o null si no tiene. Se usa para servir
+        /// el archivo, para saber si pintar la foto o las iniciales, y para conocer la
+        /// ruta anterior al reemplazarla (y poder borrar la vieja).
+        /// </summary>
+        Task<string?> ObtenerRutaFotoPerfilAsync(string usuarioId);
+
+        /// <summary>
+        /// Fija (o limpia, con null) la ruta de la foto de perfil. Igual que
+        /// <see cref="RegistrarAccesoAsync"/>, la implementación debe escribir con un
+        /// UPDATE dirigido a esa única columna y no con UserManager.UpdateAsync: ese
+        /// haría un SaveChanges de la fila entera, arrastrando PasswordHash y
+        /// SecurityStamp por el ChangeTracker y disparando la bitácora de auditoría por
+        /// un cambio de foto.
+        /// </summary>
+        Task ActualizarFotoPerfilAsync(string usuarioId, string? rutaRelativa);
     }
 }

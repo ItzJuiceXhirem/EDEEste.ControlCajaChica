@@ -4,14 +4,32 @@
 <div class="mgl-cardwrap">
     <div class="mgl-band">
         <div class="mgl-band-inner">
-            @* Sin funcion real todavia -- el filtro y el lapiz solo anticipan la
-               subida de foto de perfil (§DESIGN.md, pendiente de implementar). *@
-            <span class="mgl-av" title="Cambiar foto de perfil (próximamente)">
-                @iniciales
-                <span class="mgl-av-ov">
-                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 15.4 5 12l7.2-7.2 3 3L7.9 15.1 4 15.4Z" /></svg>
-                </span>
-            </span>
+            @* Formulario HTML normal y no InputFile: esta pantalla es SSR estatico
+               (sin @rendermode), asi que no hay circuito para interop de JS. El
+               <label> envuelve al input, que es lo que hace que al pulsar el avatar
+               se abra el selector de archivos sin una linea de JavaScript; el
+               onchange lo envia solo, para no obligar a un segundo clic. *@
+            <form method="post" action="/perfil/foto" enctype="multipart/form-data" class="mgl-av-form">
+                <AntiforgeryToken />
+                <label class="mgl-av" style="@EstiloAvatar" title="Cambiar foto de perfil">
+                    @if (!TieneFoto)
+                    {
+                        <span class="mgl-av-iniciales">@iniciales</span>
+                    }
+                    <span class="mgl-av-ov">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 15.4 5 12l7.2-7.2 3 3L7.9 15.1 4 15.4Z" /></svg>
+                    </span>
+                    <input type="file" name="archivo" accept="image/png,image/jpeg"
+                           class="mgl-av-input" onchange="this.form.submit()" />
+                </label>
+            </form>
+            @if (TieneFoto)
+            {
+                <form method="post" action="/perfil/foto/eliminar" class="mgl-av-quitar">
+                    <AntiforgeryToken />
+                    <button type="submit" title="Quitar foto de perfil">Quitar foto</button>
+                </form>
+            }
             <div class="mgl-idtext">
                 <div class="mgl-name">@nombre</div>
                 <div class="mgl-role">@rol · @usuario</div>

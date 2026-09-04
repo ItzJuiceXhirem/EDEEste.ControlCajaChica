@@ -44,5 +44,19 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
         /// sesion -- ver <see cref="EDEEste.ControlCajaChica.Domain.Constants.ClaimsApp.UltimoAccesoAnterior"/>.
         /// </summary>
         public DateTime? UltimoAccesoUtc { get; set; }
+
+        /// <summary>
+        /// Ruta relativa de la foto de perfil dentro del almacenamiento
+        /// (uploads/perfil/...), o null si no tiene y se muestran las iniciales.
+        ///
+        /// Guarda la ruta y no los bytes a proposito: una imagen en la fila del usuario
+        /// se arrastraria en cada consulta que materialice la entidad (Identity la
+        /// carga entera en cada login y en cada UserManager.GetUserAsync).
+        ///
+        /// No entra en ninguna firma HMAC: esta clase vive fuera de la jerarquia
+        /// AuditableEntity/ITamperProofEntity del Domain -- una foto de perfil no es
+        /// evidencia contable, a diferencia de un comprobante.
+        /// </summary>
+        public string? RutaFotoPerfil { get; set; }
     }
 }

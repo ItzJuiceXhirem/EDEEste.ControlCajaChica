@@ -207,7 +207,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                     roles.FirstOrDefault(),
                     usuario.EstadoAcceso,
                     usuario.FechaCreacion,
-                    usuario.PhoneNumber));
+                    usuario.PhoneNumber,
+                    !string.IsNullOrWhiteSpace(usuario.RutaFotoPerfil)));
             }
 
             return resumen;
@@ -266,5 +267,20 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             return anterior;
         }
+
+        public Task<string?> ObtenerRutaFotoPerfilAsync(string usuarioId) =>
+            _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .Select(u => u.RutaFotoPerfil)
+                .FirstOrDefaultAsync();
+
+        // Mismo razonamiento que RegistrarAccesoAsync: UPDATE dirigido a una sola
+        // columna, sin ChangeTracker ni AuditoriaInterceptor de por medio. Cambiar la
+        // foto de perfil no tiene por que arrastrar el resto de la fila del usuario
+        // (PasswordHash incluido) ni generar una entrada de bitacora.
+        public Task ActualizarFotoPerfilAsync(string usuarioId, string? rutaRelativa) =>
+            _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.RutaFotoPerfil, rutaRelativa));
     }
 }

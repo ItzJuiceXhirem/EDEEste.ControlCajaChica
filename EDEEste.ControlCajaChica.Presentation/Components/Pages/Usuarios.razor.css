@@ -325,7 +325,25 @@
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 11.5px;
+    overflow: hidden;
 }
+
+    /* Las dos comparten la misma celda del grid (1/1) a proposito: sin el
+       grid-area explicito en .usu-iniciales-texto, el auto-placement las mandaba
+       a celdas DISTINTAS (una nueva fila implicita por cada item sin posicion
+       fija), y las iniciales terminaban asomando por debajo del circulo en vez
+       de quedar tapadas por la foto. */
+    .usu-initials .usu-iniciales-texto {
+        grid-area: 1 / 1;
+    }
+
+    .usu-initials .usu-foto {
+        grid-area: 1 / 1;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
 
 .usu-an-name {
     font-weight: 600;

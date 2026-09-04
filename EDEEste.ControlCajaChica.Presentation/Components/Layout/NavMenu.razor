@@ -108,13 +108,26 @@
         <Authorized>
             <div class="cc-navfoot">
                 <NavLink class="cc-profile" href="Account/Manage">
-                    @* Sin foto de perfil: el aro tenue con el icono de usuario. Cuando
-                       haya foto, basta con darle background-image a .cc-avatar. *@
+                    @* El icono generico queda debajo como respaldo y la foto lo tapa
+                       cuando carga. Se pide siempre, sin consultar antes si existe: una
+                       consulta aqui correria a la par de la de la pagina sobre el mismo
+                       DbContext con scope de peticion, que es exactamente el choque que
+                       ya tumbo el render de Perfil una vez (ver ManageLayout). Esta es
+                       siempre la PROPIA foto, asi que el endpoint nunca responde 404
+                       aqui -- responde 204 si no hay foto (no ensucia la consola como
+                       un error), y el onerror igual quita el <img> porque un 204 no
+                       trae cuerpo que decodificar como imagen, dejando el icono a la vista. *@
                     <span class="cc-avatar" aria-hidden="true">
                         <svg class="cc-ico" viewBox="0 0 20 20">
                             <path d="M10 4.3a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 0 1 0-5.4Z" />
                             <path d="M4.8 16.2c.6-2.8 2.6-4.2 5.2-4.2s4.6 1.4 5.2 4.2" />
                         </svg>
+                        @if (context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value is { } miId)
+                        {
+                            <img class="cc-avatar-foto" alt=""
+                                 src="@($"/usuarios/{Uri.EscapeDataString(miId)}/foto")"
+                                 onerror="this.remove()" />
+                        }
                     </span>
                     <span class="cc-who">@context.User.Identity?.Name</span>
                 </NavLink>

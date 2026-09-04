@@ -13,8 +13,6 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 {
     public partial class Home
     {
-        private const decimal PorcentajeAlertaPorDefecto = 30m;
-
         /// <summary>Cuántos arqueos entran en el anillo de resultados.</summary>
         private const int ArqueosEnElAnillo = 3;
 
@@ -86,6 +84,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             }
         }
 
+        /// <summary>
+        /// A diferencia de ResolverNombresAsync (Arqueos/Gastos/Reposiciones), este no es
+        /// incremental: reconstruye el mapa completo desde <c>fondos</c> en cada llamada, sin
+        /// reusar lo ya resuelto. Nombre distinto a proposito -- es una operacion distinta.
+        /// </summary>
         private async Task ResolverNombresDeCustodioAsync()
         {
             var ids = fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
@@ -104,7 +107,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             string.IsNullOrWhiteSpace(custodioId) ? "(sin asignar)" : nombresDeCustodio.GetValueOrDefault(custodioId, custodioId);
 
         private static decimal PorcentajeAlerta(FondoCajaChica fondo) =>
-            fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : PorcentajeAlertaPorDefecto;
+            fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : LimitesFondo.AlertaReposicionPorDefecto;
 
         /// <summary>
         /// Semaforo del efectivo disponible: verde desde 50%, amarillo entre 30% y 49%,

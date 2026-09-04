@@ -18,14 +18,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
     /// </summary>
     public sealed class CrearSolicitudReposicionHandler
     {
-        /// <summary>
-        /// Umbral por defecto cuando el fondo no tiene configurado
-        /// PorcentajeAlertaReposicion. El README pide solicitar la reposicion cuando
-        /// el fondo restante cae en la banda 30%-20%, asi que se habilita al tocar el
-        /// 30%.
-        /// </summary>
-        private const decimal PorcentajeAlertaPorDefecto = 30m;
-
         private readonly IFondoRepository _fondos;
         private readonly IGastoRepository _gastos;
         private readonly IReposicionRepository _reposiciones;
@@ -168,7 +160,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             var porcentajeAlerta = fondo.PorcentajeAlertaReposicion > 0
                 ? fondo.PorcentajeAlertaReposicion
-                : PorcentajeAlertaPorDefecto;
+                : LimitesFondo.AlertaReposicionPorDefecto;
 
             var umbral = fondo.MontoFijo * (porcentajeAlerta / 100m);
             if (fondo.BalanceActual > umbral)

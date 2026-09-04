@@ -149,13 +149,22 @@
     background: rgba(255, 253, 245, 0.14);
     box-shadow: inset 0 0 0 1.5px rgba(255, 253, 245, 0.35);
     color: rgba(255, 253, 245, 0.8);
-    background-size: cover;
-    background-position: center;
 }
 
     .cc-avatar .cc-ico {
         width: 15px;
         height: 15px;
+        grid-area: 1 / 1;
+    }
+
+    /* Misma celda del grid que el icono generico, asi que lo tapa cuando la foto
+       carga. object-fit: cover recorta al circulo sin deformar. */
+    .cc-avatar .cc-avatar-foto {
+        grid-area: 1 / 1;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
     }
 
 .cc-who {

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
+using EDEEste.ControlCajaChica.Presentation.Common;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 
@@ -22,6 +23,16 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Shared
         private string iniciales = "?";
         private DateTime? ultimaSesionAnterior;
         private Task<Usuario?> cuentaTask = default!;
+        private string? urlFoto;
+
+        private bool TieneFoto => urlFoto is not null;
+
+        /// <summary>
+        /// La foto pisa el degradado dorado del avatar. Va como estilo en linea y no
+        /// como clase porque la URL depende del usuario; el recorte al circulo lo hace
+        /// el CSS (background-size: cover), sin reprocesar la imagen en el servidor.
+        /// </summary>
+        private string? EstiloAvatar => urlFoto is null ? null : $"background-image:url('{urlFoto}')";
 
         protected override async Task OnInitializedAsync()
         {
@@ -46,6 +57,13 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Shared
             usuario = cuenta.UserName ?? string.Empty;
             nombre = cuenta.Nombre;
             iniciales = Iniciales(cuenta.Nombre);
+
+            // La ruta guardada no se usa como URL: el archivo vive fuera de wwwroot y
+            // solo se sirve por el endpoint, que ademas comprueba quien lo pide.
+            if (!string.IsNullOrWhiteSpace(cuenta.RutaFotoPerfil))
+            {
+                urlFoto = $"/usuarios/{Uri.EscapeDataString(cuenta.Id)}/foto";
+            }
 
             var roles = await UserManager.GetRolesAsync(cuenta);
             rol = roles.FirstOrDefault() ?? "Sin rol";
@@ -81,8 +99,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Shared
                 : local.Date == DateTime.Today.AddDays(-1) ? "Ayer"
                 : local.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
 
-            var sufijo = local.Hour < 12 ? "a.m." : "p.m.";
-            return $"{dia}, {local.ToString("h:mm", CultureInfo.InvariantCulture)} {sufijo}";
+            return $"{dia}, {FormatoHora.HoraCorta(local)}";
         }
     }
 }

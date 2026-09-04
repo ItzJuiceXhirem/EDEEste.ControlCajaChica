@@ -18,6 +18,15 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
     /// </summary>
     public sealed class ResolutorFuentesEmbebidas : IFontResolver
     {
+        /// <summary>
+        /// Nombre de familia para pedirle esta fuente a PDFsharp/MigraDoc (XFont,
+        /// Styles["Normal"].Font.Name, etc.). ResolveTypeface ignora el nombre
+        /// recibido y siempre devuelve Lato, asi que este valor no cambia que fuente
+        /// se dibuja -- pero es la unica fuente de verdad de como se llama, para no
+        /// repetir el literal en cada sitio que arma texto (ver PdfConsolidadorService).
+        /// </summary>
+        public const string NombreFamilia = "Lato";
+
         private const string RecursoRegular = "Lato-Regular.ttf";
         private const string RecursoBold = "Lato-Bold.ttf";
         private const string RecursoItalic = "Lato-Italic.ttf";

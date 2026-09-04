@@ -231,7 +231,20 @@ else
 
 @code {
     private RenderFragment RenderPersona(UsuarioResumenDto usuario) =>@<div class="usu-avatarname">
-        <span class="usu-initials">@Iniciales(usuario.Nombre)</span>
+        @* A diferencia del sidebar, aqui si se sabe de antemano quien tiene foto
+           (viene en el mismo DTO que ya lista la pantalla, sin consulta extra), asi
+           que la imagen se pide solo cuando existe. El onerror es la red por si el
+           archivo desaparecio del disco: se cae a las iniciales en vez de dejar el
+           icono roto del navegador. *@
+        <span class="usu-initials">
+            <span class="usu-iniciales-texto">@Iniciales(usuario.Nombre)</span>
+            @if (usuario.TieneFoto)
+            {
+                <img class="usu-foto" alt=""
+                     src="@($"/usuarios/{Uri.EscapeDataString(usuario.Id)}/foto")"
+                     onerror="this.remove()" />
+            }
+        </span>
         <div>
             <div class="usu-an-name">@usuario.Nombre</div>
             <div class="usu-an-user">

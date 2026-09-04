@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.DTOs;
 using EDEEste.ControlCajaChica.Domain.Enums;
+using EDEEste.ControlCajaChica.Presentation.Common;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -116,9 +117,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private static string FormatoFechaHora(DateTime fechaUtc)
         {
             var local = fechaUtc.ToLocalTime();
-            var sufijo = local.Hour < 12 ? "a.m." : "p.m.";
-            return local.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) + ", "
-                + local.ToString("h:mm", CultureInfo.InvariantCulture) + " " + sufijo;
+            return local.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) + ", " + FormatoHora.HoraCorta(local);
         }
 
         private async Task AprobarAsync(UsuarioResumenDto usuario, string? rol)

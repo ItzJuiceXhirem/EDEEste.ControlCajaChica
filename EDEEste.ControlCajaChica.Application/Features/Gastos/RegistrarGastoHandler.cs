@@ -35,12 +35,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         // (e-NCF, 13 caracteres). Nada mas pasa: ni espacios, ni guiones, ni otras letras.
         private static readonly Regex PatronNcf = new("^(B[01][0-9]{9}|E[34][0-9]{11})$", RegexOptions.Compiled);
 
-        // Antes vivia solo del lado del cliente (GetMultipleFiles(maximumFileCount: 20),
-        // que ademas lanzaba si se pasaba). Aqui es la regla de negocio real: una lista,
-        // un comando, una transaccion -- sin la carrera que tendria contar archivos en
-        // una carpeta de staging.
-        private const int LimiteComprobantesPorGasto = 20;
-
         private readonly IFondoRepository _fondos;
         private readonly ICategoriaGastoRepository _categorias;
         private readonly IGastoRepository _gastos;
@@ -338,9 +332,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 errores.Add("Debe adjuntar al menos un comprobante.");
             }
 
-            if (comando.Comprobantes.Count > LimiteComprobantesPorGasto)
+            if (comando.Comprobantes.Count > LimitesGasto.ComprobantesPorGasto)
             {
-                errores.Add($"No se pueden adjuntar mas de {LimiteComprobantesPorGasto} comprobantes.");
+                errores.Add($"No se pueden adjuntar mas de {LimitesGasto.ComprobantesPorGasto} comprobantes.");
             }
 
             // El formato/MIME/firma del archivo ya se comprobaron al subirlo a

@@ -122,6 +122,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 .Property(u => u.Nombre)
                 .HasMaxLength(150);
 
+            // Misma cota que ComprobanteAdjunto.RutaArchivo: es el mismo tipo de valor
+            // (una ruta relativa dentro del almacenamiento), y sin tope EF la habria
+            // creado como nvarchar(max).
+            modelBuilder.Entity<Identity.Usuario>()
+                .Property(u => u.RutaFotoPerfil)
+                .HasMaxLength(400);
+
             // Estas dos recorren el modelo completo, asi que van despues de que EF
             // termino de descubrir los tipos (incluidos los de Identity).
             AplicarPrecisionDeMontos(modelBuilder);

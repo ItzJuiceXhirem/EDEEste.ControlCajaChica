@@ -1,4 +1,5 @@
 using System;
+using EDEEste.ControlCajaChica.Domain.Constants;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Fondos
 {
@@ -8,7 +9,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
         public decimal MontoFijo { get; set; }
         public decimal LimitePorGasto { get; set; }
         public decimal PorcentajeMaximoPorGasto { get; set; } = 2.5m;
-        public decimal PorcentajeAlertaReposicion { get; set; } = 30m;
+        public decimal PorcentajeAlertaReposicion { get; set; } = LimitesFondo.AlertaReposicionPorDefecto;
         public string CustodioId { get; set; } = string.Empty;
     }
 }

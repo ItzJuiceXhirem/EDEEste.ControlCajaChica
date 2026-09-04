@@ -21,6 +21,12 @@
     padding: 0 26px;
 }
 
+/* El formulario existe solo para envolver el avatar: no debe ocupar espacio ni
+   alterar la posicion absoluta del circulo. */
+.mgl-av-form {
+    display: contents;
+}
+
 .mgl-av {
     width: 84px;
     height: 84px;
@@ -28,7 +34,12 @@
     flex: none;
     display: grid;
     place-items: center;
+    /* Si hay foto, el estilo en linea sobreescribe este degradado. cover recorta
+       al circulo sin deformar: por eso no hace falta reprocesar la imagen en el
+       servidor (y no hay que reintroducir una libreria de imagenes para eso). */
     background-image: linear-gradient(135deg, #FFC300, #FF9F1C);
+    background-size: cover;
+    background-position: center;
     color: #4A3800;
     font-family: var(--cc-ff-head);
     font-weight: 700;
@@ -38,9 +49,59 @@
     left: 26px;
     bottom: -34px;
     cursor: pointer;
+    overflow: hidden;
 }
 
+/* Las iniciales van en su propio span (no como nodo de texto suelto) y los
+   tres hijos comparten grid-area:1/1 a proposito: el auto-placement de .mgl-av
+   generaba dos filas de grid en vez de una sola celda de 84x84, y
+   place-items:center centraba el texto dentro de su propia fila (mas chica
+   que el circulo), no dentro del circulo entero. Mismo arreglo que en
+   Usuarios.razor.css y NavMenu.razor.css. */
+.mgl-av-iniciales {
+    grid-area: 1 / 1;
+}
+
+/* Oculto pero dentro del <label>, que es lo que abre el selector al pulsar el
+   avatar. display:none lo sacaria del formulario en algunos navegadores. */
+.mgl-av-input {
+    grid-area: 1 / 1;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Arriba del circulo (dentro de la franja oscura, y=60 es donde empieza el
+   avatar -- ver el calculo de .mgl-av bottom:-34px con height:84px sobre un
+   .mgl-band-inner de 110px) para no correr nada mas del layout. Mismo ancho
+   que el circulo y centrado, para que se lea como una etiqueta del avatar. */
+.mgl-av-quitar {
+    position: absolute;
+    left: 26px;
+    width: 84px;
+    bottom: 54px;
+    text-align: center;
+}
+
+    .mgl-av-quitar button {
+        background: none;
+        border: 0;
+        padding: 0;
+        font-family: var(--cc-ff-text);
+        font-size: 11px;
+        color: var(--cc-ivory);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .mgl-av-quitar button:hover {
+        color: #B3261E;
+    }
+
 .mgl-av-ov {
+    grid-area: 1 / 1;
     position: absolute;
     inset: 0;
     border-radius: 50%;

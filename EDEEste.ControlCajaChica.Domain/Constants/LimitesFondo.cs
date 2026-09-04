@@ -28,5 +28,20 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         public const decimal AlertaReposicionMinima = 10m;
 
         public const decimal AlertaReposicionMaxima = 50m;
+
+        /// <summary>
+        /// Umbral que se usa cuando un fondo no trae su propio
+        /// PorcentajeAlertaReposicion configurado (o vale 0): tanto para prellenar el
+        /// campo al crear un fondo nuevo, como al decidir si ya toca habilitar la
+        /// reposicion sobre un fondo existente. El README pide solicitarla cuando el
+        /// fondo restante cae en la banda 30%-20%, asi que el default coincide con el
+        /// borde superior de esa banda.
+        ///
+        /// Coincide numericamente con <see cref="TopePorGastoMaximo"/> (30), pero son
+        /// dos reglas de negocio distintas sin relacion entre si -- una es el tope de
+        /// cuanto puede costar un solo gasto, esta es el umbral de cuanto debe quedar
+        /// en caja. No los unifiques solo porque hoy comparten valor.
+        /// </summary>
+        public const decimal AlertaReposicionPorDefecto = 30m;
     }
 }

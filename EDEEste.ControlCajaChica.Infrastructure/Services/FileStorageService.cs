@@ -18,9 +18,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 {
     public class FileStorageService : IFileStorageService
     {
+        private const string CarpetaRaizUploads = "uploads";
         private const string CarpetaComprobantes = "comprobantes";
         private const string CarpetaReposiciones = "reposiciones";
         private const string CarpetaStaging = "staging";
+        private const string CarpetaFotosPerfil = "perfil";
         private const string ExtensionManifiesto = ".meta.json";
 
         // Fuera de wwwroot a propósito: MapStaticAssets solo sirve el manifiesto
@@ -36,9 +38,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             _rutaRaiz = opciones.Value.RutaRaiz;
             _criptografia = criptografia;
 
-            Directory.CreateDirectory(Path.Combine(_rutaRaiz, "uploads", CarpetaComprobantes));
-            Directory.CreateDirectory(Path.Combine(_rutaRaiz, "uploads", CarpetaReposiciones));
-            Directory.CreateDirectory(Path.Combine(_rutaRaiz, "uploads", CarpetaStaging));
+            Directory.CreateDirectory(Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaComprobantes));
+            Directory.CreateDirectory(Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaReposiciones));
+            Directory.CreateDirectory(Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaStaging));
+            Directory.CreateDirectory(Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaFotosPerfil));
         }
 
         /// <summary>
@@ -78,7 +81,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             // Seguridad: Generar un nombre único para evitar sobreescrituras y Path Traversal Attacks
             var extension = Path.GetExtension(comprobanteDto.NombreOriginal);
             var nombreArchivoSeguro = $"{Guid.NewGuid()}{extension}";
-            var rutaCompleta = Path.Combine(_rutaRaiz, "uploads", CarpetaComprobantes, nombreArchivoSeguro);
+            var rutaCompleta = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaComprobantes, nombreArchivoSeguro);
 
             // Se usa un FileStream para escribir el archivo directamente en disco chunk por chunk
             using (var fileStream = new FileStream(rutaCompleta, FileMode.Create))
@@ -102,7 +105,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             // El nombre viene armado por la aplicacion, pero se le quita cualquier
             // componente de ruta por si acaso: solo interesa el nombre del archivo.
             var nombreSeguro = Path.GetFileName(nombreArchivo);
-            var rutaCompleta = Path.Combine(_rutaRaiz, "uploads", CarpetaReposiciones, nombreSeguro);
+            var rutaCompleta = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaReposiciones, nombreSeguro);
 
             await File.WriteAllBytesAsync(rutaCompleta, contenido);
 
@@ -139,7 +142,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         }
 
         private static string ConstruirRutaRelativa(string carpeta, string nombreArchivo) =>
-            Path.Combine("uploads", carpeta, nombreArchivo).Replace("\\", "/");
+            Path.Combine(CarpetaRaizUploads, carpeta, nombreArchivo).Replace("\\", "/");
 
         // Método privado para calcular el hash criptográfico del archivo físico
         private async Task<string> CalcularHashArchivoAsync(string rutaFisica)
@@ -161,7 +164,60 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// alfabeto fijo (hexadecimal) sin importar que forma tenga el Id de origen.
         /// </summary>
         private string CarpetaDeUsuario(string usuarioId) =>
-            Path.Combine(_rutaRaiz, "uploads", CarpetaStaging, _criptografia.CalcularHMAC(usuarioId));
+            Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaStaging, _criptografia.CalcularHMAC(usuarioId));
+
+        /// <summary>
+        /// Guarda (o reemplaza) la foto de perfil del usuario y devuelve su ruta
+        /// relativa.
+        ///
+        /// El nombre es determinista -- el HMAC del Id del usuario, mismo criterio que
+        /// <see cref="CarpetaDeUsuario"/> -- y no un Guid: hay exactamente una foto por
+        /// persona, asi que volver a subir pisa la anterior sin acumular huerfanos ni
+        /// necesitar un barrido de limpieza como el de staging. La extension SI va en
+        /// el nombre, por lo que cambiar de .jpg a .png deja el archivo viejo atras:
+        /// quien llama se encarga de borrarlo (necesita la ruta anterior, que vive en
+        /// la BDD).
+        ///
+        /// Se escribe a un temporal y se renombra: un File.Move sobre el destino es
+        /// atomico, asi que una peticion que este sirviendo la foto en ese mismo
+        /// instante nunca ve un archivo a medio escribir.
+        /// </summary>
+        public async Task<string> GuardarFotoPerfilAsync(
+            string usuarioId,
+            string extension,
+            Stream contenido,
+            CancellationToken cancellationToken = default)
+        {
+            var carpeta = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaFotosPerfil);
+            Directory.CreateDirectory(carpeta);
+
+            var nombreArchivo = $"{_criptografia.CalcularHMAC(usuarioId)}{extension}";
+            var rutaDestino = Path.Combine(carpeta, nombreArchivo);
+            var rutaTemporal = $"{rutaDestino}.{Guid.NewGuid():N}.tmp";
+
+            try
+            {
+                await using (var destino = new FileStream(rutaTemporal, FileMode.CreateNew))
+                {
+                    contenido.Position = 0;
+                    await contenido.CopyToAsync(destino, cancellationToken);
+                }
+
+                File.Move(rutaTemporal, rutaDestino, overwrite: true);
+            }
+            catch
+            {
+                // Que no quede un .tmp tirado si algo falla a mitad de camino.
+                if (File.Exists(rutaTemporal))
+                {
+                    File.Delete(rutaTemporal);
+                }
+
+                throw;
+            }
+
+            return ConstruirRutaRelativa(CarpetaFotosPerfil, nombreArchivo);
+        }
 
         private static string CadenaFirmaManifiesto(ComprobanteStagingDto manifiesto) =>
             new ConstructorFirma("ComprobanteStaging")
@@ -260,7 +316,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var rutaOrigen = Path.Combine(carpetaUsuario, $"{manifiesto.Referencia}{manifiesto.Extension}");
 
             var nombreFinal = $"{Guid.NewGuid()}{manifiesto.Extension}";
-            var rutaDestino = Path.Combine(_rutaRaiz, "uploads", CarpetaComprobantes, nombreFinal);
+            var rutaDestino = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaComprobantes, nombreFinal);
 
             // Copia y no mueve: si el guardado en BDD falla despues (el ejemplo mas
             // comun es un choque de concurrencia en el balance del fondo, no algo
@@ -341,7 +397,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             TimeSpan antiguedad,
             CancellationToken cancellationToken = default)
         {
-            var rutaStaging = Path.Combine(_rutaRaiz, "uploads", CarpetaStaging);
+            var rutaStaging = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaStaging);
             if (!Directory.Exists(rutaStaging))
             {
                 return Task.FromResult(0);

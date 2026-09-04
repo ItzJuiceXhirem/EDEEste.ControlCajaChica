@@ -268,10 +268,18 @@
 /* El ojito nativo de "mostrar contraseña" de Edge (::-ms-reveal, herencia de
    EdgeHTML) sale gris por defecto y se pierde sobre el fondo oscuro del panel.
    Firefox/Safari no muestran este boton nativo, asi que no hace falta un
-   equivalente para ellos. */
+   equivalente para ellos.
+
+   "color" no alcanza: Microsoft documenta que el icono se implementa como
+   background-image, no como texto, asi que fijar solo el color no cambia nada
+   visible (ese era el bug de la regla anterior). No hay ninguna forma oficial
+   de recolorear el glifo en si -- lo mas cerca que se puede llegar es un halo
+   alrededor con drop-shadow, que sigue la silueta real del icono en vez de un
+   cuadro (box-shadow seguiria el rectangulo del control). Ivory y no dorado:
+   mismo tono que el resto del texto de este panel oscuro. */
 .cc-panel ::deep input[type="password"]::-ms-reveal {
-    color: var(--cc-gold-lt);
     background-color: transparent;
+    filter: drop-shadow(0 0 3px var(--cc-ivory)) drop-shadow(0 0 1px var(--cc-ivory));
 }
 
 .cc-panel ::deep .cc-hint {

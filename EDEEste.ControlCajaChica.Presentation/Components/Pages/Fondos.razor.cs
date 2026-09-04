@@ -101,7 +101,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             fondo.MontoFijo > 0 ? fondo.BalanceActual / fondo.MontoFijo * 100m : 0m;
 
         private static decimal UmbralPorcentaje(FondoCajaChica fondo) =>
-            fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : 30m;
+            fondo.PorcentajeAlertaReposicion > 0 ? fondo.PorcentajeAlertaReposicion : LimitesFondo.AlertaReposicionPorDefecto;
 
         private static decimal UmbralPesos(FondoCajaChica fondo) =>
             fondo.MontoFijo * (UmbralPorcentaje(fondo) / 100m);
@@ -580,7 +580,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             public decimal MontoFijo { get; set; }
             public decimal LimitePorGasto { get; set; }
             public decimal PorcentajeMaximoPorGasto { get; set; } = 2.5m;
-            public decimal PorcentajeAlertaReposicion { get; set; } = 30m;
+            public decimal PorcentajeAlertaReposicion { get; set; } = LimitesFondo.AlertaReposicionPorDefecto;
             public string? CustodioId { get; set; }
 
             public void Limpiar()
@@ -588,7 +588,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 MontoFijo = 0;
                 LimitePorGasto = 0;
                 PorcentajeMaximoPorGasto = 2.5m;
-                PorcentajeAlertaReposicion = 30m;
+                PorcentajeAlertaReposicion = LimitesFondo.AlertaReposicionPorDefecto;
                 CustodioId = null;
             }
         }

@@ -162,6 +162,23 @@ builder.Services.AddRateLimiter(opciones =>
             QueueLimit = 0
         });
     });
+
+    // Misma partición por usuario, pero mucho más estrecha: una foto de perfil se
+    // cambia de vez en cuando, no es parte de ningún flujo de trabajo repetitivo
+    // como cargar los comprobantes de un gasto.
+    opciones.AddPolicy("subida-foto-perfil", contexto =>
+    {
+        var clave = contexto.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? contexto.Connection.RemoteIpAddress?.ToString()
+            ?? "desconocido";
+
+        return RateLimitPartition.GetFixedWindowLimiter(clave, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(5),
+            QueueLimit = 0
+        });
+    });
 });
 
 // El limite por defecto de multipart es 128 MB; un comprobante no debe superar
@@ -215,6 +232,9 @@ app.MapReposicionEndpoints();
 
 // Visualización de un comprobante adjunto de un gasto (imagen o PDF).
 app.MapGastoEndpoints();
+
+// Subida y visualización de la foto de perfil.
+app.MapPerfilEndpoints();
 
 // Los roles del catálogo se crean al arrancar si aún no existen (operación idempotente).
 await using (var scope = app.Services.CreateAsyncScope())

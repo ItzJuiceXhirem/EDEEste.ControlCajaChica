@@ -86,7 +86,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// </summary>
         private static void EstamparNumerosDePagina(PdfDocument documento)
         {
-            var fuente = new XFont("Lato", 8, XFontStyleEx.Regular);
+            var fuente = new XFont(ResolutorFuentesEmbebidas.NombreFamilia, 8, XFontStyleEx.Regular);
             var total = documento.PageCount;
 
             for (var indice = 0; indice < total; indice++)
@@ -180,7 +180,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             seccion.PageSetup.RightMargin = MargenPagina;
             seccion.PageSetup.TopMargin = MargenPagina;
             seccion.PageSetup.BottomMargin = MargenPagina;
-            documento.Styles["Normal"]!.Font.Name = "Lato";
+            documento.Styles["Normal"]!.Font.Name = ResolutorFuentesEmbebidas.NombreFamilia;
             documento.Styles["Normal"]!.Font.Size = 10;
             return documento;
         }

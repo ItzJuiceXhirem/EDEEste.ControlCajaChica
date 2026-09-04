@@ -58,6 +58,18 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         public const string ConfigurarCategorias = "config.categorias";
         public const string AdministrarUsuarios = "config.usuarios";
 
+        // --- Cuenta propia ---
+        /// <summary>
+        /// Gestionar los datos de la propia cuenta (hoy: la foto de perfil). Lo tienen
+        /// todos los roles: no es una acción de negocio sujeta a segregación de
+        /// funciones, sino algo que cualquiera puede hacer sobre sí mismo.
+        ///
+        /// Existe como permiso, y no como un RequireAuthorization() pelado, para que la
+        /// matriz de accesos siga viviendo entera en <see cref="PermisosPorRol"/> --
+        /// sin excepciones que haya que ir a buscar sueltas por los endpoints.
+        /// </summary>
+        public const string GestionarPerfilPropio = "perfil.gestionar";
+
         public static readonly IReadOnlyList<string> Todos =
         [
             VerGastos,
@@ -75,7 +87,8 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
             ConsultarHistorial,
             ConfigurarFondos,
             ConfigurarCategorias,
-            AdministrarUsuarios
+            AdministrarUsuarios,
+            GestionarPerfilPropio
         ];
     }
 }
