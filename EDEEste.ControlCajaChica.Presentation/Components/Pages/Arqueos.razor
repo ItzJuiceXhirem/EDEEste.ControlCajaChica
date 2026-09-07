@@ -1,0 +1,450 @@
+@page "/arqueos"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permisos.VerArqueos)]
+
+<PageTitle>Arqueos</PageTitle>
+
+<div class="arq-pagebar">
+    <div>
+        <h1 class="arq-h1">Arqueo de caja</h1>
+        <AuthorizeView Policy="@Permisos.EjecutarArqueo" Context="autorizacionLede">
+            <Authorized>
+                <p class="arq-sub">Cuente el efectivo por denominación y compárelo contra el saldo del fondo.</p>
+            </Authorized>
+            <NotAuthorized>
+                <p class="arq-sub">Historial de conteos del fondo y su resultado.</p>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+
+    @if (fondos is { Count: > 0 })
+    {
+        <div class="arq-fondo-pick">
+            <span class="arq-lbl">Fondo</span>
+            <select class="arq-select" value="@fondoSeleccionado" @onchange="CambiarFondoAsync">
+                @foreach (var fondo in fondos)
+                {
+                    <option value="@fondo.Id">
+                        Custodio @NombreUsuario(fondo.CustodioId)
+                        &mdash; RD$ @fondo.BalanceActual.ToString("N2")
+                    </option>
+                }
+            </select>
+        </div>
+    }
+</div>
+
+@if (errores.Count > 0)
+{
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach (var error in errores)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+@if (exito is not null)
+{
+    <div class="alert alert-success">@exito</div>
+}
+
+@if (fondos is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (fondos.Count == 0)
+{
+    <div class="alert alert-warning">Primero cree <a href="/fondos">un fondo</a>.</div>
+}
+else
+{
+    @if (HayArqueoDelMesEnCurso)
+    {
+        <div class="arq-notice">
+            <svg class="arq-ico" viewBox="0 0 20 20" aria-hidden="true">
+                <circle cx="10" cy="10" r="6.8" />
+                <path d="M10 9.4v4M10 6.8h.01" />
+            </svg>
+            <span>
+                Este fondo ya tiene un arqueo registrado este mes (@ultimoArqueo!.FechaArqueo.ToString("dd/MM/yyyy")).
+                Puede registrar otro si se trata de un reconteo.
+            </span>
+        </div>
+    }
+
+    @* §5.1: quien tiene el permiso de captura pliega y despliega con la flecha;
+       quien no lo tiene ve la sección permanentemente recogida, con un candado no
+       interactivo en lugar de la flecha y la razón en vez del resumen. *@
+    <AuthorizeView Policy="@Permisos.EjecutarArqueo" Context="autorizacionEjecutar">
+        <Authorized>
+            @if (seccionAbierta)
+            {
+                <div class="arq-layout">
+                    <section class="arq-card arq-nuevo">
+                        <header class="arq-card-h">
+                            <h2 class="arq-card-t">Nuevo arqueo</h2>
+                            <div class="arq-card-tools">
+                                <label class="arq-datefield">
+                                    <input type="date" value="@fechaArqueo.ToString("yyyy-MM-dd")"
+                                           max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                           @onchange="e => fechaArqueo = DateTime.TryParse(e.Value?.ToString(), out var f) ? f : fechaArqueo" />
+                                </label>
+                                <button type="button" class="arq-chevbtn" title="Plegar el conteo"
+                                        aria-expanded="true" @onclick="AlternarSeccion">
+                                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 12 10 7.5 14.5 12" /></svg>
+                                </button>
+                            </div>
+                        </header>
+
+                        <div class="arq-card-b">
+                            <div class="arq-cols">
+                                <div>
+                                    <div class="arq-sec-lbl"><span class="arq-lbl">Billetes</span><span class="arq-line"></span></div>
+                                    <div class="arq-den-grid">
+                                        @foreach (var fila in FilasBilletes)
+                                        {
+                                            <div class="arq-den @(fila.Cantidad == 0 ? "arq-zero" : "")">
+                                                <span class="arq-bill" style="background: rgba(0,53,102,@OpacidadBillete(fila.ValorDenominacion))">
+                                                    @fila.ValorDenominacion.ToString("N0")
+                                                </span>
+                                                @RenderStepper(fila)
+                                                <span class="arq-sub-amt cc-num">@fila.Subtotal.ToString("N2")</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="arq-coin-col">
+                                    <div class="arq-sec-lbl"><span class="arq-lbl">Monedas</span><span class="arq-line"></span></div>
+                                    <div class="arq-den-grid">
+                                        @foreach (var fila in FilasMonedas)
+                                        {
+                                            <div class="arq-den @(fila.Cantidad == 0 ? "arq-zero" : "")">
+                                                <span class="arq-coin" style="background: rgba(255,195,0,@OpacidadMoneda(fila.ValorDenominacion))">
+                                                    @fila.ValorDenominacion.ToString("N0")
+                                                </span>
+                                                @RenderStepper(fila)
+                                                <span class="arq-sub-amt cc-num">@fila.Subtotal.ToString("N2")</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* §Arqueos: las observaciones van debajo de la calculadora y a
+                               todo el ancho, no en una columna aparte. *@
+                            <div class="arq-obs-block">
+                                <label class="arq-lbl" for="arq-observaciones">Observaciones</label>
+                                <textarea id="arq-observaciones" class="arq-ta" rows="2" maxlength="1000"
+                                          placeholder="Opcional: qué se contó, con quién, y cualquier novedad."
+                                          @bind="observaciones"></textarea>
+                            </div>
+
+                            <div class="arq-total-strip">
+                                <span class="arq-lbl">Total contado</span>
+                                <span class="arq-total-amt cc-num">RD$ @MontoContado.ToString("N2")</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="arq-rail">
+                        <section class="arq-card">
+                            <div class="arq-card-b">
+                                <div class="arq-verdict @ClaseCajaResultado(ResultadoActual)">
+                                    <div class="arq-lbl">Diferencia</div>
+                                    <div class="arq-verdict-big cc-num">RD$ @Diferencia.ToString("N2")</div>
+                                    <span class="arq-verdict-state">
+                                        @RenderIconoResultado(ResultadoActual)
+                                        @EtiquetaResultado(ResultadoActual)
+                                    </span>
+                                </div>
+
+                                <div class="arq-facts">
+                                    <div class="arq-fact">
+                                        <span class="arq-fact-k">Saldo teórico</span>
+                                        <span class="arq-fact-v cc-num">RD$ @SaldoTeorico.ToString("N2")</span>
+                                    </div>
+                                    <div class="arq-fact">
+                                        <span class="arq-fact-k">Efectivo contado</span>
+                                        <span class="arq-fact-v cc-num">RD$ @MontoContado.ToString("N2")</span>
+                                    </div>
+                                    <div class="arq-fact">
+                                        <span class="arq-fact-k">Comprobantes pendientes</span>
+                                        <span class="arq-fact-v cc-num">RD$ @MontoComprobantesPendientes.ToString("N2")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        @* flex:1 + space-between: el botón queda pegado al fondo de la
+                           columna, alineado con el borde inferior de la tarjeta de al lado. *@
+                        <section class="arq-card arq-tail">
+                            <div class="arq-card-b">
+                                @* flex:1 + centrado: la caja crece para llenar el alto que le
+                                   sobraba encima del botón, en vez de quedar pegada arriba con
+                                   un hueco vacío debajo. *@
+                                <div class="arq-inv-box @(InvarianteCuadra ? "arq-inv-ok" : "arq-inv-bad")">
+                                    @if (InvarianteCuadra)
+                                    {
+                                        <svg class="arq-inv-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.6 10.4 8.2 14l7.2-8" /></svg>
+                                    }
+                                    else
+                                    {
+                                        <svg class="arq-inv-icon" viewBox="0 0 20 20" aria-hidden="true">
+                                            <path d="M10 4.6 17 16.4H3L10 4.6Z" /><path d="M10 9v3.3M10 14.5h.01" />
+                                        </svg>
+                                    }
+                                    <p class="arq-inv-label">Efectivo contado + comprobantes pendientes = fondo fijo</p>
+                                    <p class="arq-inv-sum cc-num">
+                                        RD$ @MontoContado.ToString("N2") + RD$ @MontoComprobantesPendientes.ToString("N2")
+                                        = RD$ @((MontoContado + MontoComprobantesPendientes).ToString("N2"))
+                                    </p>
+                                    <p class="arq-inv-fijo cc-num">Fondo fijo: RD$ @(fondoActual?.MontoFijo.ToString("N2") ?? "0.00")</p>
+                                </div>
+
+                                <button type="button" class="arq-btn arq-btn-w" disabled="@guardando" @onclick="RegistrarAsync">
+                                    @(guardando ? "Guardando..." : "Registrar arqueo")
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="arq-collapsed">
+                    <div class="arq-cb-left">
+                        <span class="arq-cb-ic">
+                            <svg viewBox="0 0 20 20" aria-hidden="true">
+                                <path d="M5.4 3.4h9.2a1 1 0 0 1 1 1v11.2a1 1 0 0 1-1 1H5.4a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1Z" />
+                                <path d="M7 6.7h6" />
+                                <path d="M7.2 10.1h.01M10 10.1h.01M12.8 10.1h.01M7.2 13.3h.01M10 13.3h.01M12.8 13.3h.01" />
+                            </svg>
+                        </span>
+                        <span class="arq-cb-title">Nuevo arqueo</span>
+                        <span class="arq-cb-sum cc-num">
+                            · Contado RD$ @MontoContado.ToString("N2") · Teórico RD$ @SaldoTeorico.ToString("N2")
+                        </span>
+                    </div>
+                    <div class="arq-cb-right">
+                        <span class="arq-bdg @ClaseBadge(ResultadoActual)">
+                            @RenderIconoResultado(ResultadoActual)
+                            @EtiquetaResultado(ResultadoActual)
+                        </span>
+                        <button type="button" class="arq-chevbtn" title="Desplegar el conteo"
+                                aria-expanded="false" @onclick="AlternarSeccion">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 8 10 12.5 14.5 8" /></svg>
+                        </button>
+                    </div>
+                </div>
+            }
+        </Authorized>
+
+        <NotAuthorized>
+            <div class="arq-collapsed arq-locked">
+                <div class="arq-cb-left">
+                    <span class="arq-cb-ic">
+                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M5.4 3.4h9.2a1 1 0 0 1 1 1v11.2a1 1 0 0 1-1 1H5.4a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1Z" />
+                            <path d="M7 6.7h6" />
+                            <path d="M7.2 10.1h.01M10 10.1h.01M12.8 10.1h.01M7.2 13.3h.01M10 13.3h.01M12.8 13.3h.01" />
+                        </svg>
+                    </span>
+                    <span class="arq-cb-title">Nuevo arqueo</span>
+                    <span class="arq-cb-note">· Sólo el Custodio puede registrar un arqueo</span>
+                </div>
+                <div class="arq-cb-right">
+                    @if (ultimoArqueo is not null)
+                    {
+                        <span class="arq-bdg @ClaseBadge(ultimoArqueo.Resultado)">
+                            @RenderIconoResultado(ultimoArqueo.Resultado)
+                            @EtiquetaResultado(ultimoArqueo.Resultado)
+                        </span>
+                    }
+                    <span class="arq-lockbtn" title="Sólo el Custodio puede registrar un arqueo">
+                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                            <rect x="4.8" y="9" width="10.4" height="7.6" rx="1.2" />
+                            <path d="M6.8 9V6.6a3.2 3.2 0 0 1 6.4 0V9" />
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+
+    <section class="arq-card arq-hist">
+        <header class="arq-card-h"><h2 class="arq-card-t">Historial de arqueos</h2></header>
+        <div class="arq-card-b arq-hist-b">
+            @if (historial is null)
+            {
+                <p class="arq-empty"><em>Cargando...</em></p>
+            }
+            else if (historial.Count == 0)
+            {
+                <p class="arq-empty">Este fondo todavía no tiene arqueos registrados.</p>
+            }
+            else
+            {
+                <div class="arq-hist-scroll">
+                    @* §5.2: el borde va en la fila completa, no en cada celda — con el
+                       borde por celda los badges, más altos que el texto, dejaban las
+                       rayas a desnivel. *@
+                    <div class="arq-hist-head">
+                        <span class="arq-lbl">Fecha</span>
+                        <span class="arq-lbl">Resultado</span>
+                        <span class="arq-lbl arq-r">Efectivo contado</span>
+                        <span class="arq-lbl arq-r">Comprobantes pendientes</span>
+                        <span class="arq-lbl arq-r">Saldo teórico</span>
+                        <span class="arq-lbl arq-r">Diferencia</span>
+                        <span class="arq-lbl">Observaciones</span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    @foreach (var arqueo in historial)
+                    {
+                        <div class="arq-hist-row">
+                            <span class="cc-num">@arqueo.FechaArqueo.ToString("dd/MM/yyyy")</span>
+                            <span><span class="arq-bdg @ClaseBadge(arqueo.Resultado)">@EtiquetaResultado(arqueo.Resultado)</span></span>
+                            <span class="arq-r cc-num">@arqueo.MontoEfectivoContado.ToString("N2")</span>
+                            <span class="arq-r cc-num">@arqueo.MontoComprobantesPendientes.ToString("N2")</span>
+                            <span class="arq-r cc-num">@arqueo.SaldoTeorico.ToString("N2")</span>
+                            <span class="arq-r cc-num arq-dif @ClaseTextoResultado(arqueo.Resultado)">@FormatoDiferencia(arqueo.Diferencia)</span>
+                            <span class="arq-obs-cell @(string.IsNullOrWhiteSpace(arqueo.Observaciones) ? "arq-none" : "")">
+                                @TruncarObservacion(arqueo.Observaciones)
+                            </span>
+                            <span>
+                                @* Solo hay ojo si de verdad se truncó: una observación que
+                                   cabe entera no necesita abrir nada. *@
+                                @if (ObservacionTruncada(arqueo.Observaciones))
+                                {
+                                    <button type="button" class="arq-eyebtn" title="Ver la observación completa"
+                                            @onclick="() => VerObservacion(arqueo.Id)">
+                                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                                            <path d="M1.8 10S4.9 4.8 10 4.8 18.2 10 18.2 10 15.1 15.2 10 15.2 1.8 10 1.8 10Z" />
+                                            <circle cx="10" cy="10" r="2.4" />
+                                        </svg>
+                                    </button>
+                                }
+                            </span>
+                            <span class="arq-r">
+                                @* El mismo botón abre y cierra: no se añade un control de
+                                   cerrar aparte dentro del panel desplegado (§5.2). *@
+                                <button type="button" class="arq-btn arq-btn-ghost arq-btn-sm"
+                                        @onclick="() => AlternarDetalle(arqueo.Id)">
+                                    @(arqueoExpandido == arqueo.Id ? "Ocultar" : "Desglose")
+                                </button>
+                            </span>
+                        </div>
+
+                        @if (arqueoExpandido == arqueo.Id)
+                        {
+                            <div class="arq-expand">
+                                <p class="arq-ecap">Desglose del conteo · @arqueo.FechaArqueo.ToString("dd/MM/yyyy")</p>
+                                @if (arqueo.DetallesDenominacion.Count == 0)
+                                {
+                                    <p class="arq-empty">Sin denominaciones registradas (conteo en cero).</p>
+                                }
+                                else
+                                {
+                                    <div class="arq-dgrid">
+                                        @foreach (var detalle in arqueo.DetallesDenominacion.OrderByDescending(d => d.ValorDenominacion))
+                                        {
+                                            <div class="arq-drow">
+                                                <span class="arq-dk">RD$ @detalle.ValorDenominacion.ToString("N0") × @detalle.Cantidad</span>
+                                                <span class="arq-dv cc-num">@detalle.SubtotalDenominacion.ToString("N2")</span>
+                                            </div>
+                                        }
+                                        <div class="arq-drow arq-dtotal">
+                                            <span class="arq-dk">Total</span>
+                                            <span class="arq-dv cc-num">@arqueo.MontoEfectivoContado.ToString("N2")</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@if (ArqueoConObservacionAbierta is { } arqueoConObservacion)
+{
+    @* Modal armado a mano: el proyecto solo carga bootstrap.min.css (no el bundle JS),
+       asi que la visibilidad la controla el propio estado de Blazor. *@
+    <div class="arq-scrim" @onclick="CerrarObservacion">
+        <div class="arq-modal" @onclick:stopPropagation="true" role="dialog" aria-modal="true">
+            @* §5.3: encabezado y franja de metadatos fusionados en un solo bloque con
+               degradado esquina a esquina — `to bottom right`, no 135deg, que en una
+               caja ancha y baja se lee como un degradado lateral. *@
+            <div class="arq-modal-grad">
+                <div class="arq-modal-h">
+                    <h3>Observación del arqueo del @arqueoConObservacion.FechaArqueo.ToString("dd/MM/yyyy")</h3>
+                    <button type="button" class="arq-modal-x" aria-label="Cerrar" @onclick="CerrarObservacion">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5 14.5 14.5M14.5 5.5 5.5 14.5" /></svg>
+                    </button>
+                </div>
+                <div class="arq-modal-meta">
+                    <div>
+                        <div class="arq-lbl arq-meta-lbl">Resultado</div>
+                        @* El badge conserva su aspecto claro sobre el degradado: no se
+                           invierte (§5.3). *@
+                        <div class="arq-meta-v"><span class="arq-bdg @ClaseBadge(arqueoConObservacion.Resultado)">@EtiquetaResultado(arqueoConObservacion.Resultado)</span></div>
+                    </div>
+                    <div>
+                        <div class="arq-lbl arq-meta-lbl">Diferencia</div>
+                        @* El monto suelto sí se aclara: el rojo de la tabla queda
+                           ilegible sobre el azul oscuro (§5.3, única excepción). *@
+                        <div class="arq-meta-v cc-num @ClaseTextoResultadoOscuro(arqueoConObservacion.Resultado)">
+                            RD$ @FormatoDiferencia(arqueoConObservacion.Diferencia)
+                        </div>
+                    </div>
+                    <div>
+                        <div class="arq-lbl arq-meta-lbl">Realizado por</div>
+                        <div class="arq-meta-v">@NombreUsuario(arqueoConObservacion.RealizadoPorUsuarioId)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arq-modal-divider"></div>
+
+            <div class="arq-modal-b">
+                <p class="arq-modal-txt">@arqueoConObservacion.Observaciones</p>
+            </div>
+
+            <div class="arq-modal-f">
+                <button type="button" class="arq-modal-close" @onclick="CerrarObservacion">Cerrar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* El stepper conserva los botones del diseño, pero con la cifra editable en medio:
+   contar ocho billetes de RD$ 2,000 a golpe de «+» sería un castigo. *@
+@code {
+    private RenderFragment RenderStepper(FilaConteo fila) =>@<span class="arq-stepper">
+        <button type="button" class="arq-sbtn" aria-label="Restar uno" @onclick="() => Ajustar(fila, -1)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10" /></svg>
+        </button>
+        @* En cero el campo va vacío con el 0 de marca de agua: así se escribe la
+           cantidad directamente, sin tener que borrar antes el cero que había. *@
+        <input type="number" class="arq-sval cc-num" min="0" step="1" placeholder="0"
+               value="@(fila.Cantidad == 0 ? string.Empty : fila.Cantidad.ToString())"
+               aria-label="Cantidad de RD$ @fila.ValorDenominacion.ToString("N0")"
+               @onchange="e => FijarCantidad(fila, e.Value?.ToString())" />
+        <button type="button" class="arq-sbtn" aria-label="Sumar uno" @onclick="() => Ajustar(fila, 1)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 5v10M5 10h10" /></svg>
+        </button>
+    </span>;
+
+    private RenderFragment RenderIconoResultado(ResultadoArqueo resultado) => resultado switch
+    {
+        ResultadoArqueo.Cuadrado =>@<svg class="arq-ico arq-ico-sm arq-ico-bold" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.6 10.4 8.2 14l7.2-8" /></svg>,
+        ResultadoArqueo.Sobrante =>@<svg class="arq-ico arq-ico-sm arq-ico-bold" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 15.4V5M5.5 9.5 10 5l4.5 4.5" /></svg>,
+        _ =>@<svg class="arq-ico arq-ico-sm arq-ico-bold" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.6V15M5.5 10.5 10 15l4.5-4.5" /></svg>
+    };
+}

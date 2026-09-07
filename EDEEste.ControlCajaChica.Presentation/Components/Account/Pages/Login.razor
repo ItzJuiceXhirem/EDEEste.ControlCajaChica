@@ -1,58 +1,65 @@
 @page "/Account/Login"
+@layout EDEEste.ControlCajaChica.Presentation.Components.Layout.AccesoLayout
 
 <PageTitle>Iniciar sesión</PageTitle>
 
-<h1>Iniciar sesión</h1>
+<StatusMessage Message="@errorMessage" />
 
-<div class="row">
-    <div class="col-lg-6">
-        <section>
-            <StatusMessage Message="@errorMessage" />
-
-            @if (sinAdministrador)
-            {
-                <div class="alert alert-info">
-                    Este sistema todavía no tiene un Administrador configurado.
-                    <a href="/configuracion-inicial">Configurar el primer Administrador</a>.
-                </div>
-            }
-
-            <EditForm EditContext="editContext" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <h2 class="h5">Use su usuario de la empresa.</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
-                               autocomplete="username" aria-required="true" placeholder="nombre.apellido" />
-                    <label for="Input.Usuario" class="form-label">Usuario</label>
-                    <ValidationMessage For="() => Input.Usuario" class="text-danger" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
-                               autocomplete="current-password" aria-required="true" placeholder="contraseña" />
-                    <label for="Input.Password" class="form-label">Contraseña</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Recordarme
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Iniciar sesión</button>
-                </div>
-                <hr />
-                <div>
-                    <p><a href="Account/ForgotPassword">Olvidé mi contraseña</a></p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">
-                            Solicitar acceso al sistema
-                        </a>
-                    </p>
-                </div>
-            </EditForm>
-        </section>
+@if (sinAdministrador)
+{
+    <div class="alert alert-info">
+        Este sistema todavía no tiene un Administrador configurado.
+        <a href="/configuracion-inicial">Configurar el primer Administrador</a>.
     </div>
-</div>
+}
+
+<p class="cc-kicker">Acceso al sistema</p>
+<h1>Iniciar sesión</h1>
+<p class="cc-note" style="margin: 9px 0 24px;">Use su usuario de la empresa.</p>
+
+<EditForm EditContext="editContext" method="post" OnValidSubmit="LoginUser" FormName="login">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" role="alert" />
+
+    <div class="cc-fields">
+        <div class="cc-f">
+            <label class="cc-lb" for="Input.Usuario">Usuario</label>
+            <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
+                       autocomplete="username" aria-required="true" placeholder="nombre.apellido" />
+            <ValidationMessage For="() => Input.Usuario" class="text-danger" />
+        </div>
+
+        <div class="cc-f">
+            <label class="cc-lb" for="Input.Password">Contraseña</label>
+            <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
+                       autocomplete="current-password" aria-required="true" placeholder="Su contraseña" />
+            <ValidationMessage For="() => Input.Password" class="text-danger" />
+        </div>
+
+        <label class="cc-rem">
+            <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
+            Recordarme
+        </label>
+
+        <button type="submit" class="cc-cta">
+            Iniciar sesión
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M4 10h11.5" />
+                <path d="M11.4 5.8 15.6 10l-4.2 4.2" />
+            </svg>
+        </button>
+    </div>
+
+    <div class="cc-sep" style="margin: 22px 0 16px;"></div>
+
+    @* §5.4: ninguna de las dos pantallas de acceso debe ser una puerta sin salida. *@
+    <div class="cc-lnk-row">
+        <a href="Account/ForgotPassword">Olvidé mi contraseña</a>
+        <span>
+            ¿No tiene cuenta?
+            <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">
+                Solicitar acceso al sistema
+            </a>
+        </span>
+    </div>
+</EditForm>

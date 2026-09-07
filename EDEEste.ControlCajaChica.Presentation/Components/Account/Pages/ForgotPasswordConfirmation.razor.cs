@@ -9,9 +9,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 {
     /// <summary>
     /// Pantalla de espera tras pedir un restablecimiento de contraseña. Sondea el
-    /// estado de la solicitud cada 60 segundos y, en cuanto un Administrador la
-    /// aprueba, redirige sola a la URL única de restablecimiento -- sin que el
-    /// usuario tenga que hacer nada ni esperar a que le llegue el enlace por Teams.
+    /// estado de la solicitud cada 60 segundos solo para reflejar si se aprobo o se
+    /// ignoro -- YA NO redirige sola al formulario de la nueva contraseña: el enlace
+    /// real lleva un secreto de un solo uso que solo conoce el Administrador (ver
+    /// PasswordResetService.AceptarAsync), asi que aunque esta pantalla supiera que
+    /// la solicitud fue aprobada, no tiene forma de completar el cambio por su
+    /// cuenta. Quien la pidio sigue teniendo que esperar el enlace por Teams.
     /// </summary>
     public partial class ForgotPasswordConfirmation : IDisposable
     {
@@ -24,6 +27,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
         private string? SolicitudId { get; set; }
 
         private bool ignorada;
+        private bool aprobada;
         private CancellationTokenSource? _cts;
 
         protected override void OnInitialized()
@@ -46,11 +50,21 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
             {
                 while (await temporizador.WaitForNextTickAsync(cancellationToken))
                 {
-                    var estado = await PasswordResetService.ObtenerEstadoAsync(solicitudId);
+                    // Por InvokeAsync y no directo: esta consulta usa el mismo DbContext
+                    // con scope del circuito. Sin este envoltorio, si esta pantalla algun
+                    // dia gana un boton que tambien lo toque, el sondeo de fondo y ese
+                    // clic podrian pisarse (EF Core no admite dos operaciones a la vez
+                    // sobre el mismo DbContext) -- InvokeAsync serializa los dos contra
+                    // el mismo despachador del circuito, igual que ya hace StateHasChanged
+                    // mas abajo. InvokeAsync no tiene una sobrecarga que devuelva un
+                    // valor, asi que se captura en una variable local dentro del lambda.
+                    EstadoSolicitudPasswordReset? estado = null;
+                    await InvokeAsync(async () => estado = await PasswordResetService.ObtenerEstadoAsync(solicitudId));
 
                     if (estado == EstadoSolicitudPasswordReset.Aprobada)
                     {
-                        await InvokeAsync(() => NavigationManager.NavigateTo($"Account/ResetPassword/{solicitudId}"));
+                        aprobada = true;
+                        await InvokeAsync(StateHasChanged);
                         return;
                     }
 

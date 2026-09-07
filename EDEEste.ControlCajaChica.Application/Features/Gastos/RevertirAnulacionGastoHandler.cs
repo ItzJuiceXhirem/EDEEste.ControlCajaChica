@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -18,11 +19,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
     public sealed class RevertirAnulacionGastoHandler
     {
         private readonly IGastoRepository _gastos;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
-        public RevertirAnulacionGastoHandler(IGastoRepository gastos, IApplicationDbContext contexto)
+        public RevertirAnulacionGastoHandler(
+            IGastoRepository gastos, IAutorizacionService autorizacion, IApplicationDbContext contexto)
         {
             _gastos = gastos;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -30,6 +34,13 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             RevertirAnulacionGastoCommand comando,
             CancellationToken cancellationToken = default)
         {
+            // Mismo permiso que anular directo: revertir es la misma autoridad
+            // (Gerente) sobre el mismo expediente.
+            if (!await _autorizacion.TienePermisoAsync(Permisos.AnularGasto, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para revertir una anulación.");
+            }
+
             var gasto = await _gastos.ObtenerPorIdAsync(comando.GastoId, cancellationToken);
             if (gasto is null)
             {

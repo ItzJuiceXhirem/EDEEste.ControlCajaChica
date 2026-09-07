@@ -1,16 +1,56 @@
 @inherits LayoutComponentBase
 @layout EDEEste.ControlCajaChica.Presentation.Components.Layout.MainLayout
 
-<h1>Mi cuenta</h1>
-
-<div>
-    <hr />
-    <div class="row">
-        <div class="col-lg-3">
-            <ManageNavMenu />
+<div class="mgl-cardwrap">
+    <div class="mgl-band">
+        <div class="mgl-band-inner">
+            @* Formulario HTML normal y no InputFile: esta pantalla es SSR estatico
+               (sin @rendermode), asi que no hay circuito para interop de JS. El
+               <label> envuelve al input, que es lo que hace que al pulsar el avatar
+               se abra el selector de archivos sin una linea de JavaScript; el
+               onchange lo envia solo, para no obligar a un segundo clic. *@
+            <form method="post" action="/perfil/foto" enctype="multipart/form-data" class="mgl-av-form">
+                <AntiforgeryToken />
+                <label class="mgl-av" style="@EstiloAvatar" title="Cambiar foto de perfil">
+                    @if (!TieneFoto)
+                    {
+                        <span class="mgl-av-iniciales">@iniciales</span>
+                    }
+                    <span class="mgl-av-ov">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 15.4 5 12l7.2-7.2 3 3L7.9 15.1 4 15.4Z" /></svg>
+                    </span>
+                    <input type="file" name="archivo" accept="image/png,image/jpeg"
+                           class="mgl-av-input" onchange="this.form.submit()" />
+                </label>
+            </form>
+            @if (TieneFoto)
+            {
+                <form method="post" action="/perfil/foto/eliminar" class="mgl-av-quitar">
+                    <AntiforgeryToken />
+                    <button type="submit" title="Quitar foto de perfil">Quitar foto</button>
+                </form>
+            }
+            <div class="mgl-idtext">
+                <div class="mgl-name">@nombre</div>
+                <div class="mgl-role">@rol · @usuario</div>
+            </div>
+            @if (ultimaSesionAnterior is not null)
+            {
+                <div class="mgl-since">
+                    Última sesión<br><b>@FormatoUltimaSesion(ultimaSesionAnterior.Value)</b>
+                </div>
+            }
         </div>
-        <div class="col-lg-9">
+    </div>
+    <div class="mgl-body-top">
+        <nav class="mgl-tabs">
+            <NavLink class="mgl-tab" ActiveClass="mgl-tab-on" href="Account/Manage" Match="NavLinkMatch.All">Perfil</NavLink>
+            <NavLink class="mgl-tab" ActiveClass="mgl-tab-on" href="Account/Manage/ChangePassword">Contraseña</NavLink>
+        </nav>
+    </div>
+    <div class="mgl-inner">
+        <CascadingValue Value="cuentaTask">
             @Body
-        </div>
+        </CascadingValue>
     </div>
 </div>

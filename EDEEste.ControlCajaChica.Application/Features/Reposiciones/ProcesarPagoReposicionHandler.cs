@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -26,15 +27,18 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
         private readonly IReposicionRepository _reposiciones;
         private readonly ICurrentUserService _usuarioActual;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
         public ProcesarPagoReposicionHandler(
             IReposicionRepository reposiciones,
             ICurrentUserService usuarioActual,
+            IAutorizacionService autorizacion,
             IApplicationDbContext contexto)
         {
             _reposiciones = reposiciones;
             _usuarioActual = usuarioActual;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -42,6 +46,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             ProcesarPagoReposicionCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.PagarReposicion, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para registrar el pago de una reposición.");
+            }
+
             var solicitud = await _reposiciones.ObtenerConDetalleAsync(comando.ReposicionId, cancellationToken);
             if (solicitud is null)
             {
@@ -123,28 +132,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                     $"RD$ {fondo.MontoFijo:N2}. Verifique que la reposicion no se haya pagado ya.");
             }
 
-            if (!solicitud.IntegridadVerificada)
-            {
-                errores.Add("La solicitud tiene la firma de integridad comprometida y no se puede procesar.");
-            }
+            ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);
 
             if (!fondo.IntegridadVerificada)
             {
                 errores.Add("El fondo tiene la firma de integridad comprometida.");
             }
 
-            foreach (var gasto in solicitud.Gastos)
-            {
-                if (gasto.Estado != EstadoGasto.EnProcesoReposicion)
-                {
-                    errores.Add($"El gasto {gasto.NCF} no esta en proceso de reposicion; la solicitud esta inconsistente.");
-                }
-
-                if (!gasto.IntegridadVerificada)
-                {
-                    errores.Add($"El gasto {gasto.NCF} tiene la firma de integridad comprometida.");
-                }
-            }
+            ValidadorSolicitudReposicion.ValidarGastosEnProceso(errores, solicitud);
 
             return errores;
         }

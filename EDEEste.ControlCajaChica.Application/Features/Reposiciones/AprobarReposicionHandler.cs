@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -22,15 +23,18 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
     {
         private readonly IReposicionRepository _reposiciones;
         private readonly ICurrentUserService _usuarioActual;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
         public AprobarReposicionHandler(
             IReposicionRepository reposiciones,
             ICurrentUserService usuarioActual,
+            IAutorizacionService autorizacion,
             IApplicationDbContext contexto)
         {
             _reposiciones = reposiciones;
             _usuarioActual = usuarioActual;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -38,6 +42,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             AprobarReposicionCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.AprobarReposicion, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para aprobar o rechazar una reposición.");
+            }
+
             var solicitud = await _reposiciones.ObtenerConDetalleAsync(comando.ReposicionId, cancellationToken);
             if (solicitud is null)
             {
@@ -97,23 +106,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                     $"Esta solicitud esta en estado {solicitud.Estado}.");
             }
 
-            if (!solicitud.IntegridadVerificada)
-            {
-                errores.Add("La solicitud tiene la firma de integridad comprometida y no se puede procesar.");
-            }
-
-            foreach (var gasto in solicitud.Gastos)
-            {
-                if (gasto.Estado != EstadoGasto.EnProcesoReposicion)
-                {
-                    errores.Add($"El gasto {gasto.NCF} no esta en proceso de reposicion; la solicitud esta inconsistente.");
-                }
-
-                if (!gasto.IntegridadVerificada)
-                {
-                    errores.Add($"El gasto {gasto.NCF} tiene la firma de integridad comprometida.");
-                }
-            }
+            ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);
+            ValidadorSolicitudReposicion.ValidarGastosEnProceso(errores, solicitud);
 
             return errores;
         }

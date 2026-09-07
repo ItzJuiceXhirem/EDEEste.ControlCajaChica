@@ -1,7 +1,34 @@
 ﻿@page "/Account/InvalidUser"
+@layout EDEEste.ControlCajaChica.Presentation.Components.Layout.AccesoLayout
 
 <PageTitle>Usuario inválido</PageTitle>
 
-<h3>Usuario inválido</h3>
+<div class="cc-glow-wrap">
+    <div class="cc-glow" style="--mc:rgba(255,253,245,.75);--mc-bg:rgba(255,253,245,.2)">
+        <svg class="cc-glow-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="14" cy="11" r="5" />
+            <path d="M5.5 26.5c0-5.3 3.8-8.7 8.5-8.7 1.4 0 2.7.3 3.9.8" />
+            <circle cx="22.5" cy="21.5" r="6" stroke-width="1.5" />
+            <text x="22.5" y="24.3" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" stroke="none">?</text>
+        </svg>
+    </div>
+</div>
+
+<p class="cc-kicker cc-center">ERROR DE CUENTA</p>
+<h1 class="cc-center">Usuario inválido</h1>
+<p class="cc-note cc-center">No pudimos encontrar la cuenta asociada a esta acción. Es posible que haya sido eliminada.</p>
 
 <StatusMessage />
+
+<div class="cc-next" style="--mc:rgba(255,253,245,.75);--mc-bg2:rgba(255,253,245,.06)">
+    <p class="cc-next-lb">Qué hacer</p>
+    <p class="cc-next-txt">
+        Si esto ocurre después de seguir un enlace, es probable que ya no sea válido.
+        Vuelva a intentar el proceso desde el inicio.
+    </p>
+</div>
+
+<a class="cc-cta" href="Account/Login">
+    Volver al inicio de sesión
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h11.5" /><path d="M11.4 5.8 15.6 10l-4.2 4.2" /></svg>
+</a>

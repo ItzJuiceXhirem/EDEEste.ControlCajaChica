@@ -1,11 +1,15 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Domain.Constants;
+using EDEEste.ControlCajaChica.Infrastructure.Configuration;
 using EDEEste.ControlCajaChica.Presentation.Components.Account;
 using EDEEste.ControlCajaChica.Presentation.Components.Account.Pages;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 
 namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 {
@@ -22,10 +26,19 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         [Inject] private IIdentityService IdentityService { get; set; } = default!;
         [Inject] private IdentityRedirectManager RedirectManager { get; set; } = default!;
         [Inject] private ILogger<ConfiguracionInicial> Logger { get; set; } = default!;
+        [Inject] private IOptions<OpcionesConfiguracionInicial> OpcionesArranque { get; set; } = default!;
 
         private readonly List<string> errores = new();
         private bool yaHayAdministrador;
         private bool creando;
+
+        /// <summary>
+        /// Sin un token configurado, la pantalla no muestra el formulario en
+        /// absoluto: es preferible que un despliegue nuevo se quede sin poder crear
+        /// el primer Administrador (y que quien lo despliega lo note de inmediato) a
+        /// dejar la puerta abierta a que cualquiera en la red llegue primero.
+        /// </summary>
+        private bool tokenNoConfigurado;
 
         [SupplyParameterFromForm]
         private InputModel Input { get; set; } = default!;
@@ -33,6 +46,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         protected override async Task OnInitializedAsync()
         {
             Input ??= new();
+
+            tokenNoConfigurado = string.IsNullOrWhiteSpace(OpcionesArranque.Value.TokenArranque);
 
             yaHayAdministrador = await IdentityService.ExisteAdministradorAsync();
             if (yaHayAdministrador)
@@ -44,6 +59,25 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private async Task CrearAdministradorAsync()
         {
             errores.Clear();
+
+            if (tokenNoConfigurado)
+            {
+                return;
+            }
+
+            // Comparacion en tiempo constante: este token decide quien se queda con
+            // el sistema completo, asi que se trata como cualquier otro secreto
+            // criptografico de la aplicacion.
+            var tokenEsperado = OpcionesArranque.Value.TokenArranque;
+            var tokenCoincide = CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(Input.Token ?? string.Empty),
+                Encoding.UTF8.GetBytes(tokenEsperado));
+
+            if (!tokenCoincide)
+            {
+                errores.Add("El token de arranque no es correcto.");
+                return;
+            }
 
             // Se vuelve a comprobar justo antes de crear, no solo al cargar: entre
             // que se abrió la pantalla y se envió el formulario pudo crearse un
@@ -86,6 +120,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         private sealed class InputModel
         {
+            [Required(ErrorMessage = "Indique el token de arranque.")]
+            [Display(Name = "Token de arranque")]
+            public string Token { get; set; } = "";
+
             [Required(ErrorMessage = "Indique el usuario.")]
             [StringLength(100, MinimumLength = 3)]
             [RegularExpression(
@@ -100,7 +138,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             public string Nombre { get; set; } = "";
 
             [Required(ErrorMessage = "Indique una contraseña.")]
-            [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 6)]
+            [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 8)]
             [DataType(DataType.Password)]
             [Display(Name = "Contraseña")]
             public string Password { get; set; } = "";

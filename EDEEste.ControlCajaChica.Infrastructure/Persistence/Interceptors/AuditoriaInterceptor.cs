@@ -1,3 +1,4 @@
+
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Exceptions;
@@ -36,6 +37,42 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
     public class AuditoriaInterceptor : SaveChangesInterceptor
     {
         private const string UsuarioSistema = "Sistema";
+        private const string MarcadorRedactado = "***";
+
+        // Nombre del lock nombrado de SQL Server (sp_getapplock) que serializa la
+        // lectura del ultimo HashFirma con el INSERT de los logs nuevos. Ver el
+        // comentario de FirmarCadenaDeLogs para el porque, y el de
+        // ApplicationDbContext.SaveChangesAsync para el porque del @LockOwner='Transaction'.
+        private const string RecursoLockCadena = "LogsAuditoria:Cadena";
+
+        // 5 segundos de margen generoso: un guardado normal (unas pocas filas de
+        // bitacora) toma milisegundos, asi que esta espera solo se nota si algo mas
+        // esta genuinamente atascado reteniendo el lock.
+        private const string ScriptTomarLockDeCadena = """
+            DECLARE @resultado int;
+            EXEC @resultado = sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 5000;
+            IF @resultado < 0
+            BEGIN
+                THROW 50000, 'No se pudo obtener el lock de la cadena de auditoria a tiempo. Nada se guardo todavia; probablemente otra persona registraba un cambio al mismo tiempo. Vuelva a intentarlo en unos segundos.', 1;
+            END
+            """;
+
+        /// <summary>
+        /// Propiedades que jamas deben llegar a LogsAuditoria en claro, aunque
+        /// pertenezcan a una entidad legitima que si se audita (AspNetUsers,
+        /// SolicitudesPasswordReset). LogsAuditoria es una bitacora de negocio para
+        /// que un Auditor vea "quien cambio que" -- no un lugar donde deba poder leerse
+        /// un hash de contrasena o un secreto de un solo uso, ni siquiera un DBA con
+        /// acceso de lectura a la BDD.
+        /// </summary>
+        private static readonly HashSet<string> PropiedadesSensibles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            nameof(Identity.Usuario.PasswordHash),
+            nameof(Identity.Usuario.SecurityStamp),
+            nameof(Identity.Usuario.ConcurrencyStamp),
+            nameof(Identity.SolicitudPasswordReset.TokenReseteo),
+            nameof(Identity.SolicitudPasswordReset.HashSecreto),
+        };
 
         private readonly ICriptografiaService _criptografiaService;
         private readonly ILogger<AuditoriaInterceptor> _logger;
@@ -62,6 +99,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
 
                 if (logs.Count > 0)
                 {
+                    TomarLockDeCadena(eventData.Context);
+
                     var hashPrevio = eventData.Context.Set<LogAuditoria>()
                         .AsNoTracking()
                         .OrderByDescending(l => l.Secuencia)
@@ -88,6 +127,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
 
                 if (logs.Count > 0)
                 {
+                    await TomarLockDeCadenaAsync(eventData.Context, cancellationToken);
+
                     var hashPrevio = await eventData.Context.Set<LogAuditoria>()
                         .AsNoTracking()
                         .OrderByDescending(l => l.Secuencia)
@@ -213,7 +254,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             if (estadoOriginal is EntityState.Modified or EntityState.Deleted)
             {
                 var valoresAnteriores = entry.OriginalValues.Properties
-                    .ToDictionary(p => p.Name, p => entry.OriginalValues[p]);
+                    .ToDictionary(p => p.Name, p => RedactarSiEsSensible(p.Name, entry.OriginalValues[p]));
                 log.ValoresAnteriores = JsonSerializer.Serialize(valoresAnteriores);
             }
 
@@ -222,12 +263,35 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             if (entry.State is EntityState.Added or EntityState.Modified)
             {
                 var valoresNuevos = entry.CurrentValues.Properties
-                    .ToDictionary(p => p.Name, p => entry.CurrentValues[p]);
+                    .ToDictionary(p => p.Name, p => RedactarSiEsSensible(p.Name, entry.CurrentValues[p]));
                 log.ValoresNuevos = JsonSerializer.Serialize(valoresNuevos);
             }
 
             return log;
         }
+
+        /// <summary>
+        /// Se redacta con un marcador en vez de omitir la clave: la bitacora sigue
+        /// dejando constancia de que ese campo cambio (para "SecurityStamp cambio" es
+        /// dato util -- indica un cierre de sesion forzado), sin revelar el valor.
+        /// </summary>
+        private static object? RedactarSiEsSensible(string nombrePropiedad, object? valor) =>
+            PropiedadesSensibles.Contains(nombrePropiedad) && valor is not null
+                ? MarcadorRedactado
+                : valor;
+
+        /// <summary>
+        /// Toma el lock nombrado dentro de la transaccion que envuelve este guardado
+        /// (ver ApplicationDbContext.SaveChanges/SaveChangesAsync). Sin el, dos
+        /// SaveChanges concurrentes podian leer el mismo HashFirma "ultimo" -- el que
+        /// se lee justo despues de esta llamada -- y encadenar los dos logs desde
+        /// ahi, bifurcando la cadena.
+        /// </summary>
+        private static void TomarLockDeCadena(DbContext context) =>
+            context.Database.ExecuteSqlRaw(ScriptTomarLockDeCadena, RecursoLockCadena);
+
+        private static Task TomarLockDeCadenaAsync(DbContext context, CancellationToken cancellationToken) =>
+            context.Database.ExecuteSqlRawAsync(ScriptTomarLockDeCadena, [RecursoLockCadena], cancellationToken);
 
         /// <summary>
         /// Enlaza cada log con la firma del anterior. Romper un eslabon (borrar o

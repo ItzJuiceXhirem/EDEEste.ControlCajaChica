@@ -38,6 +38,52 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         public DbSet<Identity.SolicitudPasswordReset> SolicitudesPasswordReset { get; set; }
 
         /// <summary>
+        /// Envuelve el guardado en su propia transaccion, salvo que ya haya una
+        /// activa. Existe para que AuditoriaInterceptor pueda tomar un lock nombrado
+        /// (sp_getapplock, @LockOwner='Transaction') que serialice la lectura del
+        /// ultimo HashFirma de LogsAuditoria con el INSERT de los logs nuevos: sin
+        /// esto, dos SaveChanges concurrentes podian leer el mismo "ultimo hash" y
+        /// encadenar los dos desde ahi, bifurcando la cadena -- y una bifurcacion deja
+        /// indetectable el borrado de una de las hojas resultantes, que es
+        /// precisamente lo que la cadena existe para impedir. El lock se libera solo
+        /// al hacer commit o rollback de esta transaccion, nunca hay que soltarlo a
+        /// mano.
+        ///
+        /// Si algo mas adelante abre su propia transaccion antes de llamar
+        /// SaveChanges, se reutiliza tal cual: no se abre una segunda ni se intenta
+        /// manejar su commit/rollback.
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            if (Database.CurrentTransaction is not null)
+            {
+                return await base.SaveChangesAsync(cancellationToken);
+            }
+
+            await using var transaccion = await Database.BeginTransactionAsync(cancellationToken);
+            var filasAfectadas = await base.SaveChangesAsync(cancellationToken);
+            await transaccion.CommitAsync(cancellationToken);
+            return filasAfectadas;
+        }
+
+        /// <summary>Misma razon que la sobrecarga asincrona; ningun camino de la app
+        /// llama a esta hoy (IApplicationDbContext solo expone la version async), pero
+        /// AuditoriaInterceptor tambien sobreescribe su lado sincrono (SavingChanges)
+        /// por si algo fuera de la app llegara a usarlo.</summary>
+        public override int SaveChanges()
+        {
+            if (Database.CurrentTransaction is not null)
+            {
+                return base.SaveChanges();
+            }
+
+            using var transaccion = Database.BeginTransaction();
+            var filasAfectadas = base.SaveChanges();
+            transaccion.Commit();
+            return filasAfectadas;
+        }
+
+        /// <summary>
         /// Ver <see cref="IApplicationDbContext.IntentarGuardarCambiosAsync"/>.
         ///
         /// El ChangeTracker.Clear() no es opcional: en Blazor Server el contexto vive
@@ -75,6 +121,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             modelBuilder.Entity<Identity.Usuario>()
                 .Property(u => u.Nombre)
                 .HasMaxLength(150);
+
+            // Misma cota que ComprobanteAdjunto.RutaArchivo: es el mismo tipo de valor
+            // (una ruta relativa dentro del almacenamiento), y sin tope EF la habria
+            // creado como nvarchar(max).
+            modelBuilder.Entity<Identity.Usuario>()
+                .Property(u => u.RutaFotoPerfil)
+                .HasMaxLength(400);
 
             // Estas dos recorren el modelo completo, asi que van despues de que EF
             // termino de descubrir los tipos (incluidos los de Identity).
@@ -327,6 +380,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 // pocos cientos de caracteres; 1000 deja margen sin dejarlo en
                 // nvarchar(max).
                 .HasMaxLength(1000);
+
+            modelBuilder.Entity<Identity.SolicitudPasswordReset>()
+                .Property(s => s.HashSecreto)
+                // SHA-256 en hexadecimal son siempre 64 caracteres.
+                .HasMaxLength(64);
 
             AplicarLongitudDeIdsDeUsuario(modelBuilder);
         }

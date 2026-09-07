@@ -20,6 +20,16 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account
         {
             uri ??= "";
 
+            // "//evil.com" o "/\evil.com" (network-path reference, RFC 3986) pasan la
+            // comprobacion de mas abajo: Uri.IsWellFormedUriString los acepta como
+            // relativos, asi que NavigateTo los recibia intactos. El navegador si los
+            // resuelve como cambio de host -- era el hueco real: ReturnUrl en /Account/Login
+            // llega tal cual del query string hasta aqui.
+            if (EmpiezaComoUriExterno(uri))
+            {
+                uri = "";
+            }
+
             // Prevent open redirects.
             if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
             {
@@ -28,6 +38,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account
 
             navigationManager.NavigateTo(uri);
         }
+
+        private static bool EmpiezaComoUriExterno(string uri) =>
+            uri.StartsWith("//", StringComparison.Ordinal) || uri.StartsWith("/\\", StringComparison.Ordinal);
 
         public void RedirectTo(string uri, Dictionary<string, object?> queryParameters)
         {

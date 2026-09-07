@@ -15,10 +15,15 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
         private Usuario? cuenta;
         private string? usuario;
         private string? nombre;
-        private string? telefono;
+        private string? extension;
 
         [CascadingParameter]
         private HttpContext HttpContext { get; set; } = default!;
+
+        // La carga la sirve ManageLayout (ver su comentario): llamar GetUserAsync
+        // aqui tambien competiria por el mismo DbContext con scope de la peticion.
+        [CascadingParameter]
+        private Task<Usuario?> CuentaTask { get; set; } = default!;
 
         [SupplyParameterFromForm]
         private InputModel Input { get; set; } = default!;
@@ -27,7 +32,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
         {
             Input ??= new();
 
-            cuenta = await UserManager.GetUserAsync(HttpContext.User);
+            cuenta = await CuentaTask;
             if (cuenta is null)
             {
                 RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
@@ -36,9 +41,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
 
             usuario = await UserManager.GetUserNameAsync(cuenta);
             nombre = cuenta.Nombre;
-            telefono = await UserManager.GetPhoneNumberAsync(cuenta);
+            // La extension vive en la misma columna que antes guardaba el telefono
+            // (PhoneNumber de Identity): sigue siendo "un numero de contacto propio",
+            // solo cambio el significado y el formato que se le exige.
+            extension = await UserManager.GetPhoneNumberAsync(cuenta);
 
-            Input.Telefono ??= telefono;
+            Input.Extension ??= extension;
         }
 
         private async Task OnValidSubmitAsync()
@@ -49,16 +57,17 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
                 return;
             }
 
-            // El usuario y el nombre no se editan aquí a propósito: el usuario es el
+            // El usuario y el nombre no se editan aqui a proposito: el usuario es el
             // de la empresa (y en modo ActiveDirectory lo manda el directorio), y el
-            // nombre lo fija quien crea la cuenta. El teléfono sí es dato propio.
-            if (Input.Telefono != telefono)
+            // nombre lo fija quien crea la cuenta -- todavia no existe el flujo de
+            // solicitar-y-aprobar un cambio de nombre. La extension si es dato propio.
+            if (Input.Extension != extension)
             {
-                var resultado = await UserManager.SetPhoneNumberAsync(cuenta, Input.Telefono);
+                var resultado = await UserManager.SetPhoneNumberAsync(cuenta, Input.Extension);
                 if (!resultado.Succeeded)
                 {
                     RedirectManager.RedirectToCurrentPageWithStatus(
-                        "Error: no se pudo guardar el teléfono.", HttpContext);
+                        "Error: no se pudo guardar la extensión.", HttpContext);
                     return;
                 }
             }
@@ -69,9 +78,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
 
         private sealed class InputModel
         {
-            [Phone(ErrorMessage = "El teléfono no tiene un formato válido.")]
-            [Display(Name = "Teléfono")]
-            public string? Telefono { get; set; }
+            [Required(ErrorMessage = "La extensión es obligatoria.")]
+            [RegularExpression("^[0-9]{4}$", ErrorMessage = "La extensión debe tener exactamente 4 dígitos numéricos.")]
+            [Display(Name = "Extensión")]
+            public string? Extension { get; set; }
         }
     }
 }

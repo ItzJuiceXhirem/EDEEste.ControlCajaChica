@@ -1,0 +1,544 @@
+/* Reposiciones — dirección A · Bandeja (versión confirmada). Cada rol ve una
+   cabecera de "trabajo por hacer" distinta (§reposiciones-por-rol) y, tras un
+   pliegue, la consulta por fondo con su propio juego de columnas. */
+
+.rep-rowt {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.rep-h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 29px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    color: var(--cc-ink);
+}
+
+.rep-sub {
+    color: var(--cc-text-soft);
+    font-size: 13px;
+    margin: 0;
+}
+
+.rep-lbl {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: rgba(0, 8, 20, 0.5);
+}
+
+.rep-fondo-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 320px;
+}
+
+.rep-fondo-pick-inline {
+    min-width: 300px;
+}
+
+.rep-select {
+    height: 38px;
+    padding: 0 12px;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    color: #16202E;
+}
+
+.rep-select-sm {
+    font-size: 12px;
+    padding: 0 10px;
+    height: 32px;
+}
+
+.rep-ico {
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.rep-mt14 { margin-top: 14px; }
+.rep-mt18 { margin-top: 18px; }
+
+.rep-mut {
+    color: var(--cc-text-soft);
+}
+
+.rep-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--cc-text-soft);
+}
+
+/* ── Bandeja (tarjetas de trabajo) ────────────────────────────────────────── */
+.rep-inbox {
+    display: grid;
+    gap: 12px;
+}
+
+.rep-job {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+    border-left: 4px solid var(--cc-gold);
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 18px;
+}
+
+.rep-job.quiet {
+    border-left-color: #E1E5EA;
+    background: rgba(0, 53, 102, 0.02);
+}
+
+.rep-jic {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(0, 53, 102, 0.06);
+    display: grid;
+    place-items: center;
+    color: var(--cc-navy);
+}
+
+    .rep-jic .rep-ico {
+        width: 21px;
+        height: 21px;
+    }
+
+.rep-job.quiet .rep-jic {
+    color: #6B7482;
+    background: rgba(0, 53, 102, 0.045);
+}
+
+.rep-jt {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 14.5px;
+}
+
+.rep-jd {
+    font-size: 12px;
+    color: #6B7482;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rep-jn {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--cc-navy);
+    line-height: 1;
+    text-align: right;
+}
+
+.rep-job.quiet .rep-jn {
+    color: #8A94A3;
+}
+
+.rep-jnl {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8A94A3;
+    text-align: right;
+    margin-top: 3px;
+}
+
+.rep-scope {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(0, 53, 102, 0.06);
+    color: var(--cc-navy);
+}
+
+.rep-scope.fondo {
+    background: rgba(255, 195, 0, 0.18);
+    color: #7A5C00;
+}
+
+/* ── Pliegue: separa la bandeja de la consulta por fondo ─────────────────── */
+.rep-fold {
+    border-top: 1px dashed #D8DDE4;
+    margin-top: 22px;
+    padding-top: 20px;
+}
+
+.rep-foldlbl {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.rep-cap {
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8A94A3;
+    font-weight: 600;
+}
+
+.rep-line {
+    flex: 1;
+    height: 1px;
+    background: #E1E5EA;
+    min-width: 30px;
+}
+
+/* ── Tarjetas ────────────────────────────────────────────────────────────── */
+.rep-card {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+}
+
+.rep-cb {
+    padding: 18px 20px;
+}
+
+.rep-cb-head {
+    padding: 14px 18px;
+}
+
+.rep-cb-body {
+    padding: 0 18px 18px;
+}
+
+.rep-h2 {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 0;
+    color: var(--cc-ink);
+}
+
+.rep-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.rep-g8 {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.rep-g6 {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* Conteo + ventana de días + buscador: nunca deben separarse en líneas
+   distintas, a diferencia de .rep-row (pensada para envolver el título contra
+   estos controles). El buscador crece hacia la izquierda con nowrap (§5.8);
+   sin este nowrap, el conteo/select se quedaban en una línea y el buscador
+   caía a la siguiente. */
+.rep-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* Sin flex:none aquí, el conteo se encoge por debajo de su ancho de contenido
+   -- al no caber, el texto se parte en dos líneas en vez de simplemente
+   empujar al buscador (que sí puede ceder ancho, a diferencia de este). */
+.rep-filters .rep-mut {
+    flex: none;
+    white-space: nowrap;
+}
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.rep-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    justify-content: center;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 17px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.rep-btn-pri {
+    background: var(--cc-navy);
+    color: #fff;
+}
+
+    .rep-btn-pri:hover:not(:disabled) {
+        background: var(--cc-prussian);
+        color: #fff;
+    }
+
+/* Mismo trazo y color navy que el botón "Desglose" de Arqueos: usado sólo por
+   "Ver PDF" en esta página, no el gris neutro que llevaba antes de la
+   dirección A. */
+.rep-btn-ghost {
+    background: var(--cc-surface);
+    color: var(--cc-navy);
+    border-color: rgba(0, 53, 102, 0.3);
+}
+
+.rep-btn-ok {
+    background: var(--cc-surface);
+    color: #146C43;
+    border-color: #A6D9BE;
+}
+
+.rep-btn-bad {
+    background: var(--cc-surface);
+    color: #B02A37;
+    border-color: #E9AFB6;
+}
+
+.rep-btn:hover:not(:disabled) {
+    filter: brightness(0.97);
+}
+
+.rep-btn:disabled {
+    opacity: 0.55;
+}
+
+.rep-btn-sm {
+    font-size: 11.5px;
+    padding: 5px 9px;
+    border-radius: 7px;
+}
+
+.rep-input {
+    width: 100%;
+    height: 34px;
+    padding: 0 11px;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    color: #16202E;
+}
+
+    .rep-input:focus {
+        outline: none;
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+/* ── Buscador (§5.8) ─────────────────────────────────────────────────────── */
+.rep-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    padding: 5px 10px;
+    min-height: 32px;
+    color: #8A94A3;
+    white-space: nowrap;
+    flex: 0 1 230px;
+}
+
+    .rep-search:focus-within {
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+    .rep-search svg {
+        width: 14px;
+        height: 14px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+    }
+
+    .rep-search input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        font-family: var(--cc-ff-text);
+        font-size: 12.5px;
+        color: #16202E;
+        padding: 0;
+    }
+
+        .rep-search input:focus {
+            outline: none;
+        }
+
+/* ── Tablas (§5.2) ───────────────────────────────────────────────────────── */
+.rep-tablewrap {
+    overflow-x: auto;
+}
+
+.rep-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .rep-table thead th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8A94A3;
+        padding: 0 9px 12px;
+        border: 0;
+        border-bottom: 1px solid rgba(0, 53, 102, 0.22);
+        white-space: nowrap;
+    }
+
+    .rep-table tbody tr {
+        border-bottom: 1px solid #ECEEF1;
+    }
+
+        .rep-table tbody tr:last-child {
+            border-bottom: 0;
+        }
+
+    .rep-table td {
+        padding: 12px 9px;
+        vertical-align: middle;
+    }
+
+    .rep-table .r {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .rep-table .c {
+        text-align: center;
+    }
+
+    .rep-table .act {
+        white-space: nowrap;
+        text-align: right;
+    }
+
+.rep-money {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.rep-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    color: #6B7482;
+}
+
+.rep-tfoot {
+    border-top: 2px solid #E1E5EA;
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 9px 0;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+    .rep-tfoot .v {
+        font-family: var(--cc-ff-head);
+        font-size: 17px;
+        color: var(--cc-navy);
+    }
+
+/* ── Píldoras de estado (§5.7: fondo tenue, no la variante sólida) ───────── */
+.rep-pill {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.rep-p-ok { background: #DCF3E7; color: #146C43; }
+.rep-p-bad { background: #FBE0E3; color: #B02A37; }
+.rep-p-dark { background: #E4E7EB; color: #343A40; }
+.rep-p-warn { background: #fff3cd; color: #664d03; }
+.rep-p-info { background: #cff4fc; color: #055160; }
+
+/* ── Avisos ──────────────────────────────────────────────────────────────── */
+.rep-alert {
+    border-radius: 10px;
+    padding: 11px 15px;
+    font-size: 12.5px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.rep-a-warn {
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.rep-a-info {
+    background: #D7F3FA;
+    color: #05576B;
+}
+
+/* ── Pantallas estrechas ─────────────────────────────────────────────────── */
+@media (max-width: 792px) {
+    .rep-fondo-pick {
+        min-width: 100%;
+    }
+
+    .rep-job {
+        grid-template-columns: 40px 1fr;
+    }
+
+        .rep-job > div:last-child {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            text-align: left;
+        }
+
+            .rep-job > div:last-child .rep-jn,
+            .rep-job > div:last-child .rep-jnl {
+                text-align: left;
+            }
+}

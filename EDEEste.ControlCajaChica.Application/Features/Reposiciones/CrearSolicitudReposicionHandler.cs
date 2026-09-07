@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -17,20 +18,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
     /// </summary>
     public sealed class CrearSolicitudReposicionHandler
     {
-        /// <summary>
-        /// Umbral por defecto cuando el fondo no tiene configurado
-        /// PorcentajeAlertaReposicion. El README pide solicitar la reposicion cuando
-        /// el fondo restante cae en la banda 30%-20%, asi que se habilita al tocar el
-        /// 30%.
-        /// </summary>
-        private const decimal PorcentajeAlertaPorDefecto = 30m;
-
         private readonly IFondoRepository _fondos;
         private readonly IGastoRepository _gastos;
         private readonly IReposicionRepository _reposiciones;
         private readonly IPdfConsolidadorService _consolidador;
         private readonly IFileStorageService _almacenamiento;
         private readonly ICurrentUserService _usuarioActual;
+        private readonly IIdentityService _identidad;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
         public CrearSolicitudReposicionHandler(
@@ -40,6 +35,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             IPdfConsolidadorService consolidador,
             IFileStorageService almacenamiento,
             ICurrentUserService usuarioActual,
+            IIdentityService identidad,
+            IAutorizacionService autorizacion,
             IApplicationDbContext contexto)
         {
             _fondos = fondos;
@@ -48,6 +45,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             _consolidador = consolidador;
             _almacenamiento = almacenamiento;
             _usuarioActual = usuarioActual;
+            _identidad = identidad;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -55,10 +54,33 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             CrearSolicitudReposicionCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.SolicitarReposicion, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para solicitar una reposición.");
+            }
+
             var fondo = await _fondos.ObtenerPorIdAsync(comando.FondoCajaChicaId, cancellationToken);
             if (fondo is null)
             {
                 return ResultadoOperacion<Guid>.Fallo("El fondo indicado no existe.");
+            }
+
+            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
+
+            // El Id resuelto tambien queda como SolicitoUsuarioId mas abajo -- sin
+            // poder identificarlo, esto falla cerrado en vez de dejar un registro con
+            // el campo vacio (y sin poder verificar tampoco que el fondo sea el suyo).
+            if (usuario.Id is not { } usuarioIdSolicitar)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
+            }
+
+            // Defensa en profundidad: sin esto, un Custodio podria solicitar la
+            // reposicion del fondo de otro custodio armando la peticion contra el
+            // circuito de Blazor Server, aunque la pantalla ya solo le ofrezca el suyo.
+            if (await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio) && fondo.CustodioId != usuarioIdSolicitar)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para solicitar la reposicion del fondo de otro custodio.");
             }
 
             var pendientes = await _gastos.ListarPendientesDeReposicionAsync(fondo.Id, cancellationToken);
@@ -75,15 +97,13 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                 return ResultadoOperacion<Guid>.Fallo(errores);
             }
 
-            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
-
             var solicitud = new SolicitudReposicion
             {
                 FondoCajaChicaId = fondo.Id,
                 FondoCajaChica = fondo,
                 MontoReclamado = montoReclamado,
                 FechaSolicitud = DateTime.UtcNow,
-                SolicitoUsuarioId = usuario.Id ?? string.Empty,
+                SolicitoUsuarioId = usuarioIdSolicitar,
                 Estado = EstadoReposicion.PendienteAprobacion
             };
 
@@ -106,7 +126,17 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             solicitud.RutaPdfConsolidado = archivo.RutaRelativa;
 
             await _reposiciones.AgregarAsync(solicitud, cancellationToken);
-            await _contexto.SaveChangesAsync(cancellationToken);
+
+            // gasto.Estado es token de concurrencia (ver ApplicationDbContext): sin
+            // IntentarGuardarCambiosAsync, un choque real (por ejemplo dos solicitudes
+            // armadas a la vez sobre los mismos gastos pendientes) lanzaba
+            // DbUpdateConcurrencyException sin traducir y dejaba el ChangeTracker
+            // sucio para el resto del circuito de Blazor Server.
+            if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo(
+                    "Otro usuario modificó los gastos de este fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+            }
 
             return ResultadoOperacion<Guid>.Ok(solicitud.Id);
         }
@@ -130,7 +160,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             var porcentajeAlerta = fondo.PorcentajeAlertaReposicion > 0
                 ? fondo.PorcentajeAlertaReposicion
-                : PorcentajeAlertaPorDefecto;
+                : LimitesFondo.AlertaReposicionPorDefecto;
 
             var umbral = fondo.MontoFijo * (porcentajeAlerta / 100m);
             if (fondo.BalanceActual > umbral)

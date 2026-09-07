@@ -27,5 +27,36 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
         /// por intentos fallidos de contrasena.
         /// </summary>
         public EstadoAccesoUsuario EstadoAcceso { get; set; } = EstadoAccesoUsuario.Pendiente;
+
+        /// <summary>
+        /// Cuando se creo la cuenta -- para una cuenta todavia Pendiente es, en la
+        /// practica, "cuando se solicito el acceso". Se inicializa aqui (no en el
+        /// momento de guardar) para que quede fijada al instante de construir el
+        /// objeto, igual para una cuenta creada por CrearUsuarioAsync que por
+        /// CrearUsuarioPendienteAsync.
+        /// </summary>
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Cuando inicio sesion la ultima vez. Null hasta el primer inicio de sesion
+        /// exitoso. Login.razor.cs lee este valor ANTES de sobreescribirlo (es la
+        /// sesion anterior a la que esta entrando) y lo pasa como claim de la propia
+        /// sesion -- ver <see cref="EDEEste.ControlCajaChica.Domain.Constants.ClaimsApp.UltimoAccesoAnterior"/>.
+        /// </summary>
+        public DateTime? UltimoAccesoUtc { get; set; }
+
+        /// <summary>
+        /// Ruta relativa de la foto de perfil dentro del almacenamiento
+        /// (uploads/perfil/...), o null si no tiene y se muestran las iniciales.
+        ///
+        /// Guarda la ruta y no los bytes a proposito: una imagen en la fila del usuario
+        /// se arrastraria en cada consulta que materialice la entidad (Identity la
+        /// carga entera en cada login y en cada UserManager.GetUserAsync).
+        ///
+        /// No entra en ninguna firma HMAC: esta clase vive fuera de la jerarquia
+        /// AuditableEntity/ITamperProofEntity del Domain -- una foto de perfil no es
+        /// evidencia contable, a diferencia de un comprobante.
+        /// </summary>
+        public string? RutaFotoPerfil { get; set; }
     }
 }

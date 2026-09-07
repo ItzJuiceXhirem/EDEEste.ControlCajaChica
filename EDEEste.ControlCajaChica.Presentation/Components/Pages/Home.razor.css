@@ -1,0 +1,300 @@
+.cc-h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 29px;
+    letter-spacing: -0.015em;
+    margin: 0 0 5px;
+}
+
+.cc-lede {
+    margin: 0 0 22px;
+    font-size: 14px;
+    color: var(--cc-text-soft);
+}
+
+/* Un fondo: tarjeta ancha + panel de arqueos. align-items:stretch hace que el
+   panel iguale la altura de la tarjeta sin medir nada a mano. */
+.cc-split {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 18px;
+    align-items: stretch;
+}
+
+.cc-fcards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cc-fcard {
+    background: var(--cc-surface);
+    border-radius: 8px;
+    padding: 26px 30px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    box-shadow: 0 1px 2px rgba(0, 53, 102, 0.08), 0 8px 24px -12px rgba(0, 53, 102, 0.28);
+}
+
+/* ── Anillo de disponible ────────────────────────────────────────────────── */
+.cc-ring {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cc-ring-in {
+    width: 94px;
+    height: 94px;
+    border-radius: 50%;
+    background: var(--cc-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+}
+
+.cc-ring-pct {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 23px;
+    color: var(--cc-navy);
+    letter-spacing: -0.02em;
+}
+
+.cc-ring-lbl {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cc-text-faint);
+}
+
+/* ── Cuerpo de la tarjeta ────────────────────────────────────────────────── */
+.cc-fbody {
+    flex: 1;
+    min-width: 0;
+}
+
+.cc-fwho {
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgba(0, 8, 20, 0.5);
+    margin: 0;
+}
+
+.cc-fbig {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 44px;
+    line-height: 1.05;
+    margin: 6px 0 8px;
+    color: var(--cc-ink);
+    letter-spacing: -0.03em;
+}
+
+.cc-fof {
+    font-size: 13.5px;
+    color: var(--cc-text-soft);
+    margin: 0 0 15px;
+}
+
+    .cc-fof b {
+        color: var(--cc-prussian);
+        font-weight: 600;
+    }
+
+/* El aviso conserva el color de advertencia de Bootstrap oscurecido a un tono
+   legible sobre blanco; el hue no cambia (DESIGN.md §1.4). */
+.cc-flag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 15px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6B5200;
+}
+
+.cc-ico-alert {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.cc-acts {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.cc-btn {
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    background: var(--cc-navy);
+    color: var(--cc-ivory);
+    border: 1px solid var(--cc-navy);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+    .cc-btn:hover {
+        background: var(--cc-prussian);
+        border-color: var(--cc-prussian);
+        color: var(--cc-ivory);
+    }
+
+.cc-btn-ghost {
+    background: transparent;
+    color: var(--cc-navy);
+    border-color: var(--cc-line-strong);
+}
+
+    .cc-btn-ghost:hover {
+        background: rgba(0, 53, 102, 0.06);
+        border-color: var(--cc-navy);
+        color: var(--cc-navy);
+    }
+
+/* ── Panel de arqueos ────────────────────────────────────────────────────── */
+.cc-arq-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+}
+
+.cc-arq-title {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 0 4px;
+}
+
+.cc-arq-sub {
+    font-size: 12.5px;
+    color: rgba(0, 8, 20, 0.52);
+    margin: 0;
+}
+
+.cc-arq-body {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.cc-arq-ring {
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cc-arq-ring-in {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    background: var(--cc-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+    .cc-arq-ring-in svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: var(--cc-navy);
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .cc-arq-ring-in span {
+        font-size: 9px;
+        font-weight: 600;
+        color: rgba(0, 8, 20, 0.48);
+        letter-spacing: 0.04em;
+    }
+
+.cc-arq-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    min-width: 0;
+}
+
+    .cc-arq-legend li {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+    }
+
+    .cc-arq-legend b {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 600;
+    }
+
+    .cc-arq-legend small {
+        font-size: 12px;
+        color: rgba(0, 8, 20, 0.52);
+    }
+
+.cc-arq-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-top: 3px;
+    flex: none;
+}
+
+.cc-arq-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--cc-text-soft);
+}
+
+/* Cortes ya multiplicados por --cc-zoom (1100→1210, 641→705): la media query se
+   evalúa contra el viewport real, pero el contenido dispone de un 10% menos. */
+@media (max-width: 1210px) {
+    .cc-split {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 704.98px) {
+    .cc-fcard {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 22px;
+    }
+
+    .cc-fbig {
+        font-size: 36px;
+    }
+}

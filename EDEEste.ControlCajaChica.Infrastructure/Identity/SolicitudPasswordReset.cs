@@ -37,6 +37,23 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
         /// </summary>
         public string? TokenReseteo { get; set; }
 
+        /// <summary>
+        /// Hash SHA-256 (hex) de un secreto aleatorio de un solo uso, generado al
+        /// Aprobar. El secreto en si NUNCA se guarda ni se le entrega a quien pidio
+        /// el restablecimiento -- solo al Administrador, para que lo mande por Teams.
+        /// Sin este secreto, el Id de la solicitud (que el solicitante SI conoce,
+        /// porque se lo devuelve la propia pantalla al pedirlo) no alcanza para
+        /// completar el cambio de contrasena.
+        /// </summary>
+        public string? HashSecreto { get; set; }
+
+        /// <summary>
+        /// El enlace deja de servir 12 horas despues de Aprobar, sin importar que el
+        /// token de Identity (que vence por su cuenta) todavia sea valido -- es una
+        /// segunda ventana, mas corta y bajo control nuestro.
+        /// </summary>
+        public DateTime? FechaExpiracionSecreto { get; set; }
+
         public DateTime? FechaResolucion { get; set; }
 
         /// <summary>Administrador que aprobo o ignoro la solicitud.</summary>

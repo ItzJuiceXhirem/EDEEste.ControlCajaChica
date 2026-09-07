@@ -1,8 +1,52 @@
-﻿@page "/Account/Lockout"
+@page "/Account/Lockout"
+@layout EDEEste.ControlCajaChica.Presentation.Components.Layout.AccesoLayout
+@rendermode InteractiveServer
 
 <PageTitle>Cuenta bloqueada</PageTitle>
 
-<header>
-    <h1 class="text-danger">Cuenta bloqueada</h1>
-    <p class="text-danger" role="alert">Tu cuenta ha sido bloqueada temporalmente por demasiados intentos fallidos. Por favor, intenta de nuevo más tarde.</p>
-</header>
+<div class="cc-glow-wrap">
+    <div class="cc-glow @(Terminado ? "cc-glow-terminado" : "")" style="--mc:#FF9AA3;--mc-bg:rgba(255,154,163,.30)">
+        <svg class="cc-glow-icon @(Terminado ? "cc-glow-icon-terminado" : "")" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="7" y="14.5" width="18" height="12.5" rx="2.2" />
+            <path class="cc-shackle @(Terminado ? "cc-shackle-abierto" : "")" d="M10.5 14.5v-3.6a5.5 5.5 0 0 1 11 0v3.6" />
+            <circle cx="16" cy="19.6" r="1.6" fill="currentColor" stroke="none" />
+            <path d="M15.15 20.9h1.7l0.6 3.1h-2.9z" fill="currentColor" stroke="none" />
+        </svg>
+    </div>
+</div>
+
+<p class="cc-kicker cc-center">SEGURIDAD DE LA CUENTA</p>
+<h1 class="cc-center">Cuenta bloqueada temporalmente</h1>
+<p class="cc-note cc-center" role="alert">Tu cuenta ha sido bloqueada por demasiados intentos fallidos de inicio de sesión.</p>
+
+<div class="cc-next @(Terminado ? "cc-next-terminado" : "")" style="--mc:#FF9AA3;--mc-bg2:rgba(255,154,163,.09)">
+    <p class="cc-next-lb @(Terminado ? "cc-next-lb-terminado" : "")">@(Terminado ? "Listo" : "Qué hacer")</p>
+    <p class="cc-next-txt">
+        @if (Terminado)
+        {
+            @:Ya puede volver a intentarlo.
+        }
+        else
+        {
+            @:Por seguridad, el bloqueo se levanta solo por tiempo — no hace falta contactar a nadie.
+            @if (!TieneCuentaRegresiva)
+            {
+                @: Intenta de nuevo en unos minutos.
+            }
+        }
+    </p>
+    @if (TieneCuentaRegresiva && !Terminado)
+    {
+        <div class="cc-next-time">
+            <span class="cc-next-time-lb">Podrás intentarlo en</span>
+            <span class="cc-next-time-val">@TiempoFormateado</span>
+        </div>
+    }
+</div>
+
+<a class="cc-cta @(Deshabilitado ? "cc-cta-deshabilitado" : "")"
+   href="@(Deshabilitado ? "#" : "Account/Login")"
+   aria-disabled="@(Deshabilitado ? "true" : "false")">
+    Volver al inicio de sesión
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h11.5" /><path d="M11.4 5.8 15.6 10l-4.2 4.2" /></svg>
+</a>

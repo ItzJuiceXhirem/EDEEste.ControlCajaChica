@@ -16,6 +16,20 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
 
         Task<IReadOnlyList<FondoCajaChica>> ListarAsync(CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Si ese custodio ya tiene un fondo asignado. La relacion es uno a uno: un
+        /// custodio responde por una sola caja, y una caja tiene un solo responsable.
+        /// Con dos fondos a nombre de la misma persona, un arqueo dejaria de poder
+        /// decir de cual caja es el efectivo que se conto.
+        ///
+        /// <paramref name="excluirFondoId"/> deja fuera un fondo de la comprobacion:
+        /// al editar, el propio fondo no cuenta como conflicto consigo mismo.
+        /// </summary>
+        Task<bool> ExisteFondoParaCustodioAsync(
+            string custodioId,
+            Guid? excluirFondoId = null,
+            CancellationToken cancellationToken = default);
+
         Task AgregarAsync(FondoCajaChica fondo, CancellationToken cancellationToken = default);
     }
 }

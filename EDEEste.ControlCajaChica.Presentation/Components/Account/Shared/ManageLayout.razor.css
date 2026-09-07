@@ -1,0 +1,227 @@
+/* Mi cuenta — franja de marca con avatar superpuesto (dirección D aprobada). */
+
+.mgl-cardwrap {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 780px;
+}
+
+.mgl-band {
+    background: linear-gradient(to bottom right, #003566 0%, #001D3D 55%, #000814 100%);
+    height: 110px;
+    position: relative;
+}
+
+.mgl-band-inner {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    padding: 0 26px;
+}
+
+/* El formulario existe solo para envolver el avatar: no debe ocupar espacio ni
+   alterar la posicion absoluta del circulo. */
+.mgl-av-form {
+    display: contents;
+}
+
+.mgl-av {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    flex: none;
+    display: grid;
+    place-items: center;
+    /* Si hay foto, el estilo en linea sobreescribe este degradado. cover recorta
+       al circulo sin deformar: por eso no hace falta reprocesar la imagen en el
+       servidor (y no hay que reintroducir una libreria de imagenes para eso). */
+    background-image: linear-gradient(135deg, #FFC300, #FF9F1C);
+    background-size: cover;
+    background-position: center;
+    color: #4A3800;
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 28px;
+    box-shadow: 0 0 0 4px var(--cc-ivory);
+    position: absolute;
+    left: 26px;
+    bottom: -34px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+/* Las iniciales van en su propio span (no como nodo de texto suelto) y los
+   tres hijos comparten grid-area:1/1 a proposito: el auto-placement de .mgl-av
+   generaba dos filas de grid en vez de una sola celda de 84x84, y
+   place-items:center centraba el texto dentro de su propia fila (mas chica
+   que el circulo), no dentro del circulo entero. Mismo arreglo que en
+   Usuarios.razor.css y NavMenu.razor.css. */
+.mgl-av-iniciales {
+    grid-area: 1 / 1;
+}
+
+/* Oculto pero dentro del <label>, que es lo que abre el selector al pulsar el
+   avatar. display:none lo sacaria del formulario en algunos navegadores. */
+.mgl-av-input {
+    grid-area: 1 / 1;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Arriba del circulo (dentro de la franja oscura, y=60 es donde empieza el
+   avatar -- ver el calculo de .mgl-av bottom:-34px con height:84px sobre un
+   .mgl-band-inner de 110px) para no correr nada mas del layout. Mismo ancho
+   que el circulo y centrado, para que se lea como una etiqueta del avatar. */
+.mgl-av-quitar {
+    position: absolute;
+    left: 26px;
+    width: 84px;
+    bottom: 54px;
+    text-align: center;
+}
+
+    .mgl-av-quitar button {
+        background: none;
+        border: 0;
+        padding: 0;
+        font-family: var(--cc-ff-text);
+        font-size: 11px;
+        color: var(--cc-ivory);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .mgl-av-quitar button:hover {
+        color: #B3261E;
+    }
+
+.mgl-av-ov {
+    grid-area: 1 / 1;
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0, 29, 61, .62);
+    display: grid;
+    place-items: center;
+    color: var(--cc-ivory);
+    opacity: 0;
+    transition: opacity .12s ease;
+}
+
+    .mgl-av:hover .mgl-av-ov {
+        opacity: 1;
+    }
+
+    .mgl-av-ov svg {
+        width: 22px;
+        height: 22px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+.mgl-idtext {
+    margin-left: 108px;
+    padding-bottom: 12px;
+    min-width: 0;
+}
+
+.mgl-name {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--cc-ivory);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mgl-role {
+    font-size: 12px;
+    color: var(--cc-gold-lt);
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+.mgl-since {
+    margin-left: auto;
+    padding-bottom: 14px;
+    text-align: right;
+    font-size: 11px;
+    color: rgba(255, 253, 245, .68);
+    line-height: 1.5;
+    flex: none;
+}
+
+    .mgl-since b {
+        color: var(--cc-ivory);
+        font-weight: 600;
+    }
+
+.mgl-body-top {
+    padding: 0 26px;
+    margin-top: 46px;
+}
+
+.mgl-tabs {
+    display: inline-flex;
+    background: rgba(0, 53, 102, .06);
+    border-radius: 9px;
+    padding: 4px;
+    gap: 3px;
+    margin-bottom: 16px;
+}
+
+/* .mgl-tab y .mgl-tab-on van en el <NavLink>, no en un elemento nativo de este
+   archivo. Sin ::deep, Blazor igual le pone su atributo de ambito al ULTIMO
+   selector de la cadena (aqui, .mgl-tab), y como el <a> que renderiza NavLink
+   nunca lleva ese atributo, la regla compila pero no hace match con nada --
+   ::deep le dice al compilador que deje de escopar a partir de ahi. Mismo
+   patrón que .cc-navlist ::deep .cc-navlink en NavMenu.razor.css. */
+.mgl-tabs ::deep .mgl-tab {
+    padding: 8px 18px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6B7482;
+    text-decoration: none;
+}
+
+    .mgl-tabs ::deep .mgl-tab:hover {
+        color: var(--cc-navy);
+    }
+
+.mgl-tabs ::deep .mgl-tab-on {
+    background: var(--cc-surface);
+    color: var(--cc-navy);
+    box-shadow: 0 1px 3px rgba(0, 53, 102, .18);
+}
+
+    .mgl-tabs ::deep .mgl-tab-on:hover {
+        color: var(--cc-navy);
+    }
+
+.mgl-inner {
+    border-top: 1px solid #ECEEF1;
+    margin: 0 26px 26px;
+    padding-top: 20px;
+}
+
+@media (max-width: 560px) {
+    .mgl-band-inner {
+        flex-wrap: wrap;
+    }
+
+    .mgl-since {
+        margin-left: 108px;
+        text-align: left;
+        padding-bottom: 6px;
+    }
+}

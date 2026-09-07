@@ -1,23 +1,118 @@
-html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+/* ══════════════════════════════════════════════════════════════════════════
+   Tokens de marca — ver DESIGN.md §1 y §2.
+
+   Se sobreescriben las variables de Bootstrap 5.3 en vez de editar
+   bootstrap.min.css: ese archivo es de terceros y se pisa en la proxima
+   actualizacion de la libreria (DESIGN.md §1.5).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Marca */
+    --cc-ink: #000814;
+    --cc-prussian: #001D3D;
+    --cc-navy: #003566;
+    --cc-gold: #FFC300;
+    --cc-gold-lt: #FFDA20;
+    --cc-ivory: #FFFDF5;
+
+    /* Superficies y trazos derivados */
+    --cc-surface: #FFFFFF;
+    --cc-line: rgba(0, 53, 102, 0.13);
+    --cc-line-strong: rgba(0, 53, 102, 0.22);
+    --cc-text-soft: rgba(0, 8, 20, 0.58);
+    --cc-text-faint: rgba(0, 8, 20, 0.45);
+
+    --cc-ff-head: "Stack Sans Headline", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --cc-ff-text: "Stack Sans Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    /* Escala de las pantallas interiores. Los tamanos del sistema de diseno se
+       fijaron sobre maquetas de ~1300px de ancho; en los monitores del equipo
+       sobra espacio y el texto queda pequeno. Dibujar la app un 10% mas grande
+       equivale a poner el navegador al 110%, pero sin depender de que cada
+       usuario lo configure en su maquina.
+
+       Es una sola perilla: subirla o devolverla a 1 no exige tocar ninguna medida
+       del sistema de diseno. Los puntos de corte responsive de las paginas ya
+       vienen multiplicados por este factor, porque una media query se evalua
+       contra el viewport real y no contra el espacio ya escalado. Las pantallas
+       de acceso quedan fuera a proposito: su tamano se aprobo aparte.
+
+       Nota: bajo `zoom`, las unidades de viewport (vh/vw) NO se escalan, asi que
+       toda medida en vh dentro del arbol escalado se divide por este factor. */
+    --cc-zoom: 1.1;
+
+    /* --- Bootstrap --- */
+    --bs-primary: #003566;
+    --bs-primary-rgb: 0, 53, 102;
+    --bs-link-color: #003566;
+    --bs-link-color-rgb: 0, 53, 102;
+    --bs-link-hover-color: #001D3D;
+    --bs-link-hover-color-rgb: 0, 29, 61;
+    --bs-body-bg: #FFFDF5;
+    --bs-body-color: #16202E;
+    --bs-body-font-family: var(--cc-ff-text);
+    --bs-border-radius-lg: 0.5rem;
 }
 
+html, body {
+    font-family: var(--cc-ff-text);
+    background-color: var(--cc-ivory);
+}
+
+h1, h2, h3, h4, h5, h6,
+.navbar-brand, .card-header, .display-1, .display-2, .display-3,
+.display-4, .display-5, .display-6 {
+    font-family: var(--cc-ff-head);
+    letter-spacing: -0.015em;
+}
+
+h1 { font-weight: 700; }
+h2, h3, h4, h5, h6 { font-weight: 600; }
+
 a, .btn-link {
-    color: #006bb7;
+    color: var(--cc-navy);
+}
+
+.btn {
+    font-weight: 500;
 }
 
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    --bs-btn-bg: var(--cc-navy);
+    --bs-btn-border-color: var(--cc-navy);
+    --bs-btn-hover-bg: var(--cc-prussian);
+    --bs-btn-hover-border-color: var(--cc-prussian);
+    --bs-btn-active-bg: var(--cc-prussian);
+    --bs-btn-active-border-color: var(--cc-ink);
+    --bs-btn-disabled-bg: var(--cc-navy);
+    --bs-btn-disabled-border-color: var(--cc-navy);
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.btn-outline-primary {
+    --bs-btn-color: var(--cc-navy);
+    --bs-btn-border-color: var(--cc-line-strong);
+    --bs-btn-hover-bg: var(--cc-navy);
+    --bs-btn-hover-border-color: var(--cc-navy);
+    --bs-btn-active-bg: var(--cc-prussian);
+    --bs-btn-active-border-color: var(--cc-prussian);
 }
 
-.content {
-    padding-top: 1.1rem;
+/* Anillo de foco en el azul de marca, no en el celeste del scaffold. */
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+    border-color: var(--cc-navy);
+    box-shadow: 0 0 0 0.2rem rgba(0, 53, 102, 0.25);
+}
+
+/* Cifras monetarias: semibold y con cifras tabulares para que columnen
+   (DESIGN.md §2.2). */
+.cc-num {
+    font-variant-numeric: tabular-nums;
+}
+
+.cc-money {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
 }
 
 h1:focus {
@@ -43,7 +138,7 @@ h1:focus {
 }
 
     .blazor-error-boundary::after {
-        content: "An error has occurred."
+        content: "Ha ocurrido un error."
     }
 
 .darker-border-checkbox.form-check-input {

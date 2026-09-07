@@ -1,4 +1,8 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@implements IDisposable
+
+@using System.Globalization
+@inject NavigationManager NavigationManager
 
 <div class="page">
     <div class="sidebar">
@@ -6,18 +10,70 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        @* Barra de contexto (DESIGN.md §5.5): blanca, no marfil — la diferencia de
+           tono es lo que separa el marco de la pantalla del contenido. *@
+        <div class="cc-topbar">
+            <span class="cc-crumb">@SeccionActual</span>
+            <span class="cc-date cc-num">@FechaLarga</span>
         </div>
 
-        <article class="content px-4">
+        <article class="cc-content">
             @Body
         </article>
     </main>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    Ha ocurrido un error inesperado.
+    <a href="." class="reload">Recargar</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-DO");
+
+    private string? rutaActual;
+
+    private static string FechaLarga =>
+        DateTime.Now.ToString("d 'de' MMMM 'de' yyyy", Espanol);
+
+    /// <summary>
+    /// Nombre de la sección para la barra superior. Se resuelve por el primer
+    /// segmento de la ruta y no por el título de la página: el título lo pone cada
+    /// componente y cambia con el contenido ("Arqueo de caja", "Registrar gasto"),
+    /// mientras que esta barra debe decir siempre en qué parte del sistema se está.
+    /// </summary>
+    private string SeccionActual => (rutaActual?.Split('?')[0].Trim('/') ?? string.Empty) switch
+    {
+        "" => "Inicio",
+        "gastos" => "Gastos",
+        "gastos/registrar" => "Gastos › Registrar",
+        "reposiciones" => "Reposiciones",
+        "arqueos" => "Arqueos",
+        "fondos" => "Fondos",
+        "categorias" => "Categorías",
+        "usuarios" => "Usuarios",
+        "acceso-denegado" => "Acceso denegado",
+        "acceso-pendiente" => "Acceso pendiente",
+        "configuracion-inicial" => "Configuración inicial",
+        var ruta when ruta.StartsWith("Account/", StringComparison.OrdinalIgnoreCase) => "Mi cuenta",
+        _ => "Control de Caja Chica"
+    };
+
+    protected override void OnInitialized()
+    {
+        rutaActual = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        rutaActual = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}

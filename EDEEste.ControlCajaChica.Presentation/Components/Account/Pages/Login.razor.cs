@@ -1,8 +1,11 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
 using Microsoft.AspNetCore.Components;
@@ -66,6 +69,26 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 
             var usuario = await UserManager.FindByNameAsync(Input.Usuario);
 
+            // El bloqueo se consulta ANTES de intentar la contraseña -- mismo orden
+            // que usa SignInManager.PasswordSignInAsync de fábrica -- para no gastar
+            // una verificación de contraseña contra una cuenta que ya está bloqueada.
+            // A diferencia de Pendiente/Denegado (estado propio de esta app, más
+            // sensible porque distingue "quién puede entrar"), el bloqueo de Identity
+            // es información de tasa, no de identidad: se revela igual sin conocer la
+            // contraseña, que es el mismo comportamiento por defecto de ASP.NET
+            // Identity.
+            if (usuario is not null && await UserManager.IsLockedOutAsync(usuario))
+            {
+                // Se manda la hora exacta de fin del bloqueo (y no un "espere unos
+                // minutos" generico) para que Lockout.razor pinte un countdown real
+                // sin necesitar su propia consulta a la base de datos.
+                RedirectManager.RedirectTo("Account/Lockout", new Dictionary<string, object?>
+                {
+                    ["hasta"] = usuario.LockoutEnd?.UtcDateTime.ToString("o", CultureInfo.InvariantCulture)
+                });
+                return;
+            }
+
             ResultadoAutenticacion credenciales;
             try
             {
@@ -84,11 +107,26 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
 
             if (usuario is null || !credenciales.Exitoso)
             {
+                // Cuenta el intento fallido contra una cuenta real -- si con este llega
+                // al tope, el próximo intento (con la contraseña que sea) topa con el
+                // chequeo de arriba. Sobre un usuario que no existe no hay nada que
+                // incrementar.
+                //
                 // Mismo mensaje para "no existe" y "contraseña incorrecta": no hay
                 // razón para ayudar a alguien a averiguar qué cuentas existen.
+                if (usuario is not null)
+                {
+                    await UserManager.AccessFailedAsync(usuario);
+                }
+
                 errorMessage = "Error: usuario o contraseña inválidos.";
                 return;
             }
+
+            // Contraseña correcta: se reinicia el contador de fallos, para que un
+            // puñado de errores viejos no se acumule silenciosamente hasta bloquear
+            // un futuro intento legítimo.
+            await UserManager.ResetAccessFailedCountAsync(usuario);
 
             switch (usuario.EstadoAcceso)
             {
@@ -101,7 +139,19 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
                     return;
             }
 
-            await SignInManager.SignInAsync(usuario, Input.RememberMe);
+            // RegistrarAccesoAsync escribe con un UPDATE dirigido (nunca pasa por
+            // SaveChanges/el interceptor de auditoria -- ver IIdentityService) y
+            // devuelve la fecha de la sesion ANTERIOR a esta, que es la que tiene
+            // sentido mostrarle a la persona en su perfil ("note un acceso que no
+            // reconoce"). Mostrar la sesion que apenas esta arrancando no serviria
+            // para nada -- siempre coincidiria con "ahora mismo".
+            var sesionAnterior = await IdentityService.RegistrarAccesoAsync(usuario.Id);
+
+            var claims = sesionAnterior is { } anterior
+                ? new[] { new Claim(ClaimsApp.UltimoAccesoAnterior, DateTime.SpecifyKind(anterior, DateTimeKind.Utc).ToString("o", CultureInfo.InvariantCulture)) }
+                : [];
+
+            await SignInManager.SignInWithClaimsAsync(usuario, Input.RememberMe, claims);
             Logger.LogInformation("El usuario {Usuario} inició sesión.", usuario.UserName);
             RedirectManager.RedirectTo(ReturnUrl);
         }

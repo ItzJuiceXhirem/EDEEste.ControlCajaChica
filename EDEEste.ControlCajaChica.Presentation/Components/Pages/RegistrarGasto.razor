@@ -4,7 +4,8 @@
 
 <PageTitle>Registrar gasto</PageTitle>
 
-<h1>Registrar gasto</h1>
+<h1 class="rg-h1">Registrar gasto</h1>
+<p class="rg-sub">@Encabezado</p>
 
 @if (errores.Count > 0)
 {
@@ -36,130 +37,194 @@ else if (fondos.Count == 0 || categorias.Count == 0)
 else
 {
     <EditForm Model="entrada" OnValidSubmit="GuardarAsync" FormName="registrar-gasto">
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Fondo</label>
-                <InputSelect @bind-Value="entrada.FondoCajaChicaId" class="form-select">
-                    @foreach (var fondo in fondos)
+        <div class="rg-card">
+            @* Fondo y categoría van en una franja aparte, sobre fondo tenue: eligen
+               el expediente al que entra el gasto, no son datos de la factura. *@
+            <div class="rg-strip">
+                <div class="rg-f">
+                    <label class="rg-cap" for="rg-fondo">Fondo</label>
+                    <InputSelect id="rg-fondo" @bind-Value="entrada.FondoCajaChicaId" class="rg-input">
+                        @foreach (var fondo in fondos)
+                        {
+                            <option value="@fondo.Id">
+                                Custodio @NombreCustodio(fondo.CustodioId)
+                                &mdash; RD$ @fondo.BalanceActual.ToString("N2")
+                            </option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="rg-f">
+                    <label class="rg-cap" for="rg-categoria">Categoría</label>
+                    <InputSelect id="rg-categoria" @bind-Value="entrada.CategoriaGastoId" class="rg-input">
+                        @foreach (var categoria in categorias)
+                        {
+                            <option value="@categoria.Id">@categoria.Nombre</option>
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="rg-body">
+                <div class="rg-grid rg-c631">
+                    <div class="rg-f">
+                        <label class="rg-cap" for="rg-proveedor">Proveedor</label>
+                        <InputText id="rg-proveedor" @bind-Value="entrada.Proveedor" class="rg-input" maxlength="150"
+                                   placeholder="Ferretería Ochoa" />
+                    </div>
+                    <div class="rg-f">
+                        <label class="rg-cap" for="rg-rnc">RNC / Cédula</label>
+                        @* <input> plano con @bind a nivel de elemento (no InputText): así se
+                           puede combinar @bind:event="oninput" con @bind:after sin el choque
+                           de parámetros que da InputText. @bind SÍ fuerza el valor corregido
+                           de vuelta al navegador en cada pulsación, a diferencia de un
+                           value="@@x" + @@oninput manual (que dejaba ver letras/símbolos hasta
+                           que el campo perdía el foco). *@
+                        <input id="rg-rnc" class="rg-input" maxlength="13" inputmode="numeric" placeholder="130862574"
+                               @bind="entrada.RNCProveedor" @bind:event="oninput" @bind:after="FormatearRnc" />
+                        <span class="rg-help">Solo números: 9 dígitos (RNC) u 11 (cédula).</span>
+                    </div>
+                    <div class="rg-f">
+                        <label class="rg-cap" for="rg-ncf">NCF</label>
+                        <input id="rg-ncf" class="rg-input" maxlength="13" placeholder="B0100000147"
+                               @bind="entrada.NCF" @bind:event="oninput" @bind:after="FiltrarNcf" />
+                        <span class="rg-help">'B' + 0/1 + 9 dígitos, o 'E' + 3/4 + 11 dígitos.</span>
+                    </div>
+                </div>
+
+                <div class="rg-f rg-mt14">
+                    <label class="rg-cap" for="rg-concepto">Concepto</label>
+                    <InputText id="rg-concepto" @bind-Value="entrada.Concepto" class="rg-input" maxlength="500"
+                               placeholder="Bombillos LED para el almacén" />
+                </div>
+
+                @* Montos a la izquierda y el recibo a la derecha: el total es una sola
+                   fuente y se calcula, así no hay un campo "Monto total" que pueda
+                   contradecir a sus sumandos. *@
+                <div class="rg-montos rg-mt18">
+                    <div>
+                        <div class="rg-grid rg-c3">
+                            <div class="rg-f">
+                                <label class="rg-cap" for="rg-subtotal">Subtotal</label>
+                                <InputNumber id="rg-subtotal" @bind-Value="entrada.Subtotal" class="rg-input"
+                                             min="0" step="0.01" placeholder="0.00" />
+                            </div>
+                            <div class="rg-f">
+                                <label class="rg-cap" for="rg-itbis">ITBIS</label>
+                                <InputNumber id="rg-itbis" @bind-Value="entrada.MontoITBIS" class="rg-input"
+                                             min="0" step="0.01" placeholder="0.00" />
+                            </div>
+                            <div class="rg-f">
+                                <label class="rg-cap" for="rg-fecha">Fecha del gasto</label>
+                                @* Un gasto no puede haber ocurrido todavía: el selector no
+                                   ofrece fechas futuras y el handler vuelve a comprobarlo. *@
+                                <InputDate id="rg-fecha" @bind-Value="entrada.FechaGasto" class="rg-input"
+                                           max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+
+                        @if (AvisoTope is { } aviso)
+                        {
+                            <div class="rg-alert @(aviso.DentroDelTope ? "rg-a-ok" : "rg-a-bad") rg-mt14">
+                                <span aria-hidden="true">@(aviso.DentroDelTope ? "✓" : "⚠")</span>
+                                <span>@aviso.Mensaje</span>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="rg-tot">
+                        <span class="k">Subtotal</span>
+                        <span class="v cc-num">@((entrada.Subtotal ?? 0m).ToString("N2"))</span>
+                        <span class="k">ITBIS</span>
+                        <span class="v cc-num">@((entrada.MontoITBIS ?? 0m).ToString("N2"))</span>
+                        <span class="gk">Monto total</span>
+                        <span class="gv cc-num">RD$ @MontoTotal.ToString("N2")</span>
+                    </div>
+                </div>
+
+                <div class="rg-divider"></div>
+
+                <h2 class="rg-h2">Comprobantes</h2>
+                <p class="rg-help rg-help-block">
+                    Acepta PDF, JPG, JPEG y PNG. La transcripción que escriba aquí es la que
+                    aparecerá en la portada de ese comprobante dentro del expediente PDF, para
+                    que gerencia y finanzas puedan leer los datos aunque la foto salga borrosa.
+                </p>
+
+                @* La zona de arrastre envuelve al <input type="file">, que va oculto pero
+                   sigue siendo el control real: así conserva el teclado y el lector de
+                   pantalla que un <div> con onclick perdería.
+
+                   Deshabilitada hasta "listo": la página prerenderiza como HTML estático
+                   antes de que el circuito conecte, y en esa ventana el <input> ya
+                   aceptaría un archivo sin que ningún manejador de C# esté conectado
+                   todavía -- la selección se perdería en silencio. *@
+                <label class="rg-drop @(listo ? "" : "rg-drop-deshabilitada")" @ref="zonaDropRef">
+                    <InputFile @ref="inputFileRef" OnChange="SeleccionarArchivosAsync" multiple accept=".pdf,.jpg,.jpeg,.png"
+                               class="rg-file" disabled="@(!listo)" />
+                    @if (listo)
                     {
-                        <option value="@fondo.Id">
-                            Custodio @(string.IsNullOrWhiteSpace(fondo.CustodioId) ? "(sin asignar)" : fondo.CustodioId)
-                            &mdash; disponible RD$ @fondo.BalanceActual.ToString("N2")
-                        </option>
+                        <span>Arrastre los archivos aquí o <b>búsquelos en el equipo</b></span>
                     }
-                </InputSelect>
-            </div>
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Categoría</label>
-                <InputSelect @bind-Value="entrada.CategoriaGastoId" class="form-select">
-                    @foreach (var categoria in categorias)
+                    else
                     {
-                        <option value="@categoria.Id">@categoria.Nombre</option>
+                        <span>Preparando…</span>
                     }
-                </InputSelect>
+                </label>
+
+                @if (adjuntos.Count > 0)
+                {
+                    <div class="rg-tablewrap">
+                        <table class="rg-table rg-mt14">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Archivo</th>
+                                    <th>Transcripción</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var adjunto in adjuntos)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="rg-file-n">@adjunto.NombreOriginal</span>
+                                            <span class="rg-help cc-num">@(adjunto.TamanoBytes / 1024) KB</span>
+                                            @if (adjunto.Subiendo)
+                                            {
+                                                <br /><span class="rg-help">Subiendo…</span>
+                                            }
+                                            else if (adjunto.Error is not null)
+                                            {
+                                                <br /><span class="rg-help rg-help-bad">@adjunto.Error</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <input class="rg-input" maxlength="200"
+                                                   placeholder="Ej: Factura de la ferretería"
+                                                   value="@adjunto.Descripcion"
+                                                   disabled="@(adjunto.Subiendo)"
+                                                   @oninput="e => adjunto.Descripcion = e.Value?.ToString() ?? string.Empty" />
+                                        </td>
+                                        <td class="rg-act">
+                                            <button type="button" class="rg-xsm"
+                                                    title="Quitar este archivo"
+                                                    aria-label="Quitar @adjunto.NombreOriginal"
+                                                    @onclick="() => QuitarAdjuntoAsync(adjunto)">✕</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <div class="rg-foot">
+                <a class="rg-btn rg-btn-ghost" href="/gastos">Cancelar</a>
+                <button type="submit" class="rg-btn rg-btn-pri" disabled="@(guardando || adjuntos.Any(a => a.Subiendo))">
+                    @(guardando ? "Guardando..." : "Registrar gasto")
+                </button>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Proveedor</label>
-                <InputText @bind-Value="entrada.Proveedor" class="form-control" maxlength="150" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">RNC / Cédula</label>
-                @* Input plano en vez de InputText: el valor se reescribe en cada
-                   pulsación para insertar los guiones de la cédula. *@
-                <input class="form-control" maxlength="13" inputmode="numeric"
-                       value="@entrada.RNCProveedor" @oninput="FormatearRnc" />
-                <div class="form-text">9 dígitos (RNC) u 11 (cédula).</div>
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">NCF</label>
-                <InputText @bind-Value="entrada.NCF" class="form-control" maxlength="13" />
-                <div class="form-text">11 (NCF) o 13 (e-NCF).</div>
-            </div>
-        </div>
-
-        <div class="mb-2">
-            <label class="form-label">Concepto</label>
-            <InputText @bind-Value="entrada.Concepto" class="form-control" maxlength="500" />
-        </div>
-
-        <div class="row">
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Subtotal</label>
-                <InputNumber @bind-Value="entrada.Subtotal" class="form-control" min="0" step="0.01" placeholder="0" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">ITBIS</label>
-                <InputNumber @bind-Value="entrada.MontoITBIS" class="form-control" min="0" step="0.01" placeholder="0" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Monto total</label>
-                <InputNumber @bind-Value="entrada.MontoTotal" class="form-control" min="0" step="0.01" placeholder="0" />
-                <div class="form-text">Subtotal + ITBIS debe cuadrar con este total.</div>
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Fecha del gasto</label>
-                @* Un gasto no puede haber ocurrido todavía: el selector no ofrece
-                   fechas futuras y el handler vuelve a comprobarlo. *@
-                <InputDate @bind-Value="entrada.FechaGasto" class="form-control"
-                           max="@DateTime.Today.ToString("yyyy-MM-dd")" />
-            </div>
-        </div>
-
-        <hr />
-
-        <h2 class="h5">Comprobantes</h2>
-        <p class="text-muted small">
-            Acepta PDF, JPG, JPEG y PNG. La transcripción que escriba aquí es la que
-            aparecerá en la portada de ese comprobante dentro del expediente PDF, para
-            que gerencia y finanzas puedan leer los datos aunque la foto salga borrosa.
-        </p>
-
-        <div class="mb-2">
-            <InputFile OnChange="SeleccionarArchivos" multiple accept=".pdf,.jpg,.jpeg,.png" class="form-control" />
-        </div>
-
-        @if (adjuntos.Count > 0)
-        {
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th style="width: 30%">Archivo</th>
-                        <th>Transcripción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var adjunto in adjuntos)
-                    {
-                        <tr>
-                            <td>
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <div>
-                                        @adjunto.Archivo.Name
-                                        <div class="text-muted small">@(adjunto.Archivo.Size / 1024) KB</div>
-                                    </div>
-                                    <button type="button" class="btn-close mt-1"
-                                            title="Quitar este archivo"
-                                            aria-label="Quitar @adjunto.Archivo.Name"
-                                            @onclick="() => QuitarAdjunto(adjunto)"></button>
-                                </div>
-                            </td>
-                            <td>
-                                <input class="form-control" maxlength="200"
-                                       placeholder="Ej: Factura de la ferretería / Autorización por correo - Juan Pérez"
-                                       value="@adjunto.Descripcion"
-                                       @oninput="e => adjunto.Descripcion = e.Value?.ToString() ?? string.Empty" />
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-
-        <button type="submit" class="btn btn-primary" disabled="@guardando">
-            @(guardando ? "Guardando..." : "Registrar gasto")
-        </button>
     </EditForm>
 }

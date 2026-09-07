@@ -20,6 +20,13 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
         public Task<IReadOnlyList<FondoCajaChica>> ListarAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<FondoCajaChica>>(_fondos.Values.ToList());
 
+        public Task<bool> ExisteFondoParaCustodioAsync(
+            string custodioId,
+            Guid? excluirFondoId = null,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(_fondos.Values.Any(
+                f => f.CustodioId == custodioId && (excluirFondoId == null || f.Id != excluirFondoId)));
+
         public Task AgregarAsync(FondoCajaChica fondo, CancellationToken cancellationToken = default)
         {
             Agregar(fondo);

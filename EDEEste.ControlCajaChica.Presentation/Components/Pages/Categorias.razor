@@ -4,89 +4,167 @@
 
 <PageTitle>Categorías de gasto</PageTitle>
 
-<h1>Categorías de gasto</h1>
-
-@* Igual que Fondos: pantalla provisional de administración para poder tener con qué
-   clasificar los gastos mientras no exista el caso de uso del Administrador. *@
-
-@if (mensaje is not null)
-{
-    <div class="alert alert-success">@mensaje</div>
-}
-@if (error is not null)
-{
-    <div class="alert alert-danger">@error</div>
-}
-
-<div class="row">
-    <div class="col-lg-7">
-        <h2 class="h5">Categorías registradas</h2>
-
-        @if (categorias is null)
-        {
-            <p><em>Cargando...</em></p>
-        }
-        else if (categorias.Count == 0)
-        {
-            <p class="text-muted">Todavía no hay categorías.</p>
-        }
-        else
-        {
-            <table class="table table-sm table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Cuenta contable</th>
-                        <th>Exige NCF</th>
-                        <th>Activa</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var categoria in categorias)
-                    {
-                        <tr>
-                            <td>@categoria.Nombre</td>
-                            <td>@categoria.CuentaContable</td>
-                            <td>@(categoria.RequiereNCF ? "Si" : "No")</td>
-                            <td>
-                                @* El check no es solo indicador: marcarlo activa o
-                                   desactiva la categoría en el momento. *@
-                                <input type="checkbox" class="form-check-input"
-                                       checked="@categoria.Activo"
-                                       disabled="@(cambiandoId == categoria.Id)"
-                                       title="@(categoria.Activo ? "Desactivar" : "Activar") esta categoría"
-                                       aria-label="@(categoria.Activo ? "Desactivar" : "Activar") @categoria.Nombre"
-                                       @onchange="e => CambiarActivoAsync(categoria, e.Value is true)" />
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
+<div class="cat-pagebar">
+    <div>
+        <h1 class="cat-h1">Categorías de gasto</h1>
+        <p class="cat-sub">@Subtitulo</p>
     </div>
 
-    <div class="col-lg-5">
-        <h2 class="h5">Nueva categoría</h2>
-        <EditForm Model="entrada" OnValidSubmit="CrearAsync" FormName="nueva-categoria">
-            <div class="mb-2">
-                <label class="form-label">Nombre</label>
-                <InputText @bind-Value="entrada.Nombre" class="form-control" />
+    @if (categorias is { Count: > 0 })
+    {
+        <div class="cat-tools">
+            <div class="cat-segmented">
+                <button type="button" class="cat-seg @(filtro == Filtro.Todas ? "cat-seg-on" : "")" @onclick="() => CambiarFiltro(Filtro.Todas)">Todas</button>
+                <button type="button" class="cat-seg @(filtro == Filtro.Activas ? "cat-seg-on" : "")" @onclick="() => CambiarFiltro(Filtro.Activas)">Activas</button>
+                <button type="button" class="cat-seg @(filtro == Filtro.Inactivas ? "cat-seg-on" : "")" @onclick="() => CambiarFiltro(Filtro.Inactivas)">Inactivas</button>
             </div>
-            <div class="mb-2">
-                <label class="form-label">Cuenta contable</label>
-                <InputText @bind-Value="entrada.CuentaContable" class="form-control" />
+            <label class="cat-search">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.3" /><path d="m12.6 12.6 4.2 4.2" /></svg>
+                <input type="search" placeholder="Buscar por nombre o cuenta…" value="@busqueda"
+                       @oninput="e => busqueda = e.Value?.ToString() ?? string.Empty" />
+            </label>
+        </div>
+    }
+</div>
+
+@if (errores.Count > 0)
+{
+    <div class="cat-alert cat-a-bad">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.6 17 16.4H3L10 4.6Z" /><path d="M10 9v3.3M10 14.5h.01" /></svg>
+        <ul>
+            @foreach (var error in errores)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+@if (exito is not null)
+{
+    <div class="alert alert-success">@exito</div>
+}
+
+@if (categorias is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (categorias.Count == 0)
+{
+    <p class="cat-empty">Todavía no hay categorías. Cree la primera con el panel de la derecha.</p>
+}
+
+<div class="cat-cols">
+    <section class="cat-card">
+        <div class="cat-card-h"><h2 class="cat-h2">Categorías registradas</h2><span class="cat-mut">@CategoriasFiltradas.Count() en total</span></div>
+
+        @if (categorias is { Count: > 0 })
+        {
+            if (!CategoriasFiltradas.Any())
+            {
+                <p class="cat-empty cat-empty-pad">Ninguna categoría coincide con el filtro o la búsqueda.</p>
+            }
+            else
+            {
+                <div class="cat-tablewrap">
+                    <table class="cat-table">
+                        <thead>
+                            <tr><th>Nombre</th><th>Cuenta contable</th><th>Exige NCF</th><th>Estado</th><th class="act"></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var categoria in CategoriasFiltradas)
+                            {
+                                <tr class="cat-row">
+                                    <td>@categoria.Nombre</td>
+                                    <td class="cat-code">@categoria.CuentaContable</td>
+                                    <td><span class="cat-pill @(categoria.RequiereNCF ? "cat-p-ok" : "cat-p-dark")">@(categoria.RequiereNCF ? "Exige NCF" : "No exige")</span></td>
+                                    <td><span class="cat-pill @(categoria.Activo ? "cat-p-ok" : "cat-p-dark")">@(categoria.Activo ? "Activa" : "Inactiva")</span></td>
+                                    <td class="act">
+                                        <button type="button" class="cat-btn cat-btn-ghost" @onclick="() => IniciarEdicionAsync(categoria)">
+                                            @(categoriaEnEdicion == categoria.Id ? "Cerrar" : "Editar")
+                                        </button>
+                                    </td>
+                                </tr>
+                                @if (categoriaEnEdicion == categoria.Id && entradaEdicion is not null)
+                                {
+                                    <tr class="cat-editrow">
+                                        <td colspan="5">
+                                            <div class="cat-editbox">
+                                                @if (usoDeLaCategoriaEnEdicion is { } uso)
+                                                {
+                                                    <div class="cat-stat">
+                                                        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.8" /><path d="M10 9.4v4M10 6.8h.01" /></svg>
+                                                        <span>Usada en @uso @(uso == 1 ? "gasto" : "gastos") este año</span>
+                                                    </div>
+                                                }
+                                                <div class="cat-grid2">
+                                                    <div>
+                                                        <span class="cat-cap">Nombre</span>
+                                                        <input class="cat-field" maxlength="100" @bind="entradaEdicion.Nombre" @bind:event="oninput" />
+                                                    </div>
+                                                    <div>
+                                                        <span class="cat-cap">Cuenta contable</span>
+                                                        <input class="cat-field" maxlength="50" @bind="entradaEdicion.CuentaContable" @bind:event="oninput" />
+                                                    </div>
+                                                </div>
+                                                <div class="cat-toggles">
+                                                    <label class="cat-toggle">
+                                                        <input type="checkbox" class="cat-sw-input" @bind="entradaEdicion.RequiereNCF" />
+                                                        <span class="cat-sw"><span class="cat-sw-kn"></span></span>Exige NCF
+                                                    </label>
+                                                    <label class="cat-toggle">
+                                                        <input type="checkbox" class="cat-sw-input" @bind="entradaEdicion.Activo" />
+                                                        <span class="cat-sw"><span class="cat-sw-kn"></span></span>Activa
+                                                    </label>
+                                                </div>
+                                                <div class="cat-editfoot">
+                                                    <button type="button" class="cat-btn cat-btn-ghost" @onclick="CancelarEdicion">Cancelar</button>
+                                                    <button type="button" class="cat-btn cat-btn-pri" disabled="@guardando" @onclick="() => GuardarEdicionAsync(categoria)">
+                                                        @(guardando ? "Guardando..." : "Guardar cambios")
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </section>
+
+    <aside class="cat-ficha">
+        <div class="cat-ficha-h">
+            <div class="t">Nueva categoría</div>
+            <div class="s">Se agrega al catálogo activo en cuanto la guarde</div>
+        </div>
+        <div class="cat-hair"></div>
+        <div class="cat-ficha-b">
+            <div class="cat-mb">
+                <span class="cat-cap">Nombre</span>
+                <input class="cat-field" maxlength="100" placeholder="p. ej. Suministros médicos" @bind="entrada.Nombre" @bind:event="oninput" />
             </div>
-            <div class="form-check mb-2">
-                <InputCheckbox @bind-Value="entrada.RequiereNCF" class="form-check-input" id="requiere-ncf" />
-                <label class="form-check-label" for="requiere-ncf">Exige NCF</label>
+            <div class="cat-mb">
+                <span class="cat-cap">Cuenta contable</span>
+                <input class="cat-field" maxlength="50" placeholder="p. ej. 5105-11" @bind="entrada.CuentaContable" @bind:event="oninput" />
             </div>
-            <div class="form-check mb-3">
-                <InputCheckbox @bind-Value="entrada.Activo" class="form-check-input" id="activa" />
-                <label class="form-check-label" for="activa">Activa</label>
+            <div class="cat-toggles">
+                <label class="cat-toggle">
+                    <input type="checkbox" class="cat-sw-input" @bind="entrada.RequiereNCF" />
+                    <span class="cat-sw"><span class="cat-sw-kn"></span></span>Exige NCF
+                </label>
+                <label class="cat-toggle">
+                    <input type="checkbox" class="cat-sw-input" @bind="entrada.Activo" />
+                    <span class="cat-sw"><span class="cat-sw-kn"></span></span>Activa
+                </label>
             </div>
-            <button type="submit" class="btn btn-primary" disabled="@guardando">
-                @(guardando ? "Guardando..." : "Crear categoría")
+            <p class="cat-help">Una categoría inactiva desaparece del desplegable de Registrar gasto, pero conserva su historial.</p>
+        </div>
+        <div class="cat-ficha-foot">
+            <button type="button" class="cat-btn cat-btn-pri cat-btn-full" disabled="@guardando" @onclick="CrearAsync">
+                @(guardando ? "Creando..." : "Crear categoría")
             </button>
-        </EditForm>
-    </div>
+        </div>
+    </aside>
 </div>

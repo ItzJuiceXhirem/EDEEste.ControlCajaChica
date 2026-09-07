@@ -1,22 +1,30 @@
 @page "/acceso-pendiente"
+@layout EDEEste.ControlCajaChica.Presentation.Components.Layout.AccesoLayout
 
 <PageTitle>Acceso pendiente</PageTitle>
 
-<div class="row">
-    <div class="col-lg-7">
-        <h1>Su acceso está pendiente</h1>
-
-        <div class="alert alert-info">
-            <p class="mb-2">
-                Su cuenta ya fue creada, pero todavía no tiene acceso al sistema de
-                caja chica.
-            </p>
-            <p class="mb-0">
-                Un Administrador debe revisar su solicitud y asignarle el rol que le
-                corresponda. Cuando lo haga, podrá iniciar sesión con normalidad.
-            </p>
-        </div>
-
-        <a class="btn btn-outline-secondary" href="Account/Login">Volver al inicio de sesión</a>
+<div class="cc-glow-wrap">
+    <div class="cc-glow" style="--mc:#FFC300;--mc-bg:rgba(255,195,0,.32)">
+        <svg class="cc-glow-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="16" cy="16" r="11.5" />
+            <path d="M16 9.5V16l5 3" />
+        </svg>
     </div>
 </div>
+
+<p class="cc-kicker cc-center">ESTADO DE LA CUENTA</p>
+<h1 class="cc-center">Su acceso está pendiente</h1>
+<p class="cc-note cc-center">Su cuenta ya fue creada, pero todavía no tiene acceso al sistema de caja chica.</p>
+
+<div class="cc-next" style="--mc:#FFC300;--mc-bg2:rgba(255,195,0,.09)">
+    <p class="cc-next-lb">Siguiente paso</p>
+    <p class="cc-next-txt">
+        Un Administrador debe revisar su solicitud y asignarle el rol que le corresponda.
+        Podrá iniciar sesión en cuanto lo haga.
+    </p>
+</div>
+
+<a class="cc-cta" href="Account/Login">
+    Volver al inicio de sesión
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h11.5" /><path d="M11.4 5.8 15.6 10l-4.2 4.2" /></svg>
+</a>

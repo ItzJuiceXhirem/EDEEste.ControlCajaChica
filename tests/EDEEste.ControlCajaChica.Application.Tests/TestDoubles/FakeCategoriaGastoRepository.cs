@@ -23,6 +23,10 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
         public Task<IReadOnlyList<CategoriaGasto>> ListarActivasAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<CategoriaGasto>>(_categorias.Values.Where(c => c.Activo).ToList());
 
+        public Task<bool> ExisteNombreAsync(string nombre, Guid? excluirId = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_categorias.Values.Any(c =>
+                string.Equals(c.Nombre, nombre, StringComparison.OrdinalIgnoreCase) && (excluirId == null || c.Id != excluirId)));
+
         public Task AgregarAsync(CategoriaGasto categoria, CancellationToken cancellationToken = default)
         {
             Agregar(categoria);

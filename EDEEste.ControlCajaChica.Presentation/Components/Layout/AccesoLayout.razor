@@ -1,0 +1,130 @@
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+
+@* Marco de las pantallas de acceso (DESIGN.md §5.4). Iniciar sesión y Solicitar
+   acceso son las únicas pantallas sin sidebar: son la puerta de entrada, no una
+   vista de trabajo. El layout pone la atmósfera y la marca; cada página solo
+   aporta el contenido del panel.
+
+   Login/Register mantienen el panel flotando a la derecha (tratamiento
+   original); las demás pantallas de acceso (pendiente/denegado/bloqueada/
+   recuperación/etc.) lo centran, para diferenciarlas visualmente de ser una
+   "puerta de entrada" y leerse como un mensaje de estado. *@
+<div class="cc-acceso @(EsLoginORegister ? "" : "cc-centrado")">
+    @* Campo de denominaciones: las mismas de la calculadora de Arqueos, en muy
+       baja opacidad, para que la textura salga del propio producto. *@
+    <div class="cc-field" aria-hidden="true">
+        @foreach (var ficha in Fichas)
+        {
+            <span class="cc-chip @(ficha.EsMoneda ? "cc-coin" : "cc-bill")"
+                  style="left:@ficha.Izquierda%; top:@ficha.Arriba%; width:@(ficha.Ancho)px; height:@(ficha.Alto)px; font-size:@(ficha.Tipo)px; transform:rotate(@(ficha.Giro)deg);">
+                $@ficha.Valor
+            </span>
+        }
+    </div>
+
+    <div class="cc-below" aria-hidden="true"></div>
+    <div class="cc-band" aria-hidden="true"></div>
+    <div class="cc-band-thin" aria-hidden="true"></div>
+    <div class="cc-ghost" aria-hidden="true">CAJA
+CHICA</div>
+
+    @* §5.10 y §5.11: el cofre va dibujado en línea y pinta con currentColor.
+       Clickeable hacia el login: en cualquiera de las pantallas de mensaje/error
+       de esta capa, es la salida obvia de vuelta al inicio. *@
+    <a class="cc-id" href="Account/Login" aria-label="Ir al inicio de sesión">
+        <span class="cc-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32">
+                <g fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4.6 15.4h22.8v8.3a2.2 2.2 0 0 1-2.2 2.2H6.8a2.2 2.2 0 0 1-2.2-2.2v-8.3Z" />
+                    <path d="M4.6 15.4C4.6 10.5 9.7 8.2 16 8.2s11.4 2.3 11.4 7.2" />
+                    <path d="M9.6 15.4v10.5M22.4 15.4v10.5" />
+                    <path d="M14.5 18.1h3v3.3h-3z" />
+                    <path d="M12.43 9.4a4.3 4.3 0 1 1 7.14 0" />
+                </g>
+                <text x="16" y="9.15" text-anchor="middle" font-size="6.3" font-weight="700"
+                      fill="currentColor" stroke="none">$</text>
+            </svg>
+        </span>
+        <span class="cc-wordmark">Control de Caja Chica</span>
+    </a>
+
+    <div class="cc-side">
+        <div class="cc-panel">
+            @Body
+        </div>
+
+        @* Recreación vectorial del logo corporativo, no el archivo oficial:
+           sustituir por el asset de marca cuando esté disponible. *@
+        <span class="cc-ede" aria-label="EDEEste">
+            <svg class="cc-ede-sw" viewBox="0 0 62 19" aria-hidden="true">
+                <path d="M3 16.2C9 5.4 27 .2 45 1.9c1.7.2 1.9 1.5.3 2C33 7.2 18 11.7 8.5 17.8c-1.9 1.2-4.5.5-5.5-1.6Z" />
+            </svg>
+            <span class="cc-ede-w cc-ede-w1">ede</span><span class="cc-ede-w cc-ede-w2">este</span><span class="cc-ede-dot">.</span>
+        </span>
+    </div>
+</div>
+
+@code {
+    // Las unicas dos pantallas que conservan el panel flotando a la derecha
+    // (tratamiento original de la seccion 5.4); todo lo demas que use este
+    // layout (mensajes de estado, recuperacion de acceso, etc.) lo centra.
+    private static readonly string[] RutasAlineadasALaDerecha = ["account/login", "account/register"];
+
+    private bool EsLoginORegister =>
+        RutasAlineadasALaDerecha.Contains(RutaSinConsultaNiFragmento());
+
+    // ToBaseRelativePath conserva el query string y el fragmento: sin recortarlos,
+    // "Account/Login?ReturnUrl=..." (la ruta real cuando el login llega por una
+    // redireccion desde una pagina protegida) no calzaba con "account/login" y el
+    // panel se centraba en vez de quedarse a la derecha.
+    private string RutaSinConsultaNiFragmento()
+    {
+        var ruta = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        var indiceCorte = ruta.IndexOfAny(['?', '#']);
+        if (indiceCorte >= 0)
+        {
+            ruta = ruta[..indiceCorte];
+        }
+
+        return ruta.TrimEnd('/').ToLowerInvariant();
+    }
+
+    private sealed record Ficha(
+        string Valor,
+        bool EsMoneda,
+        double Izquierda,
+        double Arriba,
+        int Ancho,
+        int Alto,
+        double Tipo,
+        int Giro);
+
+    // Posiciones fijas y no aleatorias: el campo es parte del diseño aprobado y
+    // debe verse igual en cada carga, no reacomodarse en cada visita.
+    private static readonly Ficha[] Fichas =
+    [
+        new("2000", false, 3, 6, 88, 46, 15, -8),
+        new("1000", false, 16, 22, 80, 42, 14, 7),
+        new("500", false, 30, 5, 72, 40, 13, -12),
+        new("200", false, 44, 17, 72, 40, 13, 10),
+        new("100", false, 57, 3, 66, 37, 12, -4),
+        new("50", false, 70, 14, 64, 36, 12, 13),
+        new("2000", false, 84, 2, 88, 46, 15, 6),
+        new("500", false, 8, 36, 72, 40, 13, 11),
+        new("100", false, 24, 38, 66, 37, 12, -6),
+        new("1000", false, 63, 26, 80, 42, 14, -9),
+        new("200", false, 88, 18, 72, 40, 13, -14),
+        new("50", false, 38, 31, 64, 36, 12, 5),
+        new("25", true, 11, 14, 50, 50, 13, -7),
+        new("10", true, 26, 19, 44, 44, 12, 14),
+        new("5", true, 39, 3, 40, 40, 11.5, 4),
+        new("1", true, 52, 26, 38, 38, 11, -13),
+        new("25", true, 66, 6, 50, 50, 13, 9),
+        new("10", true, 78, 24, 44, 44, 12, -10),
+        new("5", true, 93, 9, 40, 40, 11.5, 3),
+        new("1", true, 2, 24, 38, 38, 11, 15),
+        new("10", true, 48, 9, 44, 44, 12, -5),
+        new("5", true, 17, 44, 40, 40, 11.5, 8)
+    ];
+}

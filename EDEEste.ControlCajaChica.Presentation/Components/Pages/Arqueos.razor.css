@@ -1,0 +1,1048 @@
+/* Arqueos — versión consolidada. DESIGN.md §5.1 (plegado por rol),
+   §5.2 (historial) y §5.3 (modal con degradado de marca). */
+
+.arq-pagebar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 22px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.arq-h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 25px;
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+.arq-sub {
+    font-size: 12.5px;
+    color: var(--cc-text-soft);
+    margin: 3px 0 0;
+}
+
+.arq-lbl {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: rgba(0, 8, 20, 0.5);
+}
+
+.arq-fondo-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 320px;
+}
+
+.arq-select {
+    height: 34px;
+    padding: 0 11px;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-line-strong);
+    border-radius: 6px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    color: var(--bs-body-color);
+}
+
+.arq-ico {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.arq-ico-sm {
+    width: 14px;
+    height: 14px;
+}
+
+.arq-ico-bold {
+    stroke-width: 2.4;
+}
+
+.arq-r {
+    text-align: right;
+}
+
+.arq-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 9px 13px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    background: rgba(13, 202, 240, 0.12);
+    border: 1px solid rgba(13, 202, 240, 0.4);
+    color: #05576B;
+    margin-bottom: 13px;
+}
+
+    .arq-notice .arq-ico {
+        margin-top: 1px;
+    }
+
+/* ── Tarjetas ────────────────────────────────────────────────────────────── */
+.arq-card {
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+}
+
+.arq-card-h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 11px 18px;
+    border-bottom: 1px solid rgba(0, 53, 102, 0.1);
+}
+
+.arq-card-t {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 14.5px;
+    margin: 0;
+}
+
+.arq-card-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.arq-card-b {
+    padding: 15px 18px;
+}
+
+.arq-datefield input {
+    height: 30px;
+    min-width: 152px;
+    padding: 0 9px;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-line-strong);
+    border-radius: 6px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-body-color);
+}
+
+/* La flecha usa el mismo lenguaje que el chevron del desplegable de fondo: es
+   el control que pliega y despliega el conteo (§5.1). */
+.arq-chevbtn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 53, 102, 0.06);
+    border: 1px solid var(--cc-line-strong);
+    flex: none;
+    padding: 0;
+}
+
+    .arq-chevbtn:hover {
+        background: rgba(0, 53, 102, 0.12);
+    }
+
+    .arq-chevbtn svg {
+        width: 13px;
+        height: 13px;
+        stroke: var(--cc-navy);
+        fill: none;
+        stroke-width: 2.1;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+/* Sin flecha y sin interacción: el candado dice que la sección no se abre para
+   este rol, no que esté plegada por gusto. */
+.arq-lockbtn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 53, 102, 0.09);
+    flex: none;
+}
+
+    .arq-lockbtn svg {
+        width: 12px;
+        height: 12px;
+        stroke: rgba(0, 8, 20, 0.5);
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+/* ── Disposición: conteo + carril de resumen ─────────────────────────────── */
+/* align-items:stretch en el contenedor y flex:1 en la última tarjeta del carril:
+   el botón «Registrar arqueo» queda pegado abajo, a la misma altura que el borde
+   inferior de la tarjeta del conteo, sin medir píxeles a mano. */
+.arq-layout {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+}
+
+.arq-nuevo {
+    flex: 1.7;
+    min-width: 0;
+}
+
+.arq-rail {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.arq-tail {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+    .arq-tail .arq-card-b {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+/* ── Calculadora de denominaciones ───────────────────────────────────────── */
+.arq-cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.arq-sec-lbl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 9px;
+}
+
+.arq-line {
+    flex: 1;
+    height: 1px;
+    background: var(--cc-line);
+}
+
+.arq-den-grid {
+    display: grid;
+    gap: 6px;
+}
+
+.arq-den {
+    display: grid;
+    grid-template-columns: 56px 1fr 84px;
+    gap: 11px;
+    align-items: center;
+}
+
+/* Las monedas se despegan del borde derecho de la tarjeta lo mismo que los
+   billetes del izquierdo. */
+.arq-coin-col .arq-den {
+    padding-right: 6px;
+}
+
+.arq-bill {
+    height: 27px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 11.5px;
+    color: var(--cc-prussian);
+    border: 1px solid rgba(0, 53, 102, 0.3);
+}
+
+.arq-coin {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 10.5px;
+    color: #4A3800;
+    border: 1px solid rgba(255, 195, 0, 0.65);
+    margin: 0 auto;
+}
+
+.arq-stepper {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--cc-line-strong);
+    border-radius: 5px;
+    overflow: hidden;
+    height: 27px;
+    background: var(--cc-surface);
+    width: 94px;
+}
+
+.arq-sbtn {
+    width: 26px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 53, 102, 0.05);
+    border: none;
+    color: var(--cc-navy);
+    padding: 0;
+    flex: none;
+}
+
+    .arq-sbtn:hover {
+        background: rgba(0, 53, 102, 0.12);
+    }
+
+    .arq-sbtn svg {
+        width: 11px;
+        height: 11px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+    }
+
+.arq-sval {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    text-align: center;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--bs-body-color);
+    padding: 0;
+    -moz-appearance: textfield;
+}
+
+    .arq-sval::-webkit-outer-spin-button,
+    .arq-sval::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .arq-sval::placeholder {
+        color: rgba(0, 8, 20, 0.32);
+        font-weight: 400;
+    }
+
+    .arq-sval:focus {
+        outline: 2px solid rgba(0, 53, 102, 0.35);
+        outline-offset: -2px;
+    }
+
+.arq-sub-amt {
+    text-align: right;
+    font-size: 12px;
+    color: rgba(0, 8, 20, 0.62);
+}
+
+/* Una fila en cero se apaga en vez de desaparecer: sigue estando disponible para
+   contar, pero no compite con las que sí tienen efectivo. */
+.arq-zero .arq-sub-amt {
+    color: rgba(0, 8, 20, 0.3);
+}
+
+.arq-obs-block {
+    margin-top: 15px;
+}
+
+    .arq-obs-block .arq-lbl {
+        display: block;
+        margin-bottom: 6px;
+    }
+
+.arq-ta {
+    width: 100%;
+    height: 52px;
+    border: 1px solid var(--cc-line-strong);
+    border-radius: 6px;
+    padding: 8px 11px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    color: var(--bs-body-color);
+    background: var(--cc-surface);
+    resize: vertical;
+}
+
+.arq-total-strip {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 2px solid var(--cc-navy);
+}
+
+.arq-total-amt {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--cc-navy);
+    letter-spacing: -0.02em;
+}
+
+/* ── Carril: resultado, cifras e invariante ──────────────────────────────── */
+.arq-verdict {
+    border-radius: 6px;
+    padding: 13px 15px;
+    text-align: center;
+    margin-bottom: 12px;
+    border: 1px solid;
+}
+
+.arq-verdict-big {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 25px;
+    letter-spacing: -0.02em;
+    margin: 3px 0 5px;
+}
+
+.arq-verdict-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.arq-verdict-ok {
+    background: rgba(25, 135, 84, 0.1);
+    border-color: rgba(25, 135, 84, 0.35);
+}
+
+    .arq-verdict-ok .arq-verdict-big,
+    .arq-verdict-ok .arq-verdict-state {
+        color: #146C43;
+    }
+
+.arq-verdict-bad {
+    background: rgba(220, 53, 69, 0.08);
+    border-color: rgba(220, 53, 69, 0.35);
+}
+
+    .arq-verdict-bad .arq-verdict-big,
+    .arq-verdict-bad .arq-verdict-state {
+        color: #B02A37;
+    }
+
+.arq-verdict-up {
+    background: rgba(13, 202, 240, 0.12);
+    border-color: rgba(13, 202, 240, 0.44);
+}
+
+    .arq-verdict-up .arq-verdict-big,
+    .arq-verdict-up .arq-verdict-state {
+        color: #05576B;
+    }
+
+.arq-facts {
+    display: flex;
+    flex-direction: column;
+}
+
+.arq-fact {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 53, 102, 0.09);
+}
+
+    .arq-fact:last-child {
+        border-bottom: 0;
+    }
+
+.arq-fact-k {
+    font-size: 12px;
+    color: var(--cc-text-soft);
+}
+
+.arq-fact-v {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--cc-prussian);
+}
+
+/* flex:1 + centrado en las tres direcciones: el bloque ocupa todo el alto que le
+   sobraba a esta tarjeta frente a la del conteo, en vez de quedar pegado arriba
+   con un vacío antes del botón. Sin fondo ni borde propios: la caja de
+   Diferencia, arriba, ya es la que comunica con color si el conteo cuadra —
+   repetirlo aquí con un segundo fondo semántico sería redundante. Solo el texto
+   y el ícono llevan el color de estado. */
+.arq-inv-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    text-align: center;
+    padding: 2px 16px;
+}
+
+.arq-inv-icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Sin max-width y con nowrap: en una sola línea, la caja gana un renglón menos
+   de alto que partida en dos. */
+.arq-inv-label {
+    font-size: 12px;
+    line-height: 1.35;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.arq-inv-sum {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+.arq-inv-fijo {
+    font-size: 11.5px;
+    opacity: 0.75;
+    margin: 0;
+}
+
+.arq-inv-ok {
+    color: #146C43;
+}
+
+.arq-inv-bad {
+    color: #B02A37;
+}
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.arq-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    background: var(--cc-navy);
+    color: var(--cc-ivory);
+    border: 1px solid var(--cc-navy);
+}
+
+    .arq-btn:hover:not(:disabled) {
+        background: var(--cc-prussian);
+        border-color: var(--cc-prussian);
+    }
+
+    .arq-btn:disabled {
+        opacity: 0.65;
+    }
+
+.arq-btn-w {
+    width: 100%;
+}
+
+.arq-btn-ghost {
+    background: transparent;
+    color: var(--cc-navy);
+    border-color: rgba(0, 53, 102, 0.3);
+}
+
+    .arq-btn-ghost:hover:not(:disabled) {
+        background: rgba(0, 53, 102, 0.06);
+        color: var(--cc-navy);
+        border-color: var(--cc-navy);
+    }
+
+.arq-btn-sm {
+    font-size: 11.5px;
+    padding: 5px 11px;
+}
+
+/* ── Franja plegada ──────────────────────────────────────────────────────── */
+/* §5.1: plegada no queda vacía — conserva el nombre, el resumen del conteo y el
+   badge de resultado con el mismo aspecto que en el historial. */
+.arq-collapsed {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+    padding: 11px 18px;
+    margin-bottom: 14px;
+}
+
+.arq-cb-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.arq-cb-ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(0, 53, 102, 0.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+}
+
+    .arq-cb-ic svg {
+        width: 15px;
+        height: 15px;
+        stroke: var(--cc-navy);
+        fill: none;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+.arq-cb-title {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 13.5px;
+    white-space: nowrap;
+}
+
+.arq-cb-sum {
+    font-size: 12px;
+    color: var(--cc-text-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.arq-cb-note {
+    font-size: 11.5px;
+    color: var(--cc-text-faint);
+    font-style: italic;
+    white-space: nowrap;
+}
+
+.arq-cb-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
+}
+
+.arq-locked {
+    background: rgba(0, 53, 102, 0.03);
+}
+
+    .arq-locked .arq-cb-ic {
+        background: rgba(0, 53, 102, 0.08);
+    }
+
+    .arq-locked .arq-cb-title {
+        color: rgba(0, 8, 20, 0.68);
+    }
+
+/* ── Badges de estado (§5.7: píldora con fondo tenue) ────────────────────── */
+.arq-bdg {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 50rem;
+    padding: 2px 9px;
+    white-space: nowrap;
+}
+
+    .arq-bdg .arq-ico {
+        width: 11px;
+        height: 11px;
+        stroke-width: 2.6;
+    }
+
+/* Opacos y no rgba a proposito (DESIGN.md §5.7): un fondo semitransparente se ve
+   bien sobre blanco (aqui, o en la franja plegada) pero sobre el degradado
+   oscuro del modal se mezcla con el azul/negro de fondo y el texto pierde casi
+   todo el contraste — que era justo el bug. Con hex opaco, el badge se ve
+   identico en cualquier de los dos fondos, que es la regla de la seccion 5.3:
+   "los badges no se invierten sobre fondo oscuro". Mismos hex que usa Gastos. */
+.arq-bdg-ok {
+    background: #DCF3E7;
+    color: #146C43;
+}
+
+.arq-bdg-bad {
+    background: #FBE0E3;
+    color: #B02A37;
+}
+
+.arq-bdg-up {
+    background: #cff4fc;
+    color: #055160;
+}
+
+.arq-dif {
+    font-weight: 600;
+}
+
+.arq-txt-ok { color: #146C43; }
+.arq-txt-bad { color: #B02A37; }
+.arq-txt-up { color: #05576B; }
+
+/* ── Historial ───────────────────────────────────────────────────────────── */
+.arq-hist {
+    margin-top: 14px;
+}
+
+.arq-hist-b {
+    padding-top: 12px;
+}
+
+/* §5.2: contención horizontal propia, aunque hoy quepa — una columna nueva o un
+   dato más largo no debe empujar los botones fuera de la tarjeta. */
+.arq-hist-scroll {
+    overflow-x: auto;
+}
+
+.arq-hist-head,
+.arq-hist-row {
+    display: grid;
+    grid-template-columns: 98px 88px 92px 112px 88px 80px minmax(160px, 1fr) 32px 90px;
+    gap: 8px;
+    align-items: center;
+    min-width: 860px;
+}
+
+.arq-hist-head {
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--cc-line-strong);
+}
+
+    .arq-hist-head span {
+        line-height: 1.25;
+    }
+
+/* El borde va en la fila, nunca en cada celda: con el borde por celda, un badge
+   —más alto que el texto plano— deja cada raya a una altura distinta. */
+.arq-hist-row {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 53, 102, 0.09);
+    font-size: 12.5px;
+}
+
+    .arq-hist-row:last-of-type {
+        border-bottom: 0;
+    }
+
+/* Un gap es uniforme para todas las columnas, así que el aire extra entre
+   Diferencia y Observaciones se da con padding en la celda siguiente, y el par
+   ojo/Desglose se junta con un margen negativo en la última. */
+.arq-obs-cell {
+    font-size: 11.5px;
+    color: rgba(0, 8, 20, 0.62);
+    line-height: 1.42;
+    padding-left: 10px;
+}
+
+.arq-none {
+    color: rgba(0, 8, 20, 0.32);
+}
+
+.arq-hist-row > :last-child,
+.arq-hist-head > :last-child {
+    margin-left: -6px;
+}
+
+.arq-eyebtn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 53, 102, 0.25);
+    background: var(--cc-surface);
+    padding: 0;
+}
+
+    .arq-eyebtn:hover {
+        background: rgba(0, 53, 102, 0.06);
+    }
+
+    .arq-eyebtn svg {
+        width: 14px;
+        height: 14px;
+        stroke: var(--cc-navy);
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+.arq-expand {
+    background: rgba(0, 53, 102, 0.035);
+    border-radius: 6px;
+    padding: 13px 16px;
+    margin: 0 0 12px;
+}
+
+.arq-ecap {
+    font-size: 10px;
+    color: rgba(0, 8, 20, 0.5);
+    margin: 0 0 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.arq-dgrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px 22px;
+}
+
+.arq-drow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(0, 53, 102, 0.07);
+}
+
+.arq-dk {
+    color: var(--cc-text-soft);
+}
+
+.arq-dv {
+    font-weight: 600;
+}
+
+.arq-dtotal {
+    border-bottom: 0;
+}
+
+    .arq-dtotal .arq-dv {
+        color: var(--cc-navy);
+    }
+
+.arq-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--cc-text-soft);
+}
+
+/* ── Modal de observaciones (§5.3) ───────────────────────────────────────── */
+/* El velo es `fixed` dentro del árbol escalado por --cc-zoom, y las cajas fijas
+   se dimensionan contra el viewport y DESPUÉS se escalan: con inset:0 acabaría
+   sobresaliendo un 10%. Se le devuelve la escala a 1 (los zoom anidados se
+   multiplican) y se le reaplica al propio modal, que sí debe crecer. */
+.arq-scrim {
+    position: fixed;
+    inset: 0;
+    zoom: calc(1 / var(--cc-zoom));
+    z-index: 1050;
+    background: rgba(0, 8, 20, 0.58);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+}
+
+.arq-modal {
+    zoom: var(--cc-zoom);
+    width: 640px;
+    max-width: 100%;
+    background: var(--cc-surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px -16px rgba(0, 8, 20, 0.6);
+}
+
+/* Degradado esquina a esquina — `to bottom right` y no `135deg`: en una caja
+   ancha y baja ese ángulo recorre casi todo su rango en horizontal y se lee
+   como un degradado lateral, no diagonal. */
+.arq-modal-grad {
+    background: linear-gradient(to bottom right, #003566 0%, #001D3D 50%, #000814 100%);
+}
+
+.arq-modal-h {
+    padding: 16px 22px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+    .arq-modal-h h3 {
+        font-family: var(--cc-ff-head);
+        font-weight: 600;
+        font-size: 16px;
+        margin: 0;
+        color: var(--cc-ivory);
+    }
+
+.arq-modal-x {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 253, 245, 0.14);
+    border: none;
+    flex: none;
+    padding: 0;
+}
+
+    .arq-modal-x:hover {
+        background: rgba(255, 253, 245, 0.26);
+    }
+
+    .arq-modal-x svg {
+        width: 14px;
+        height: 14px;
+        stroke: var(--cc-ivory);
+        fill: none;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+    }
+
+.arq-modal-meta {
+    display: flex;
+    gap: 26px;
+    padding: 16px 22px 18px;
+    flex-wrap: wrap;
+}
+
+.arq-meta-lbl {
+    color: var(--cc-gold-lt);
+}
+
+.arq-meta-v {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 5px;
+    color: var(--cc-ivory);
+}
+
+/* Variantes aclaradas solo para texto suelto sobre el degradado. */
+.arq-txt-ok-dark { color: #85E0B3; }
+.arq-txt-bad-dark { color: #FF9AA3; }
+.arq-txt-up-dark { color: #7EE7FF; }
+
+/* Franja fina con los dos dorados e Ivory al centro: es donde el sistema pone
+   el amarillo junto al azul sin que compitan. */
+.arq-modal-divider {
+    height: 3px;
+    background: radial-gradient(ellipse at center, #FFFDF5 0%, #FFDA20 34%, #FFC300 100%);
+}
+
+.arq-modal-b {
+    padding: 22px;
+    background: var(--cc-surface);
+}
+
+.arq-modal-txt {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #101822;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.arq-modal-f {
+    background: linear-gradient(to bottom right, #003566 0%, #001D3D 50%, #000814 100%);
+    padding: 13px 22px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.arq-modal-close {
+    font-family: var(--cc-ff-text);
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border-radius: 6px;
+    background: #DC3545;
+    color: #FFFFFF;
+    border: 1px solid #DC3545;
+}
+
+    .arq-modal-close:hover {
+        background: #B02A37;
+        border-color: #B02A37;
+    }
+
+/* ── Pantallas estrechas ─────────────────────────────────────────────────── */
+/* Cortes ya multiplicados por --cc-zoom (1200→1320, 720→792): la media query se
+   evalúa contra el viewport real, pero el contenido dispone de un 10% menos. */
+@media (max-width: 1320px) {
+    .arq-layout {
+        flex-direction: column;
+    }
+
+    .arq-tail {
+        flex: none;
+    }
+}
+
+@media (max-width: 792px) {
+    .arq-cols {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .arq-dgrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .arq-fondo-pick {
+        min-width: 100%;
+    }
+}

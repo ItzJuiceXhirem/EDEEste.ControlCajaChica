@@ -562,6 +562,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("FechaExpiracionSecreto")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("FechaModificacion")
                         .HasColumnType("datetime2");
 
@@ -570,6 +573,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime>("FechaSolicitud")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("HashSecreto")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -620,6 +627,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                     b.Property<int>("EstadoAcceso")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
@@ -649,11 +659,18 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("RutaFotoPerfil")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UltimoAccesoUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)

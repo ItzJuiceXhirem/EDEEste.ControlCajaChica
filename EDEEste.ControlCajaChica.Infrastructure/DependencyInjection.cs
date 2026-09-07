@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Infrastructure.Configuration;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
@@ -20,18 +21,28 @@ namespace EDEEste.ControlCajaChica.Infrastructure
     /// </summary>
     public static class DependencyInjection
     {
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddInfrastructure(
+            this IServiceCollection services,
+            IConfiguration configuration,
+            string rutaRaizContenido)
         {
             AgregarCriptografia(services, configuration);
+            AgregarAlmacenamiento(services, rutaRaizContenido);
             AgregarPersistencia(services, configuration);
             AgregarAutenticacion(services, configuration);
+            AgregarConfiguracionInicial(services, configuration);
+
+            // Una sola vez por proceso, no por peticion: GlobalFontSettings.FontResolver
+            // es estatico y PDFsharp lanza si se reasigna despues del primer uso. Ver
+            // ResolutorFuentesEmbebidas.Registrar().
+            ResolutorFuentesEmbebidas.Registrar();
 
             services.AddScoped<IIdentityService, IdentityService>();
             services.AddScoped<IPasswordResetService, PasswordResetService>();
-            services.AddScoped<IReporteGastosService, QuestPdfReporteService>();
             services.AddScoped<IFileStorageService, FileStorageService>();
             services.AddScoped<IPdfConsolidadorService, PdfConsolidadorService>();
             services.AddScoped<InicializadorIdentidad>();
+            services.AddHostedService<LimpiezaStagingBackgroundService>();
 
             AgregarRepositorios(services);
 
@@ -49,6 +60,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             services.AddScoped<ICategoriaGastoRepository, CategoriaGastoRepository>();
             services.AddScoped<IGastoRepository, GastoRepository>();
             services.AddScoped<IReposicionRepository, ReposicionRepository>();
+            services.AddScoped<IArqueoRepository, ArqueoRepository>();
         }
 
         /// <summary>
@@ -142,6 +154,26 @@ namespace EDEEste.ControlCajaChica.Infrastructure
                     http.DefaultRequestHeaders.Add(opciones.NombreCabeceraApiKey, opciones.ApiKey);
                 }
             });
+
+        /// <summary>
+        /// A diferencia de la clave HMAC, NO se falla el arranque si falta el token:
+        /// solo importa mientras el sistema no tenga ningun Administrador, y exigirlo
+        /// siempre rompería cualquier despliegue ya configurado que nunca lo
+        /// necesito. La pantalla misma (ConfiguracionInicial.razor.cs) es quien se
+        /// niega a mostrar el formulario si esta vacio.
+        /// </summary>
+        private static void AgregarConfiguracionInicial(IServiceCollection services, IConfiguration configuration) =>
+            services.Configure<OpcionesConfiguracionInicial>(
+                configuration.GetSection(OpcionesConfiguracionInicial.Seccion));
+
+        /// <summary>
+        /// rutaRaizContenido llega desde IHostEnvironment.ContentRootPath, resuelto
+        /// en Program.cs -- Infrastructure no referencia los paquetes de Hosting
+        /// solo para esto, recibe la ruta ya calculada.
+        /// </summary>
+        private static void AgregarAlmacenamiento(IServiceCollection services, string rutaRaizContenido) =>
+            services.Configure<OpcionesAlmacenamiento>(
+                opciones => opciones.RutaRaiz = Path.Combine(rutaRaizContenido, "App_Data"));
 
         private static void AgregarCriptografia(IServiceCollection services, IConfiguration configuration)
         {

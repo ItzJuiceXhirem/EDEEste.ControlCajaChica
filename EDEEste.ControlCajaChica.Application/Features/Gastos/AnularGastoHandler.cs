@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -21,12 +22,15 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
         private readonly IGastoRepository _gastos;
         private readonly IFondoRepository _fondos;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
-        public AnularGastoHandler(IGastoRepository gastos, IFondoRepository fondos, IApplicationDbContext contexto)
+        public AnularGastoHandler(
+            IGastoRepository gastos, IFondoRepository fondos, IAutorizacionService autorizacion, IApplicationDbContext contexto)
         {
             _gastos = gastos;
             _fondos = fondos;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -34,6 +38,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             AnularGastoCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.AnularGasto, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para anular un gasto.");
+            }
+
             var gasto = await _gastos.ObtenerPorIdAsync(comando.GastoId, cancellationToken);
             if (gasto is null)
             {

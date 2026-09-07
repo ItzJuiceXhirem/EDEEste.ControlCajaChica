@@ -1,0 +1,480 @@
+/* Categorías — tabla con edición en línea + panel de alta en ficha de marca
+   (DESIGN.md §5.3/§5.9), tabs Todas/Activas/Inactivas y buscador (§5.8). */
+
+.cat-pagebar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.cat-h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 27px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    color: var(--cc-ink);
+}
+
+.cat-sub {
+    color: var(--cc-text-soft);
+    font-size: 13px;
+    margin: 0;
+}
+
+.cat-tools {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    align-self: flex-end;
+}
+
+.cat-segmented {
+    display: flex;
+    background: rgba(0, 53, 102, 0.06);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.cat-seg {
+    border: none;
+    background: transparent;
+    padding: 6px 13px;
+    border-radius: 6px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #6B7482;
+}
+
+.cat-seg-on {
+    background: var(--cc-surface);
+    color: var(--cc-navy);
+    box-shadow: 0 1px 2px rgba(0, 53, 102, 0.15);
+}
+
+/* §5.8: el buscador no parte su texto en dos líneas. */
+.cat-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    padding: 6px 12px;
+    min-height: 34px;
+    color: #8A94A3;
+    white-space: nowrap;
+    width: 260px;
+}
+
+    .cat-search:focus-within {
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+    .cat-search svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+    }
+
+    .cat-search input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        font-family: var(--cc-ff-text);
+        font-size: 13px;
+        color: #16202E;
+        padding: 0;
+    }
+
+        .cat-search input:focus {
+            outline: none;
+        }
+
+.cat-empty {
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: var(--cc-text-soft);
+}
+
+.cat-empty-pad {
+    padding: 16px 18px;
+    margin: 0;
+}
+
+/* ── Avisos ──────────────────────────────────────────────────────────────── */
+.cat-alert {
+    border-radius: 10px;
+    padding: 12px 15px;
+    font-size: 12.5px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+
+.cat-alert svg {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    margin-top: 2px;
+}
+
+.cat-alert ul {
+    margin: 0;
+    padding-left: 16px;
+}
+
+.cat-alert li {
+    margin: 2px 0;
+}
+
+.cat-a-bad {
+    background: #f8d7da;
+    color: #842029;
+}
+
+/* ── Layout de dos columnas ──────────────────────────────────────────────── */
+.cat-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 20px;
+    align-items: start;
+}
+
+.cat-card {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+}
+
+.cat-card-h {
+    padding: 14px 18px;
+    border-bottom: 1px solid #ECEEF1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cat-h2 {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0;
+    color: var(--cc-ink);
+}
+
+.cat-mut {
+    color: #6B7482;
+    font-size: 12px;
+}
+
+/* ── Tabla (§5.2) ────────────────────────────────────────────────────────── */
+.cat-tablewrap {
+    overflow-x: auto;
+}
+
+.cat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .cat-table thead th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8A94A3;
+        padding: 12px 18px 10px;
+        white-space: nowrap;
+    }
+
+.cat-row {
+    border-top: 1px solid #ECEEF1;
+}
+
+    .cat-row td {
+        padding: 12px 18px;
+        vertical-align: middle;
+    }
+
+.cat-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: #6B7482;
+}
+
+.cat-table .act {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.cat-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.cat-p-ok { background: #DCF3E7; color: #146C43; }
+.cat-p-dark { background: #E4E7EB; color: #343A40; }
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.cat-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.cat-btn-pri {
+    background: var(--cc-navy);
+    color: #fff;
+}
+
+    .cat-btn-pri:hover:not(:disabled) {
+        background: var(--cc-prussian);
+    }
+
+.cat-btn-ghost {
+    background: var(--cc-surface);
+    color: var(--cc-navy);
+    border-color: rgba(0, 53, 102, 0.3);
+}
+
+    .cat-btn-ghost:hover {
+        background: #F2F6FA;
+    }
+
+.cat-btn:disabled {
+    opacity: 0.6;
+}
+
+.cat-btn-full {
+    width: 100%;
+}
+
+/* ── Fila de edición en línea ────────────────────────────────────────────── */
+.cat-editrow td {
+    padding: 0 18px 16px;
+}
+
+.cat-editbox {
+    background: #FBFCFD;
+    border: 1px solid #E1E5EA;
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.cat-stat {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: #cff4fc;
+    color: #055160;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 12px;
+    margin-bottom: 13px;
+}
+
+    .cat-stat svg {
+        width: 14px;
+        height: 14px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+    }
+
+.cat-grid2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.cat-editfoot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+/* ── Campos ──────────────────────────────────────────────────────────────── */
+.cat-cap {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #8A94A3;
+    margin-bottom: 5px;
+}
+
+.cat-field {
+    width: 100%;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    color: #16202E;
+    min-height: 34px;
+}
+
+    .cat-field:focus {
+        outline: none;
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+.cat-help {
+    font-size: 11px;
+    color: #6B7482;
+    margin: 5px 0 0;
+}
+
+.cat-mb {
+    margin-bottom: 14px;
+}
+
+/* ── Interruptor (toggle) ────────────────────────────────────────────────── */
+.cat-toggles {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+}
+
+.cat-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: #16202E;
+    cursor: pointer;
+}
+
+.cat-sw-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.cat-sw {
+    width: 34px;
+    height: 19px;
+    border-radius: 999px;
+    background: #E1E5EA;
+    position: relative;
+    flex: none;
+    transition: background .15s ease;
+}
+
+.cat-sw-kn {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+    transition: left .15s ease;
+}
+
+.cat-sw-input:checked + .cat-sw {
+    background: var(--cc-navy);
+}
+
+.cat-sw-input:checked + .cat-sw .cat-sw-kn {
+    left: 17px;
+}
+
+.cat-sw-input:focus-visible + .cat-sw {
+    outline: 2px solid rgba(0, 53, 102, 0.35);
+    outline-offset: 2px;
+}
+
+/* ── Panel de alta con look de ficha (§5.3/§5.9) ─────────────────────────── */
+.cat-ficha {
+    background: var(--cc-surface);
+    border: 1px solid #ECEEF1;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.cat-ficha-h {
+    background: linear-gradient(to bottom right, #003566, #001D3D 55%, #000814);
+    color: var(--cc-ivory);
+    padding: 16px 18px;
+}
+
+    .cat-ficha-h .t {
+        font-family: var(--cc-ff-head);
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .cat-ficha-h .s {
+        font-size: 11.5px;
+        color: #BCCDE0;
+        margin-top: 3px;
+    }
+
+.cat-hair {
+    height: 3px;
+    background: linear-gradient(90deg, #FFC300, #FFDA20, #FFFDF5, #FFDA20, #FFC300);
+}
+
+.cat-ficha-b {
+    padding: 18px;
+}
+
+.cat-ficha-foot {
+    padding: 14px 18px;
+    border-top: 1px solid #ECEEF1;
+    background: #FBFCFD;
+}
+
+/* ── Pantallas estrechas ─────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .cat-cols {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cat-search {
+        width: 100%;
+    }
+
+    .cat-tools {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+}

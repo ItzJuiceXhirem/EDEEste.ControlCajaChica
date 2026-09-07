@@ -205,7 +205,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                     usuario.UserName ?? string.Empty,
                     usuario.Nombre,
                     roles.FirstOrDefault(),
-                    usuario.EstadoAcceso));
+                    usuario.EstadoAcceso,
+                    usuario.FechaCreacion,
+                    usuario.PhoneNumber,
+                    !string.IsNullOrWhiteSpace(usuario.RutaFotoPerfil)));
             }
 
             return resumen;
@@ -223,10 +226,61 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return usuario?.UserName;
         }
 
+        public async Task<IReadOnlyDictionary<string, string>> ObtenerNombresUsuarioAsync(IEnumerable<string> usuarioIds)
+        {
+            var ids = usuarioIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return new Dictionary<string, string>();
+            }
+
+            return await _userManager.Users
+                .Where(u => ids.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.UserName ?? u.Id);
+        }
+
         public async Task<bool> EstaEnRolAsync(string usuarioId, string rol)
         {
             var usuario = await _userManager.FindByIdAsync(usuarioId);
             return usuario is not null && await _userManager.IsInRoleAsync(usuario, rol);
         }
+
+        public async Task<DateTime?> RegistrarAccesoAsync(string usuarioId)
+        {
+            // Proyeccion, no ObtenerPorIdAsync: no hace falta materializar (ni
+            // rastrear) la entidad completa solo para leer una columna.
+            var anterior = await _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .Select(u => u.UltimoAccesoUtc)
+                .FirstOrDefaultAsync();
+
+            // ExecuteUpdateAsync arma un UPDATE dirigido a esta columna y lo manda
+            // directo a SQL Server -- nunca pasa por SaveChanges, por lo tanto nunca
+            // por el ChangeTracker ni por AuditoriaInterceptor. Es una garantia
+            // estructural (no una lista negra que alguien tiene que recordar
+            // mantener) de que este toque a AspNetUsers, que ocurre en CADA login del
+            // sistema, jamas puede terminar copiando PasswordHash/SecurityStamp a
+            // LogsAuditoria.
+            await _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.UltimoAccesoUtc, DateTime.UtcNow));
+
+            return anterior;
+        }
+
+        public Task<string?> ObtenerRutaFotoPerfilAsync(string usuarioId) =>
+            _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .Select(u => u.RutaFotoPerfil)
+                .FirstOrDefaultAsync();
+
+        // Mismo razonamiento que RegistrarAccesoAsync: UPDATE dirigido a una sola
+        // columna, sin ChangeTracker ni AuditoriaInterceptor de por medio. Cambiar la
+        // foto de perfil no tiene por que arrastrar el resto de la fila del usuario
+        // (PasswordHash incluido) ni generar una entrada de bitacora.
+        public Task ActualizarFotoPerfilAsync(string usuarioId, string? rutaRelativa) =>
+            _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.RutaFotoPerfil, rutaRelativa));
     }
 }

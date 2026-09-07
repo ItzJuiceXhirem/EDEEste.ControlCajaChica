@@ -1,49 +1,64 @@
 @page "/Account/Register"
+@layout EDEEste.ControlCajaChica.Presentation.Components.Layout.AccesoLayout
 
 <PageTitle>Solicitar acceso</PageTitle>
 
+<StatusMessage Message="@Message" />
+
+<p class="cc-kicker">Solicitud de cuenta</p>
 <h1>Solicitar acceso</h1>
+<p class="cc-note" style="margin: 9px 0 20px;">
+    Crear la cuenta no da acceso al sistema: un Administrador revisa la solicitud
+    y le asigna el rol que le corresponda.
+</p>
 
-<div class="row">
-    <div class="col-lg-6">
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
-            <DataAnnotationsValidator />
-            <h2 class="h5">Cree su cuenta con el usuario que utiliza en la empresa.</h2>
-            <p class="text-muted small">
-                Crear la cuenta no da acceso al sistema: un Administrador revisa la
-                solicitud y le asigna el rol que le corresponda.
-            </p>
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
+<EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" role="alert" />
 
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
-                           autocomplete="username" aria-required="true" placeholder="nombre.apellido" />
-                <label for="Input.Usuario">Usuario</label>
-                <div class="form-text">El mismo con el que inicia sesión en Windows, en formato nombre.apellido</div>
-                <ValidationMessage For="() => Input.Usuario" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control"
-                           autocomplete="name" aria-required="true" placeholder="Juan Pérez" />
-                <label for="Input.Nombre">Nombre completo</label>
-                <ValidationMessage For="() => Input.Nombre" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
-                           autocomplete="new-password" aria-required="true" placeholder="contraseña" />
-                <label for="Input.Password">Contraseña</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control"
-                           autocomplete="new-password" aria-required="true" placeholder="contraseña" />
-                <label for="Input.ConfirmPassword">Confirmar contraseña</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-            </div>
+    <div class="cc-fields">
+        <div class="cc-f">
+            <label class="cc-lb" for="Input.Usuario">Usuario</label>
+            <InputText @bind-Value="Input.Usuario" id="Input.Usuario" class="form-control"
+                       autocomplete="username" aria-required="true" placeholder="nombre.apellido" />
+            <span class="cc-hint">El mismo con el que inicia sesión en Windows, en formato nombre.apellido</span>
+            <ValidationMessage For="() => Input.Usuario" class="text-danger" />
+        </div>
 
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Solicitar acceso</button>
-        </EditForm>
+        <div class="cc-f">
+            <label class="cc-lb" for="Input.Nombre">Nombre completo</label>
+            <InputText @bind-Value="Input.Nombre" id="Input.Nombre" class="form-control"
+                       autocomplete="name" aria-required="true" placeholder="Juan Pérez" />
+            <ValidationMessage For="() => Input.Nombre" class="text-danger" />
+        </div>
+
+        <div class="cc-f">
+            <label class="cc-lb" for="Input.Password">Contraseña</label>
+            <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
+                       autocomplete="new-password" aria-required="true" placeholder="Su contraseña" />
+            <ValidationMessage For="() => Input.Password" class="text-danger" />
+        </div>
+
+        <div class="cc-f">
+            <label class="cc-lb" for="Input.ConfirmPassword">Confirmar contraseña</label>
+            <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control"
+                       autocomplete="new-password" aria-required="true" placeholder="Repita la contraseña" />
+            <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+        </div>
+
+        <button type="submit" class="cc-cta">
+            Solicitar acceso
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M4 10h11.5" />
+                <path d="M11.4 5.8 15.6 10l-4.2 4.2" />
+            </svg>
+        </button>
     </div>
-</div>
+
+    <div class="cc-sep" style="margin: 20px 0 15px;"></div>
+
+    @* §5.4: contrapartida del enlace a esta pantalla que hay en Iniciar sesión. *@
+    <div class="cc-lnk-row">
+        <span>¿Ya tiene una cuenta? <a href="Account/Login">Iniciar sesión</a></span>
+    </div>
+</EditForm>

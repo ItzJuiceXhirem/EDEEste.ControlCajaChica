@@ -64,7 +64,22 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
                 .OrderByDescending(g => g.FechaModificacion)
                 .ToListAsync(cancellationToken);
 
+        public async Task<IReadOnlyList<Gasto>> ListarNoRepuestosAsync(Guid fondoId, CancellationToken cancellationToken = default) =>
+            await _context.Gastos
+                .Where(g => g.FondoCajaChicaId == fondoId
+                            && (g.Estado == EstadoGasto.PendienteReposicion
+                                || g.Estado == EstadoGasto.EnProcesoReposicion
+                                || g.Estado == EstadoGasto.AnulacionPendiente))
+                .OrderBy(g => g.FechaGasto)
+                .ToListAsync(cancellationToken);
+
         public async Task AgregarAsync(Gasto gasto, CancellationToken cancellationToken = default) =>
             await _context.Gastos.AddAsync(gasto, cancellationToken);
+
+        public Task<ComprobanteAdjunto?> ObtenerComprobanteAsync(Guid comprobanteId, CancellationToken cancellationToken = default) =>
+            _context.Comprobantes.FirstOrDefaultAsync(c => c.Id == comprobanteId, cancellationToken);
+
+        public Task<int> ContarPorCategoriaYAnioAsync(Guid categoriaGastoId, int anio, CancellationToken cancellationToken = default) =>
+            _context.Gastos.CountAsync(g => g.CategoriaGastoId == categoriaGastoId && g.FechaGasto.Year == anio, cancellationToken);
     }
 }

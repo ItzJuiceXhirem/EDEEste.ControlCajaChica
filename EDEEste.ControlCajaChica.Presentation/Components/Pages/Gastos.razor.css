@@ -1,0 +1,878 @@
+/* Gastos — DESIGN.md §5.2 (tablas), §5.7 (píldoras), §5.8 (cifras-filtro),
+   §5.9 (ficha desplegable) y §5.3 (modal de marca). */
+
+.gst-pagebar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.gst-h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 29px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    color: var(--cc-ink);
+}
+
+.gst-sub {
+    color: #6B7482;
+    font-size: 13px;
+    margin: 0;
+}
+
+.gst-pagebar-tools {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.gst-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 290px;
+}
+
+.gst-cap {
+    display: block;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8A94A3;
+    margin-bottom: 6px;
+}
+
+.gst-field .gst-cap {
+    margin-bottom: 0;
+}
+
+.gst-select {
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    color: #16202E;
+    min-height: 38px;
+}
+
+.gst-select-sm {
+    font-size: 12px;
+    padding: 5px 10px;
+    min-height: 32px;
+}
+
+.gst-ico {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.gst-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    justify-content: center;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 17px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.gst-btn-pri {
+    background: var(--cc-navy);
+    color: #fff;
+}
+
+    .gst-btn-pri:hover:not(:disabled) {
+        background: var(--cc-prussian);
+        color: #fff;
+    }
+
+.gst-btn-ghost {
+    background: var(--cc-surface);
+    color: #3C4553;
+    border-color: #D8DDE4;
+}
+
+/* Los botones de anulación llevan el hue semántico en el trazo y el texto, no de
+   relleno: son acciones destructivas, pero no la acción principal de la fila. */
+.gst-btn-warn {
+    background: var(--cc-surface);
+    color: #8A6410;
+    border-color: #E3C878;
+}
+
+.gst-btn-bad {
+    background: var(--cc-surface);
+    color: #B02A37;
+    border-color: #E9AFB6;
+}
+
+.gst-btn:hover:not(:disabled) {
+    filter: brightness(0.97);
+}
+
+.gst-btn:disabled {
+    opacity: 0.55;
+}
+
+.gst-btn-sm {
+    font-size: 11.5px;
+    padding: 5px 9px;
+    border-radius: 7px;
+}
+
+.gst-icobtn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid #D8DDE4;
+    background: var(--cc-surface);
+    color: #6B7482;
+    display: grid;
+    place-items: center;
+    flex: none;
+    padding: 0;
+}
+
+    .gst-icobtn:hover {
+        background: #F2F6FA;
+        color: var(--cc-navy);
+    }
+
+/* ── Cifras de resumen (§5.8) ────────────────────────────────────────────── */
+.gst-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 11px;
+}
+
+/* El color semántico va en el borde superior — es información, no decoración. */
+.gst-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-top: 3px solid #E1E5EA;
+    border-radius: 10px;
+    padding: 10px 14px 11px;
+    font-family: var(--cc-ff-text);
+}
+
+    .gst-stat .k {
+        font-size: 10.5px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #8A94A3;
+        line-height: 1.3;
+    }
+
+    .gst-stat .v {
+        font-family: var(--cc-ff-head);
+        font-weight: 700;
+        font-size: 17px;
+        color: var(--cc-ink);
+        line-height: 1.3;
+        margin-top: 1px;
+    }
+
+    .gst-stat .n {
+        font-size: 10.5px;
+        color: #6B7482;
+    }
+
+.gst-s-warn { border-top-color: var(--cc-gold); }
+.gst-s-info { border-top-color: #0DCAF0; }
+.gst-s-ok { border-top-color: #198754; }
+.gst-s-bad { border-top-color: #DC3545; }
+
+/* La cifra activa se marca con un anillo interior, nunca con relleno: un relleno
+   competiría con el color semántico del borde. */
+.gst-stat.gst-on {
+    background: #F2F6FA;
+    box-shadow: inset 0 0 0 1px var(--cc-navy);
+}
+
+    .gst-stat.gst-on .v {
+        color: var(--cc-navy);
+    }
+
+.gst-hint {
+    font-size: 11.5px;
+    color: #6B7482;
+    margin: 8px 0 14px;
+}
+
+/* ── Tarjetas ────────────────────────────────────────────────────────────── */
+.gst-card {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+}
+
+.gst-mb {
+    margin-bottom: 14px;
+}
+
+.gst-cb {
+    padding: 18px 20px;
+}
+
+.gst-cb-head {
+    padding: 14px 18px;
+}
+
+.gst-cb-body {
+    padding: 0 18px 18px;
+}
+
+.gst-h2 {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 0;
+    color: var(--cc-ink);
+}
+
+.gst-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.gst-mut {
+    color: #6B7482;
+}
+
+.gst-count {
+    font-weight: 400;
+    font-size: 13px;
+}
+
+.gst-g8 {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Ventana de días + buscador: nunca deben separarse en líneas distintas, a
+   diferencia de .gst-g8 (pensada para envolver grupos de botones). */
+.gst-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.gst-g6 {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.gst-mt10 { margin-top: 10px; }
+.gst-mt18 { margin-top: 18px; }
+
+.gst-empty {
+    margin: 0;
+    font-size: 13px;
+    color: #6B7482;
+}
+
+/* §5.8: el buscador se ancla a la derecha del título y crece hacia la izquierda
+   con nowrap, en vez de partirse en dos líneas al no caber. */
+.gst-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    padding: 8px 12px;
+    min-height: 38px;
+    color: #8A94A3;
+    white-space: nowrap;
+    flex: 0 1 340px;
+}
+
+    .gst-search:focus-within {
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+    .gst-search svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+    }
+
+    .gst-search input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        font-family: var(--cc-ff-text);
+        font-size: 13px;
+        color: #16202E;
+        padding: 0;
+    }
+
+        .gst-search input:focus {
+            outline: none;
+        }
+
+/* ── Tablas (§5.2) ───────────────────────────────────────────────────────── */
+/* El envoltorio con overflow-x es la garantía dura de que una tabla ancha nunca
+   se salga de su tarjeta: si algún día no cabe, la barra de scroll aparece
+   dentro de la tarjeta en vez de que las filas se desborden por el costado. */
+.gst-tablewrap {
+    overflow-x: auto;
+}
+
+.gst-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .gst-table thead th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8A94A3;
+        padding: 0 9px 12px;
+        border: 0;
+        white-space: nowrap;
+    }
+
+    /* El borde va en la fila completa, no en cada celda: con el borde por celda,
+       una píldora —más alta que el texto plano— deja cada raya a una altura
+       distinta. */
+    .gst-table tbody tr {
+        border-bottom: 1px solid #ECEEF1;
+    }
+
+        .gst-table tbody tr:last-child {
+            border-bottom: 0;
+        }
+
+    .gst-table td {
+        padding: 12px 9px;
+        vertical-align: middle;
+    }
+
+    .gst-table .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .gst-table .ctr {
+        text-align: center;
+    }
+
+    .gst-table .act {
+        white-space: nowrap;
+        text-align: right;
+    }
+
+.gst-money {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* §5.2: el texto largo se recorta; una celda no puede empujar a las vecinas y
+   sacar la columna de acciones fuera de la tarjeta. */
+.gst-clip {
+    display: inline-block;
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.gst-tfoot {
+    border-top: 2px solid #E1E5EA;
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 9px 0;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+    .gst-tfoot .v {
+        font-family: var(--cc-ff-head);
+        font-size: 17px;
+        color: var(--cc-navy);
+    }
+
+/* ── Píldoras de estado (§5.7) ───────────────────────────────────────────── */
+.gst-pill {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.gst-p-ok { background: #DCF3E7; color: #146C43; }
+.gst-p-bad { background: #FBE0E3; color: #B02A37; }
+.gst-p-dark { background: #E4E7EB; color: #343A40; }
+/* Advertencia e info se dejan en las utilidades nativas de Bootstrap 5.3: la
+   versión hecha a mano de Info fallaba el mínimo de contraste AA (§5.7). */
+.gst-p-warn { background: #fff3cd; color: #664d03; }
+.gst-p-info { background: #cff4fc; color: #055160; }
+
+/* ── Ficha desplegable (§5.9) ────────────────────────────────────────────── */
+.gst-split {
+    display: grid;
+    gap: 18px;
+    align-items: start;
+}
+
+/* Con la ficha abierta la tabla de Movimientos cede ancho: se queda con el
+   subconjunto que sigue sirviendo para comparar entre filas (fecha, proveedor,
+   monto, estado) y suelta NCF, categoría, concepto y adjuntos, que ya están en
+   la ficha.
+
+   Escogido por .gst-table-mov y no por .gst-table a secas: la ficha (§5.9)
+   también abre desde las tablas de Anulados, que viven dentro del mismo
+   .gst-split.gst-open pero tienen columnas distintas (Motivo, Acciones) -- con
+   el selector genérico, este mismo :nth-child les habría escondido el monto o
+   los botones de Confirmar/Devolver sin que nadie lo pidiera.
+
+   Va dentro de un min-width y no al revés: una regla que devolviera las columnas
+   en pantallas estrechas tendría menos especificidad que este :nth-child y no
+   ganaría nunca. Abajo del corte la ficha pasa a ocupar todo el ancho y la tabla
+   conserva sus columnas por no entrar aquí. */
+@media (min-width: 1375.02px) {
+    .gst-split.gst-open {
+        grid-template-columns: minmax(0, 1fr) 352px;
+    }
+
+        .gst-split.gst-open .gst-table-mov th:nth-child(2),
+        .gst-split.gst-open .gst-table-mov td:nth-child(2),
+        .gst-split.gst-open .gst-table-mov th:nth-child(4),
+        .gst-split.gst-open .gst-table-mov td:nth-child(4),
+        .gst-split.gst-open .gst-table-mov th:nth-child(5),
+        .gst-split.gst-open .gst-table-mov td:nth-child(5),
+        .gst-split.gst-open .gst-table-mov th:nth-child(6),
+        .gst-split.gst-open .gst-table-mov td:nth-child(6) {
+            display: none;
+        }
+}
+
+.gst-table tbody tr {
+    cursor: pointer;
+}
+
+    .gst-table tbody tr:hover {
+        background: rgba(0, 53, 102, 0.025);
+    }
+
+/* La fila abierta lleva el mismo filete dorado del indicador de navegación. */
+.gst-table tbody tr.gst-sel {
+    background: rgba(0, 53, 102, 0.055);
+    box-shadow: inset 3px 0 0 var(--cc-gold);
+}
+
+.gst-ficha {
+    background: var(--cc-surface);
+    border: 1px solid #E1E5EA;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Mismo degradado esquina a esquina y mismo filete de dos dorados del modal
+   (§5.3): es el lenguaje que ya significa "información destacada". */
+.gst-ficha-h {
+    background: linear-gradient(to bottom right, #003566, #001D3D 55%, #000814);
+    color: var(--cc-ivory);
+    padding: 15px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.gst-ficha-id {
+    min-width: 0;
+}
+
+    .gst-ficha-id .t {
+        font-family: var(--cc-ff-head);
+        font-weight: 600;
+        font-size: 15px;
+    }
+
+    .gst-ficha-id .s {
+        font-size: 11.5px;
+        color: #BCCDE0;
+        margin-top: 2px;
+    }
+
+.gst-x {
+    margin-left: auto;
+    color: #BCCDE0;
+    flex: none;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 7px;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    padding: 0;
+}
+
+    .gst-x:hover {
+        background: rgba(255, 255, 255, 0.14);
+        color: var(--cc-ivory);
+    }
+
+    .gst-x svg {
+        width: 12px;
+        height: 12px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+    }
+
+.gst-hair {
+    height: 3px;
+    background: linear-gradient(90deg, #FFC300, #FFDA20, #FFFDF5, #FFDA20, #FFC300);
+}
+
+.gst-ficha-b {
+    padding: 16px 18px;
+}
+
+.gst-dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 9px 16px;
+    font-size: 12.5px;
+    margin: 14px 0 0;
+}
+
+    .gst-dl dt {
+        color: #6B7482;
+    }
+
+    .gst-dl dd {
+        margin: 0;
+        color: #16202E;
+        overflow-wrap: anywhere;
+    }
+
+/* Totales tipo recibo: el filete dorado separa el total de sus sumandos. */
+.gst-tot {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px 26px;
+    font-size: 13px;
+    margin-top: 18px;
+}
+
+    .gst-tot .k {
+        color: #6B7482;
+        text-align: right;
+    }
+
+    .gst-tot .v {
+        text-align: right;
+    }
+
+    .gst-tot .gk,
+    .gst-tot .gv {
+        border-top: 2px solid var(--cc-gold);
+        padding-top: 8px;
+        margin-top: 4px;
+        text-align: right;
+    }
+
+    .gst-tot .gk {
+        font-weight: 600;
+        color: var(--cc-ink);
+    }
+
+    .gst-tot .gv {
+        font-family: var(--cc-ff-head);
+        font-weight: 700;
+        font-size: 19px;
+        color: var(--cc-ink);
+    }
+
+.gst-block {
+    margin-top: 18px;
+}
+
+.gst-files {
+    display: grid;
+    gap: 7px;
+}
+
+/* Ahora es un <a>: hay que anular el subrayado/color de enlace por defecto y
+   dejar claro con el hover que se puede abrir, ya que el nombre del archivo por
+   si solo no se distingue de una etiqueta cualquiera. */
+.gst-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--cc-surface);
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    min-height: 34px;
+    color: inherit;
+    text-decoration: none;
+}
+
+    .gst-file:hover {
+        border-color: var(--cc-navy);
+        background: #F2F6FA;
+    }
+
+        .gst-file:hover .gst-file-n {
+            color: var(--cc-navy);
+        }
+
+.gst-file-n {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gst-file-s {
+    font-size: 11.5px;
+    flex: none;
+}
+
+.gst-motivo {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #16202E;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.gst-ta {
+    width: 100%;
+    border: 1px solid #D8DDE4;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    color: #16202E;
+    background: var(--cc-surface);
+    resize: vertical;
+}
+
+    .gst-ta:focus {
+        outline: none;
+        border-color: var(--cc-navy);
+        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+    }
+
+/* ── Avisos ──────────────────────────────────────────────────────────────── */
+.gst-alert {
+    border-radius: 10px;
+    padding: 11px 15px;
+    font-size: 12.5px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: 10px;
+}
+
+.gst-a-info {
+    background: #D7F3FA;
+    color: #05576B;
+}
+
+/* ── Modal del motivo (§5.3) ─────────────────────────────────────────────── */
+/* Contrapeso de --cc-zoom: el velo es `fixed` dentro del árbol escalado y con
+   inset:0 acabaría sobresaliendo un 10%. Se le devuelve la escala a 1 (los zoom
+   anidados se multiplican) y se le reaplica al modal, que sí debe crecer. */
+.gst-scrim {
+    position: fixed;
+    inset: 0;
+    zoom: calc(1 / var(--cc-zoom));
+    z-index: 1050;
+    background: rgba(0, 8, 20, 0.58);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+}
+
+.gst-modal {
+    zoom: var(--cc-zoom);
+    width: 640px;
+    max-width: 100%;
+    background: var(--cc-surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px -16px rgba(0, 8, 20, 0.6);
+}
+
+.gst-modal-grad {
+    background: linear-gradient(to bottom right, #003566 0%, #001D3D 50%, #000814 100%);
+}
+
+.gst-modal-h {
+    padding: 16px 22px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+    .gst-modal-h h3 {
+        font-family: var(--cc-ff-head);
+        font-weight: 600;
+        font-size: 16px;
+        margin: 0;
+        color: var(--cc-ivory);
+    }
+
+.gst-modal-x {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 253, 245, 0.14);
+    border: none;
+    flex: none;
+    padding: 0;
+}
+
+    .gst-modal-x:hover {
+        background: rgba(255, 253, 245, 0.26);
+    }
+
+    .gst-modal-x svg {
+        width: 14px;
+        height: 14px;
+        stroke: var(--cc-ivory);
+        fill: none;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+    }
+
+.gst-modal-meta {
+    display: flex;
+    gap: 26px;
+    padding: 16px 22px 18px;
+    flex-wrap: wrap;
+}
+
+.gst-meta-lbl {
+    color: var(--cc-gold-lt);
+    margin-bottom: 0;
+}
+
+.gst-meta-v {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 5px;
+    color: var(--cc-ivory);
+}
+
+.gst-modal-divider {
+    height: 3px;
+    background: radial-gradient(ellipse at center, #FFFDF5 0%, #FFDA20 34%, #FFC300 100%);
+}
+
+.gst-modal-b {
+    padding: 22px;
+    background: var(--cc-surface);
+}
+
+.gst-modal-txt {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #101822;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.gst-modal-f {
+    background: linear-gradient(to bottom right, #003566 0%, #001D3D 50%, #000814 100%);
+    padding: 13px 22px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.gst-modal-close {
+    font-family: var(--cc-ff-text);
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border-radius: 6px;
+    background: #DC3545;
+    color: #FFFFFF;
+    border: 1px solid #DC3545;
+}
+
+    .gst-modal-close:hover {
+        background: #B02A37;
+        border-color: #B02A37;
+    }
+
+/* ── Pantallas estrechas ─────────────────────────────────────────────────── */
+/* Cortes ya multiplicados por --cc-zoom (900→990, 720→792). El de la ficha vive
+   arriba, junto a la regla que oculta columnas. */
+@media (max-width: 990px) {
+    .gst-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 792px) {
+    .gst-field {
+        min-width: 100%;
+    }
+
+    .gst-search {
+        flex: 1 1 100%;
+    }
+}

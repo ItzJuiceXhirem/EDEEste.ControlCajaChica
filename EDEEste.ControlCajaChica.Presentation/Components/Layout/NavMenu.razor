@@ -2,100 +2,183 @@
 
 @inject NavigationManager NavigationManager
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Control de Caja Chica</a>
-    </div>
+@* La marca (DESIGN.md §5.10): el cofre con la moneda entrando por la ranura.
+   Va dibujado en linea y no como <use href="#id"> a proposito — el contenido de
+   <use> se clona en un shadow tree que los selectores de este archivo no
+   alcanzan, y el icono caeria a relleno negro (DESIGN.md §5.11). *@
+<div class="cc-brand">
+    <span class="cc-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+            <g fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4.6 15.4h22.8v8.3a2.2 2.2 0 0 1-2.2 2.2H6.8a2.2 2.2 0 0 1-2.2-2.2v-8.3Z" />
+                <path d="M4.6 15.4C4.6 10.5 9.7 8.2 16 8.2s11.4 2.3 11.4 7.2" />
+                <path d="M9.6 15.4v10.5M22.4 15.4v10.5" />
+                <path d="M14.5 18.1h3v3.3h-3z" />
+                <path d="M12.43 9.4a4.3 4.3 0 1 1 7.14 0" />
+            </g>
+            <text x="16" y="9.15" text-anchor="middle" font-size="6.3" font-weight="700"
+                  fill="currentColor" stroke="none">$</text>
+        </svg>
+    </span>
+    <a class="cc-brand-txt" href="">Control de Caja Chica</a>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input type="checkbox" title="Menú de navegación" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Inicio
-            </NavLink>
-        </div>
+<div class="cc-nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="cc-navlist">
+        <NavLink class="cc-navlink" href="" Match="NavLinkMatch.All">
+            <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M3.4 9.3 10 4.1l6.6 5.2v6.3a1 1 0 0 1-1 1h-3.1v-4.3H7.5v4.3H4.4a1 1 0 0 1-1-1V9.3Z" />
+            </svg>
+            <span>Inicio</span>
+        </NavLink>
 
         @* Cada opción se muestra solo si el rol la puede abrir. El AuthorizeView es
            cosmético: quien escriba la URL a mano igual choca con el [Authorize] de
            la página. *@
         <AuthorizeView Policy="@Permisos.VerGastos">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="gastos">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Gastos
-                </NavLink>
-            </div>
+            <NavLink class="cc-navlink" href="gastos">
+                <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M5.2 3.4h9.6v13.2l-1.9-1.1-1.6 1.1-1.6-1.1-1.6 1.1-1.6-1.1-1.3 1.1V3.4Z" />
+                    <path d="M7.7 7.3h4.6M7.7 10.3h4.6" />
+                </svg>
+                <span>Gastos</span>
+            </NavLink>
         </AuthorizeView>
 
         <AuthorizeView Policy="@Permisos.VerReposiciones">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="reposiciones">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Reposiciones
-                </NavLink>
-            </div>
+            <NavLink class="cc-navlink" href="reposiciones">
+                <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M4.2 8.4a5.9 5.9 0 0 1 10.9-1.5" />
+                    <path d="M15.5 3.7v3.2h-3.2" />
+                    <path d="M15.8 11.6a5.9 5.9 0 0 1-10.9 1.5" />
+                    <path d="M4.5 16.3v-3.2h3.2" />
+                </svg>
+                <span>Reposiciones</span>
+            </NavLink>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@Permisos.VerArqueos">
+            <NavLink class="cc-navlink" href="arqueos">
+                <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M5.4 3.4h9.2a1 1 0 0 1 1 1v11.2a1 1 0 0 1-1 1H5.4a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1Z" />
+                    <path d="M7 6.7h6" />
+                    <path d="M7.2 10.1h.01M10 10.1h.01M12.8 10.1h.01M7.2 13.3h.01M10 13.3h.01M12.8 13.3h.01" />
+                </svg>
+                <span>Arqueos</span>
+            </NavLink>
         </AuthorizeView>
 
         <AuthorizeView Policy="@Permisos.ConfigurarFondos">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="fondos">
-                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Fondos
-                </NavLink>
-            </div>
+            <NavLink class="cc-navlink" href="fondos">
+                <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M3.6 5.1h12.8a1 1 0 0 1 1 1v8.8a1 1 0 0 1-1 1H3.6a1 1 0 0 1-1-1V6.1a1 1 0 0 1 1-1Z" />
+                    <path d="M13.4 10.5h1.4" />
+                    <circle cx="8" cy="10.5" r="2.6" />
+                </svg>
+                <span>Fondos</span>
+            </NavLink>
         </AuthorizeView>
 
         <AuthorizeView Policy="@Permisos.ConfigurarCategorias">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="categorias">
-                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Categorías
-                </NavLink>
-            </div>
+            <NavLink class="cc-navlink" href="categorias">
+                <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M9.6 3.3H4.4a1 1 0 0 0-1 1v5.2c0 .27.1.52.29.71l6.4 6.4a1 1 0 0 0 1.42 0l5.2-5.2a1 1 0 0 0 0-1.42l-6.4-6.4a1 1 0 0 0-.71-.29Z" />
+                    <path d="M6.8 6.8h.01" />
+                </svg>
+                <span>Categorías</span>
+            </NavLink>
         </AuthorizeView>
 
         <AuthorizeView Policy="@Permisos.AdministrarUsuarios">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="usuarios">
-                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Usuarios
-                </NavLink>
-            </div>
-        </AuthorizeView>
-
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <form action="Account/Logout" method="post">
-                        <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                        <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Cerrar sesión
-                        </button>
-                    </form>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Registrarse
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Iniciar sesión
-                    </NavLink>
-                </div>
-            </NotAuthorized>
+            <NavLink class="cc-navlink" href="usuarios">
+                <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M8.2 4.6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z" />
+                    <path d="M3.4 16.1c.55-2.6 2.4-3.9 4.8-3.9s4.25 1.3 4.8 3.9" />
+                    <path d="M13.2 5.2a2.3 2.3 0 0 1 0 4.4" />
+                    <path d="M14.4 12.5c1.4.45 2.3 1.6 2.6 3.2" />
+                </svg>
+                <span>Usuarios</span>
+            </NavLink>
         </AuthorizeView>
     </nav>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="cc-navfoot">
+                <NavLink class="cc-profile" href="Account/Manage">
+                    @* El icono generico queda debajo como respaldo y la foto lo tapa
+                       cuando carga. Se pide siempre, sin consultar antes si existe: una
+                       consulta aqui correria a la par de la de la pagina sobre el mismo
+                       DbContext con scope de peticion, que es exactamente el choque que
+                       ya tumbo el render de Perfil una vez (ver ManageLayout). Esta es
+                       siempre la PROPIA foto, asi que el endpoint nunca responde 404
+                       aqui -- responde 204 si no hay foto (no ensucia la consola como
+                       un error), y el onerror igual quita el <img> porque un 204 no
+                       trae cuerpo que decodificar como imagen, dejando el icono a la vista. *@
+                    <span class="cc-avatar" aria-hidden="true">
+                        <svg class="cc-ico" viewBox="0 0 20 20">
+                            <path d="M10 4.3a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 0 1 0-5.4Z" />
+                            <path d="M4.8 16.2c.6-2.8 2.6-4.2 5.2-4.2s4.6 1.4 5.2 4.2" />
+                        </svg>
+                        @if (context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value is { } miId)
+                        {
+                            <img class="cc-avatar-foto" alt=""
+                                 src="@($"/usuarios/{Uri.EscapeDataString(miId)}/foto")"
+                                 onerror="this.remove()" />
+                        }
+                    </span>
+                    <span class="cc-who">@context.User.Identity?.Name</span>
+                </NavLink>
+
+                <form action="Account/Logout" method="post">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="@ReturnUrlAlCerrarSesion" />
+                    <button type="submit" class="cc-logout">
+                        <svg class="cc-ico cc-ico-sm" viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M15.6 3.6v12.8" />
+                            <path d="M11.8 10H4.2" />
+                            <path d="M7.2 6.8 4 10l3.2 3.2" />
+                        </svg>
+                        <span>Cerrar sesión</span>
+                    </button>
+                </form>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="cc-navfoot">
+                <NavLink class="cc-navlink" href="Account/Login">
+                    <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M4.4 3.6v12.8" />
+                        <path d="M8.2 10h7.6" />
+                        <path d="M12.8 6.8 16 10l-3.2 3.2" />
+                    </svg>
+                    <span>Iniciar sesión</span>
+                </NavLink>
+                <NavLink class="cc-navlink" href="Account/Register">
+                    <svg class="cc-ico" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M10 4.3a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 0 1 0-5.4Z" />
+                        <path d="M4.8 16.2c.6-2.8 2.6-4.2 5.2-4.2" />
+                        <path d="M13.6 13.4h4M15.6 11.4v4" />
+                    </svg>
+                    <span>Solicitar acceso</span>
+                </NavLink>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
 </div>
 
 @code {
     private string? currentUrl;
+
+    // Acceso denegado es publica (no exige [Authorize]): si el ReturnUrl del logout
+    // apuntara ahi, el usuario se quedaba viendo la misma pantalla ya sin sesion, en
+    // vez de terminar en el login. Cualquier otra pagina conserva su propio ReturnUrl.
+    private string ReturnUrlAlCerrarSesion =>
+        string.Equals(currentUrl, "Account/AccessDenied", StringComparison.OrdinalIgnoreCase)
+            ? "Account/Login"
+            : currentUrl ?? string.Empty;
 
     protected override void OnInitialized()
     {

@@ -21,6 +21,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
         [CascadingParameter]
         private HttpContext HttpContext { get; set; } = default!;
 
+        // La carga la sirve ManageLayout (ver su comentario): llamar GetUserAsync
+        // aqui tambien competiria por el mismo DbContext con scope de la peticion.
+        [CascadingParameter]
+        private Task<Usuario?> CuentaTask { get; set; } = default!;
+
         [SupplyParameterFromForm]
         private InputModel Input { get; set; } = default!;
 
@@ -28,7 +33,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
         {
             Input ??= new();
 
-            cuenta = await UserManager.GetUserAsync(HttpContext.User);
+            cuenta = await CuentaTask;
             if (cuenta is null)
             {
                 RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
@@ -73,7 +78,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
             public string PasswordActual { get; set; } = "";
 
             [Required(ErrorMessage = "Indique la contraseña nueva.")]
-            [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 6)]
+            [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 8)]
             [DataType(DataType.Password)]
             [Display(Name = "Contraseña nueva")]
             public string PasswordNueva { get; set; } = "";

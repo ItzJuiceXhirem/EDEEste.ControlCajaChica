@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -14,21 +15,35 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
     /// devolver el dinero: solo el Gerente puede confirmar la anulacion
     /// (AnularGastoHandler) y es ahi donde el efectivo vuelve al fondo.
     ///
-    /// No inyecta IFondoRepository ni ICurrentUserService (mas alla de para
-    /// AuditableEntity, que lo pone el interceptor) a proposito: este paso es
-    /// estructuralmente incapaz de abonar el fondo, porque ni siquiera tiene el
-    /// repositorio disponible para hacerlo.
+    /// IFondoRepository entra solo de lectura, para la comprobacion de pertenencia de
+    /// fondo (defensa en profundidad): en ninguna parte de este handler se escribe
+    /// FondoCajaChica.BalanceActual, asi que sigue siendo estructuralmente incapaz de
+    /// abonar el fondo.
     /// </summary>
     public sealed class SolicitarAnulacionGastoHandler
     {
         private const int LongitudMaximaMotivo = 500;
 
         private readonly IGastoRepository _gastos;
+        private readonly IFondoRepository _fondos;
+        private readonly ICurrentUserService _usuarioActual;
+        private readonly IIdentityService _identidad;
+        private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
-        public SolicitarAnulacionGastoHandler(IGastoRepository gastos, IApplicationDbContext contexto)
+        public SolicitarAnulacionGastoHandler(
+            IGastoRepository gastos,
+            IFondoRepository fondos,
+            ICurrentUserService usuarioActual,
+            IIdentityService identidad,
+            IAutorizacionService autorizacion,
+            IApplicationDbContext contexto)
         {
             _gastos = gastos;
+            _fondos = fondos;
+            _usuarioActual = usuarioActual;
+            _identidad = identidad;
+            _autorizacion = autorizacion;
             _contexto = contexto;
         }
 
@@ -36,10 +51,32 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             SolicitarAnulacionGastoCommand comando,
             CancellationToken cancellationToken = default)
         {
+            if (!await _autorizacion.TienePermisoAsync(Permisos.SolicitarAnulacionGasto, cancellationToken))
+            {
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para solicitar la anulación de un gasto.");
+            }
+
             var gasto = await _gastos.ObtenerPorIdAsync(comando.GastoId, cancellationToken);
             if (gasto is null)
             {
                 return ResultadoOperacion<Guid>.Fallo("El gasto indicado no existe.");
+            }
+
+            var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
+            if (usuario.Id is not { } usuarioIdSolicitar)
+            {
+                return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
+            }
+
+            // Defensa en profundidad: sin esto, un Custodio podria pedir la anulacion
+            // de un gasto de otro fondo con solo conocer (o adivinar) su GastoId.
+            if (await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio))
+            {
+                var fondo = await _fondos.ObtenerPorIdAsync(gasto.FondoCajaChicaId, cancellationToken);
+                if (fondo is null || fondo.CustodioId != usuarioIdSolicitar)
+                {
+                    return ResultadoOperacion<Guid>.Fallo("No tiene permiso para anular gastos del fondo de otro custodio.");
+                }
             }
 
             var errores = Validar(comando, gasto);
