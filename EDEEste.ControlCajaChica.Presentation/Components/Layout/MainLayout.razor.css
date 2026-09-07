@@ -15,7 +15,7 @@ main {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    background: var(--cc-ivory);
+    background: var(--cc-pg);
 }
 
 /* Degradado del sidebar (DESIGN.md §1.1): los tres azules de marca en una sola
@@ -36,7 +36,7 @@ main {
     justify-content: space-between;
     gap: 16px;
     padding: 0 32px;
-    background: var(--cc-surface);
+    background: var(--cc-topbar);
     border-bottom: 1px solid var(--cc-line);
     color: var(--cc-text-soft);
 }
@@ -46,6 +46,7 @@ main {
     font-weight: 600;
     letter-spacing: 0.09em;
     text-transform: uppercase;
+    color: var(--cc-crumb);
 }
 
 .cc-date {

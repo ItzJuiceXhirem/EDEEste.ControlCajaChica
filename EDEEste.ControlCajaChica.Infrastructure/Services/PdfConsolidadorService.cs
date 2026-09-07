@@ -75,6 +75,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         }
 
         /// <summary>
+        /// Identificador corto y legible de una solicitud para mostrar en el
+        /// expediente (no es un codigo de negocio, solo los primeros 8 caracteres del
+        /// Guid). Mismo nombre y forma que Reposiciones.razor.cs, aunque viven en
+        /// ensamblados distintos y no comparten codigo.
+        /// </summary>
+        private static string CodigoCorto(Guid id) => id.ToString()[..8];
+
+        /// <summary>
         /// Numera el expediente completo al final, cuando ya se sabe cuantas paginas
         /// tiene.
         ///
@@ -343,7 +351,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             filaEncabezado.Cells[1].Format.Alignment = ParagraphAlignment.Right;
             filaEncabezado.Cells[1].AddParagraph($"Fecha: {solicitud.FechaSolicitud:dd/MM/yyyy}");
-            var pSolicitud = filaEncabezado.Cells[1].AddParagraph($"Solicitud: {solicitud.Id.ToString()[..8]}");
+            var pSolicitud = filaEncabezado.Cells[1].AddParagraph($"Solicitud: {CodigoCorto(solicitud.Id)}");
             pSolicitud.Format.Font.Size = 9;
 
             var custodio = seccion.AddParagraph();

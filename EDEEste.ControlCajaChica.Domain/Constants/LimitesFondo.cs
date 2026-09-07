@@ -21,6 +21,14 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         public const decimal TopePorGastoMaximo = 30m;
 
         /// <summary>
+        /// Valor con el que arranca el campo al crear un fondo nuevo, si el
+        /// Administrador no lo cambia. El README lo fija como punto de partida, pero
+        /// sigue siendo editable por fondo dentro del rango
+        /// [<see cref="TopePorGastoMinimo"/>, <see cref="TopePorGastoMaximo"/>].
+        /// </summary>
+        public const decimal TopePorGastoPorDefecto = 2.5m;
+
+        /// <summary>
         /// Con que porcentaje restante se habilita la reposicion. Por debajo del 10%
         /// el custodio se queda sin efectivo antes de poder pedir; por encima del 50%
         /// estaria reponiendo una caja que aun esta medio llena.

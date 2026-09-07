@@ -29,6 +29,7 @@
 
 .cc-fcard {
     background: var(--cc-surface);
+    border: 1px solid var(--cc-line);
     border-radius: 8px;
     padding: 26px 30px;
     display: flex;
@@ -52,7 +53,7 @@
     width: 94px;
     height: 94px;
     border-radius: 50%;
-    background: var(--cc-surface);
+    background: var(--cc-ring-slot);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -64,7 +65,7 @@
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 23px;
-    color: var(--cc-navy);
+    color: var(--cc-text-strong);
     letter-spacing: -0.02em;
 }
 
@@ -88,7 +89,7 @@
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: rgba(0, 8, 20, 0.5);
+    color: var(--cc-text-soft);
     margin: 0;
 }
 
@@ -98,7 +99,7 @@
     font-size: 44px;
     line-height: 1.05;
     margin: 6px 0 8px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
     letter-spacing: -0.03em;
 }
 
@@ -109,12 +110,12 @@
 }
 
     .cc-fof b {
-        color: var(--cc-prussian);
+        color: var(--cc-text-strong);
         font-weight: 600;
     }
 
-/* El aviso conserva el color de advertencia de Bootstrap oscurecido a un tono
-   legible sobre blanco; el hue no cambia (DESIGN.md §1.4). */
+/* El aviso conserva el hue de advertencia (§1.4); el tono lo pone el tema —
+   oscurecido para leerse sobre claro, aclarado para leerse sobre oscuro. */
 .cc-flag {
     display: flex;
     align-items: center;
@@ -122,7 +123,7 @@
     margin: 0 0 15px;
     font-size: 13px;
     font-weight: 500;
-    color: #6B5200;
+    color: var(--cc-warn);
 }
 
 .cc-ico-alert {
@@ -147,29 +148,29 @@
     padding: 8px 16px;
     border-radius: 6px;
     font-weight: 500;
-    background: var(--cc-navy);
-    color: var(--cc-ivory);
-    border: 1px solid var(--cc-navy);
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
+    border: 1px solid var(--cc-btn-border);
     text-decoration: none;
     white-space: nowrap;
 }
 
     .cc-btn:hover {
-        background: var(--cc-prussian);
-        border-color: var(--cc-prussian);
-        color: var(--cc-ivory);
+        background: var(--cc-btn-bg-hover);
+        border-color: var(--cc-btn-bg-hover);
+        color: var(--cc-btn-fg);
     }
 
 .cc-btn-ghost {
     background: transparent;
-    color: var(--cc-navy);
+    color: var(--cc-text);
     border-color: var(--cc-line-strong);
 }
 
     .cc-btn-ghost:hover {
-        background: rgba(0, 53, 102, 0.06);
-        border-color: var(--cc-navy);
-        color: var(--cc-navy);
+        background: var(--cc-surface-2);
+        border-color: var(--cc-line-strong);
+        color: var(--cc-text);
     }
 
 /* ── Panel de arqueos ────────────────────────────────────────────────────── */
@@ -188,7 +189,7 @@
 
 .cc-arq-sub {
     font-size: 12.5px;
-    color: rgba(0, 8, 20, 0.52);
+    color: var(--cc-text-soft);
     margin: 0;
 }
 
@@ -212,7 +213,7 @@
     width: 78px;
     height: 78px;
     border-radius: 50%;
-    background: var(--cc-surface);
+    background: var(--cc-ring-slot);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -224,7 +225,7 @@
         width: 20px;
         height: 20px;
         fill: none;
-        stroke: var(--cc-navy);
+        stroke: var(--cc-accent);
         stroke-width: 1.5;
         stroke-linecap: round;
         stroke-linejoin: round;
@@ -233,7 +234,7 @@
     .cc-arq-ring-in span {
         font-size: 9px;
         font-weight: 600;
-        color: rgba(0, 8, 20, 0.48);
+        color: var(--cc-text-faint);
         letter-spacing: 0.04em;
     }
 
@@ -261,7 +262,7 @@
 
     .cc-arq-legend small {
         font-size: 12px;
-        color: rgba(0, 8, 20, 0.52);
+        color: var(--cc-text-soft);
     }
 
 .cc-arq-dot {

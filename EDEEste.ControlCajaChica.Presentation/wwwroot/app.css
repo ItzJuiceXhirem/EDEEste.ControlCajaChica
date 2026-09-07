@@ -7,7 +7,9 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-    /* Marca */
+    /* ── Marca ────────────────────────────────────────────────────────────
+       Fija en los dos temas: es la identidad, no la piel. Lo que cambia con
+       el tema es la capa semantica de mas abajo. */
     --cc-ink: #000814;
     --cc-prussian: #001D3D;
     --cc-navy: #003566;
@@ -15,12 +17,90 @@
     --cc-gold-lt: #FFDA20;
     --cc-ivory: #FFFDF5;
 
-    /* Superficies y trazos derivados */
-    --cc-surface: #FFFFFF;
+    color-scheme: light;
+
+    /* ── Capa semantica (tema claro) ──────────────────────────────────────
+       Estos son los tokens que el tema oscuro sobreescribe. Ninguna hoja de
+       estilo de componente debe volver a escribir un color literal para algo
+       que ya tenga token aqui: es lo unico que hace que el cambio de tema no
+       deje media pantalla en claro. */
+
+    /* Superficies */
+    --cc-pg: #FFFDF5;               /* fondo del area de contenido */
+    --cc-surface: #FFFFFF;          /* tarjetas, filas de tabla */
+    --cc-surface-2: #F2F6FA;        /* elevacion: hover, campos, celdas activas */
+    --cc-topbar: #FFFFFF;           /* §5.5, distinta del fondo a proposito */
+
+    /* Trazos. `divider` es el separador estructural (cabecera de tarjeta,
+       subrayado de encabezado de tabla, linea de seccion); en oscuro va en
+       dorado tenue. `line-strong` se queda neutro porque lo usan bordes de
+       control, donde el dorado seria demasiado. */
     --cc-line: rgba(0, 53, 102, 0.13);
+    --cc-line-soft: #ECEEF1;
     --cc-line-strong: rgba(0, 53, 102, 0.22);
+    --cc-divider: rgba(0, 53, 102, 0.10);
+
+    /* Texto */
+    --cc-text: #16202E;
+    --cc-text-strong: #000814;
     --cc-text-soft: rgba(0, 8, 20, 0.58);
     --cc-text-faint: rgba(0, 8, 20, 0.45);
+    --cc-crumb: rgba(0, 8, 20, 0.55);
+
+    /* Accion primaria. En oscuro pasa al dorado (decision aprobada); en claro
+       se queda en el azul de marca, que es lo que ya estaba aprobado. */
+    --cc-btn-bg: var(--cc-navy);
+    --cc-btn-fg: #FFFFFF;
+    --cc-btn-border: var(--cc-navy);
+    --cc-btn-bg-hover: var(--cc-prussian);
+
+    /* Cifras. `total` es el acento de los totales (Total visible, Total
+       contado) y del filete solido que llevan encima. */
+    --cc-money: #16202E;
+    /* El acento con el que se destaca una cifra o un icono sobre el resto.
+       Es el unico token que cambia de familia entre temas (azul -> dorado). */
+    --cc-accent: var(--cc-navy);
+    --cc-total: var(--cc-accent);
+    --cc-total-rule: var(--cc-accent);
+
+    /* Controles */
+    --cc-ctrl-bg: #FFFFFF;
+    --cc-ctrl-line: #D8DDE4;
+    --cc-ctrl-fg: #16202E;
+    --cc-step-bg: rgba(0, 53, 102, 0.05);
+    --cc-step-fg: var(--cc-navy);
+
+    /* Anillos de Inicio: `slot` es el hueco interior, y tambien el separador
+       entre segmentos del donut de arqueos (antes un #FFFFFF fijo). */
+    --cc-ring-slot: #FFFFFF;
+    --cc-ring-track: rgba(0, 53, 102, 0.10);
+
+    /* Denominaciones (Arqueos). El tinte es un triplete RGB porque cada fila
+       lo usa con su propia opacidad, graduada por denominacion. */
+    --cc-bill-tint: 0, 53, 102;
+    --cc-bill-fg: var(--cc-prussian);
+    --cc-bill-line: rgba(0, 53, 102, 0.30);
+    --cc-coin-fg: #4A3800;
+    --cc-coin-line: rgba(255, 195, 0, 0.65);
+
+    /* Estado (§1.4). El hue nunca cambia; en oscuro se aclara el tono para
+       que siga leyendose, tal como §5.3/§5.4 ya hacen en las pantallas de
+       acceso. `-edge` es el tono saturado para bordes, anillos y puntos;
+       el token a secas es el de texto. */
+    --cc-ok: #146C43;
+    --cc-bad: #B02A37;
+    --cc-warn: #7A5C00;
+    --cc-info: #05576B;
+    --cc-ok-edge: #198754;
+    --cc-bad-edge: #DC3545;
+    --cc-warn-edge: #FFC107;
+    --cc-info-edge: #0DCAF0;
+    --cc-ok-bg: #DCF3E7;
+    --cc-bad-bg: #FBE0E3;
+    --cc-warn-bg: #FFF3CD;
+    --cc-info-bg: #CFF4FC;
+    --cc-dark-bg: #E4E7EB;
+    --cc-dark-fg: #343A40;
 
     --cc-ff-head: "Stack Sans Headline", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
     --cc-ff-text: "Stack Sans Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -54,9 +134,95 @@
     --bs-border-radius-lg: 0.5rem;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA OSCURO
+
+   Se selecciona por atributo en <html>, no por prefers-color-scheme: la
+   eleccion es del usuario y se guarda en su navegador (ver wwwroot/js/tema.js
+   y el script de arranque en App.razor). Un usuario que trabaja de dia en una
+   oficina iluminada no quiere que su sistema contable cambie de piel porque el
+   sistema operativo cambio a oscuro a las 6 p.m.
+
+   El sidebar NO aparece aqui a proposito: ya era oscuro y se queda exactamente
+   igual en los dos temas — el modo oscuro es el resto de la app poniendose a
+   tono con el marco que ya existia.
+   ══════════════════════════════════════════════════════════════════════════ */
+html[data-tema="oscuro"] {
+    color-scheme: dark;
+
+    /* Superficies: fondo y barra de contexto de la direccion «Prusia»,
+       tarjeta y elevacion de «Boveda». */
+    --cc-pg: #000814;
+    --cc-surface: #08172A;
+    --cc-surface-2: #0E2340;
+    --cc-topbar: #001731;
+
+    --cc-line: rgba(255, 253, 245, 0.10);
+    --cc-line-soft: rgba(255, 253, 245, 0.08);
+    --cc-line-strong: rgba(255, 253, 245, 0.19);
+    --cc-divider: rgba(255, 195, 0, 0.22);
+
+    --cc-text: #FFFDF5;
+    --cc-text-strong: #FFFDF5;
+    --cc-text-soft: rgba(255, 253, 245, 0.62);
+    --cc-text-faint: rgba(255, 253, 245, 0.42);
+    --cc-crumb: var(--cc-gold);
+
+    --cc-btn-bg: var(--cc-gold);
+    --cc-btn-fg: var(--cc-ink);
+    --cc-btn-border: var(--cc-gold);
+    --cc-btn-bg-hover: #FFAA00;
+
+    /* El monto de cada fila se queda en tinta: el oro se reserva para los
+       totales, que es donde de verdad hace falta que la cifra salte. */
+    --cc-money: var(--cc-ivory);
+    --cc-accent: var(--cc-gold);
+    --cc-total: var(--cc-accent);
+    --cc-total-rule: var(--cc-accent);
+
+    --cc-ctrl-bg: rgba(255, 253, 245, 0.05);
+    --cc-ctrl-line: rgba(255, 253, 245, 0.14);
+    --cc-ctrl-fg: var(--cc-ivory);
+    --cc-step-bg: rgba(255, 253, 245, 0.07);
+    --cc-step-fg: var(--cc-ivory);
+
+    --cc-ring-slot: #08172A;
+    --cc-ring-track: rgba(255, 253, 245, 0.12);
+
+    --cc-bill-tint: 255, 253, 245;
+    --cc-bill-fg: var(--cc-ivory);
+    --cc-bill-line: rgba(255, 253, 245, 0.26);
+    --cc-coin-fg: var(--cc-gold);
+    --cc-coin-line: rgba(255, 195, 0, 0.55);
+
+    /* §5.3/§5.4: los hues no cambian, se aclaran. Estos cuatro valores son los
+       mismos que AccesoLayout ya usa sobre el fondo oscuro de Login. */
+    --cc-ok: #85E0B3;
+    --cc-bad: #FF9AA3;
+    --cc-warn: #FFE066;
+    --cc-info: #7EE7FF;
+    --cc-ok-edge: #85E0B3;
+    --cc-bad-edge: #FF9AA3;
+    --cc-warn-edge: var(--cc-gold);
+    --cc-info-edge: #7EE7FF;
+    --cc-ok-bg: rgba(25, 135, 84, 0.16);
+    --cc-bad-bg: rgba(220, 53, 69, 0.14);
+    --cc-warn-bg: rgba(255, 193, 7, 0.14);
+    --cc-info-bg: rgba(13, 202, 240, 0.14);
+    --cc-dark-bg: rgba(255, 253, 245, 0.10);
+    --cc-dark-fg: rgba(255, 253, 245, 0.72);
+
+    --bs-body-bg: #000814;
+    --bs-body-color: #FFFDF5;
+    --bs-link-color: var(--cc-gold-lt);
+    --bs-link-hover-color: var(--cc-gold);
+    --bs-border-color: rgba(255, 253, 245, 0.15);
+    --bs-secondary-color: rgba(255, 253, 245, 0.55);
+}
+
 html, body {
     font-family: var(--cc-ff-text);
-    background-color: var(--cc-ivory);
+    background-color: var(--cc-pg);
 }
 
 h1, h2, h3, h4, h5, h6,
@@ -70,7 +236,7 @@ h1 { font-weight: 700; }
 h2, h3, h4, h5, h6 { font-weight: 600; }
 
 a, .btn-link {
-    color: var(--cc-navy);
+    color: var(--bs-link-color);
 }
 
 .btn {
@@ -78,23 +244,28 @@ a, .btn-link {
 }
 
 .btn-primary {
-    --bs-btn-bg: var(--cc-navy);
-    --bs-btn-border-color: var(--cc-navy);
-    --bs-btn-hover-bg: var(--cc-prussian);
-    --bs-btn-hover-border-color: var(--cc-prussian);
-    --bs-btn-active-bg: var(--cc-prussian);
-    --bs-btn-active-border-color: var(--cc-ink);
-    --bs-btn-disabled-bg: var(--cc-navy);
-    --bs-btn-disabled-border-color: var(--cc-navy);
+    --bs-btn-bg: var(--cc-btn-bg);
+    --bs-btn-color: var(--cc-btn-fg);
+    --bs-btn-border-color: var(--cc-btn-border);
+    --bs-btn-hover-bg: var(--cc-btn-bg-hover);
+    --bs-btn-hover-color: var(--cc-btn-fg);
+    --bs-btn-hover-border-color: var(--cc-btn-bg-hover);
+    --bs-btn-active-bg: var(--cc-btn-bg-hover);
+    --bs-btn-active-color: var(--cc-btn-fg);
+    --bs-btn-active-border-color: var(--cc-btn-bg-hover);
+    --bs-btn-disabled-bg: var(--cc-btn-bg);
+    --bs-btn-disabled-color: var(--cc-btn-fg);
+    --bs-btn-disabled-border-color: var(--cc-btn-border);
 }
 
 .btn-outline-primary {
-    --bs-btn-color: var(--cc-navy);
+    --bs-btn-color: var(--cc-text);
     --bs-btn-border-color: var(--cc-line-strong);
-    --bs-btn-hover-bg: var(--cc-navy);
-    --bs-btn-hover-border-color: var(--cc-navy);
-    --bs-btn-active-bg: var(--cc-prussian);
-    --bs-btn-active-border-color: var(--cc-prussian);
+    --bs-btn-hover-bg: var(--cc-btn-bg);
+    --bs-btn-hover-color: var(--cc-btn-fg);
+    --bs-btn-hover-border-color: var(--cc-btn-border);
+    --bs-btn-active-bg: var(--cc-btn-bg-hover);
+    --bs-btn-active-border-color: var(--cc-btn-bg-hover);
 }
 
 /* Anillo de foco en el azul de marca, no en el celeste del scaffold. */
@@ -120,15 +291,15 @@ h1:focus {
 }
 
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+    outline: 1px solid var(--cc-ok-edge);
 }
 
 .invalid {
-    outline: 1px solid #e50000;
+    outline: 1px solid var(--cc-bad-edge);
 }
 
 .validation-message {
-    color: #e50000;
+    color: var(--cc-bad);
 }
 
 .blazor-error-boundary {

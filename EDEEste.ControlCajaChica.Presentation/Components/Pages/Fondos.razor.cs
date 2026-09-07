@@ -579,7 +579,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             public decimal MontoFijo { get; set; }
             public decimal LimitePorGasto { get; set; }
-            public decimal PorcentajeMaximoPorGasto { get; set; } = 2.5m;
+            public decimal PorcentajeMaximoPorGasto { get; set; } = LimitesFondo.TopePorGastoPorDefecto;
             public decimal PorcentajeAlertaReposicion { get; set; } = LimitesFondo.AlertaReposicionPorDefecto;
             public string? CustodioId { get; set; }
 
@@ -587,7 +587,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             {
                 MontoFijo = 0;
                 LimitePorGasto = 0;
-                PorcentajeMaximoPorGasto = 2.5m;
+                PorcentajeMaximoPorGasto = LimitesFondo.TopePorGastoPorDefecto;
                 PorcentajeAlertaReposicion = LimitesFondo.AlertaReposicionPorDefecto;
                 CustodioId = null;
             }

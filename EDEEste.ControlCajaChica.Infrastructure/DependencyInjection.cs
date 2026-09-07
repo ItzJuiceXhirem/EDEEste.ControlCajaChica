@@ -64,7 +64,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
         }
 
         /// <summary>
-        /// Elige de donde salen las contrasenas segun <c>Autenticacion:Modo</c>.
+        /// Elige de donde salen las contraseñas segun <c>Autenticacion:Modo</c>.
         ///
         /// El cliente del APICommon se registra SIEMPRE, incluso en modo Local:
         /// consultar la ficha de alguien en el directorio es util por si solo y no
@@ -173,7 +173,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
         /// </summary>
         private static void AgregarAlmacenamiento(IServiceCollection services, string rutaRaizContenido) =>
             services.Configure<OpcionesAlmacenamiento>(
-                opciones => opciones.RutaRaiz = Path.Combine(rutaRaizContenido, "App_Data"));
+                opciones => opciones.RutaRaiz = Path.Combine(rutaRaizContenido, OpcionesAlmacenamiento.NombreCarpeta));
 
         private static void AgregarCriptografia(IServiceCollection services, IConfiguration configuration)
         {

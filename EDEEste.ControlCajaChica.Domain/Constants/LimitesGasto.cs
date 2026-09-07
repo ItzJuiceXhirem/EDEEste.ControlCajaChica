@@ -20,5 +20,15 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         /// archivos en una carpeta de staging.
         /// </summary>
         public const int ComprobantesPorGasto = 20;
+
+        /// <summary>
+        /// Tope de Gasto.MotivoAnulacion. Compartido por tres sitios que deben estar de
+        /// acuerdo: la validacion en SolicitarAnulacionGastoHandler (Custodio pide la
+        /// anulacion) y en AnularGastoHandler (Gerente la confirma), y la columna real
+        /// en ApplicationDbContext (HasMaxLength). El valor iguala a proposito el tope
+        /// de Gasto.Concepto -- mismo tenor de texto libre -- pero es una constante
+        /// propia, no la misma: no la confundas si Concepto cambia de cota algun dia.
+        /// </summary>
+        public const int LongitudMaximaMotivoAnulacion = 500;
     }
 }

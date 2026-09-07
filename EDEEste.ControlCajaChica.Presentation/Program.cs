@@ -99,7 +99,7 @@ builder.Services.AddIdentityCore<Usuario>(options =>
         // El valor por defecto de Identity (6) es corto para una app que maneja
         // dinero en efectivo: explicito y no implicito, misma logica que el bloqueo
         // de mas abajo.
-        options.Password.RequiredLength = 8;
+        options.Password.RequiredLength = LimitesContrasena.LongitudMinima;
 
         // Explicito y no el valor por defecto de Identity a propósito: es una
         // decisión de seguridad de esta app (ver Login.razor.cs), no un detalle que

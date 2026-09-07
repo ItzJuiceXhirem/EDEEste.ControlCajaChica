@@ -16,6 +16,19 @@
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["EDEEste.ControlCajaChica.Presentation.styles.css"]" />
+    @* El tema se aplica en linea y ANTES de que el navegador pinte: con un
+       archivo externo la pagina se pintaria en claro y cambiaria a oscuro al
+       llegar el script, con un destello blanco en cada carga. Por eso esta
+       duplicada aqui la lectura de localStorage que tambien hace tema.js. *@
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem("cc-tema") === "oscuro") {
+                    document.documentElement.setAttribute("data-tema", "oscuro");
+                }
+            } catch (e) { /* almacenamiento bloqueado: se queda en claro */ }
+        })();
+    </script>
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet @rendermode="PageRenderMode" />
@@ -25,7 +38,13 @@
     <Routes @rendermode="PageRenderMode" />
     <ReconnectModal />
     <script src="@Assets["js/interop.js"]"></script>
+    <script src="@Assets["js/tema.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
+    @* Blazor reemplaza el DOM al navegar y al hidratar: los botones del
+       interruptor llegan nuevos y sin su aria-pressed. *@
+    <script>
+        Blazor.addEventListener('enhancedload', () => window.ccTema.sincronizar());
+    </script>
 </body>
 
 </html>

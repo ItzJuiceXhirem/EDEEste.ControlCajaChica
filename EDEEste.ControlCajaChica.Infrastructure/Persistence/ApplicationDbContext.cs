@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
@@ -327,7 +328,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             // Texto libre del mismo tenor que Concepto, asi que se le da la misma cota.
             modelBuilder.Entity<Gasto>()
                 .Property(g => g.MotivoAnulacion)
-                .HasMaxLength(500);
+                .HasMaxLength(LimitesGasto.LongitudMaximaMotivoAnulacion);
 
             modelBuilder.Entity<ComprobanteAdjunto>(comprobante =>
             {
@@ -348,8 +349,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
             modelBuilder.Entity<CategoriaGasto>(categoria =>
             {
-                categoria.Property(c => c.Nombre).HasMaxLength(100);
-                categoria.Property(c => c.CuentaContable).HasMaxLength(50);
+                categoria.Property(c => c.Nombre).HasMaxLength(LimitesCategoriaGasto.LongitudMaximaNombre);
+                categoria.Property(c => c.CuentaContable).HasMaxLength(LimitesCategoriaGasto.LongitudMaximaCuentaContable);
             });
 
             modelBuilder.Entity<SolicitudReposicion>(reposicion =>

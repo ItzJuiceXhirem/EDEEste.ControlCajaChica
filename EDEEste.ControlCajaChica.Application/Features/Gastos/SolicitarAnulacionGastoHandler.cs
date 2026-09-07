@@ -22,8 +22,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
     /// </summary>
     public sealed class SolicitarAnulacionGastoHandler
     {
-        private const int LongitudMaximaMotivo = 500;
-
         private readonly IGastoRepository _gastos;
         private readonly IFondoRepository _fondos;
         private readonly ICurrentUserService _usuarioActual;
@@ -122,9 +120,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             {
                 errores.Add("Debe indicar el motivo de la anulacion.");
             }
-            else if (motivo.Length > LongitudMaximaMotivo)
+            else if (motivo.Length > LimitesGasto.LongitudMaximaMotivoAnulacion)
             {
-                errores.Add($"El motivo de la anulacion no puede superar {LongitudMaximaMotivo} caracteres.");
+                errores.Add($"El motivo de la anulacion no puede superar {LimitesGasto.LongitudMaximaMotivoAnulacion} caracteres.");
             }
 
             if (!gasto.IntegridadVerificada)

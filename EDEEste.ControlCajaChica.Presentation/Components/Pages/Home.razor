@@ -37,7 +37,7 @@ else
             var comprometido = fondo.MontoFijo - fondo.BalanceActual;
 
             <div class="cc-fcard">
-                <div class="cc-ring" style="background: conic-gradient(@ColorAnillo(porcentaje) 0 @porcentaje.ToString("N1", Invariante)%, rgba(0,53,102,.1) @porcentaje.ToString("N1", Invariante)% 100%)">
+                <div class="cc-ring" style="background: conic-gradient(@ColorAnillo(porcentaje) 0 @porcentaje.ToString("N1", Invariante)%, var(--cc-ring-track) @porcentaje.ToString("N1", Invariante)% 100%)">
                     <div class="cc-ring-in">
                         <span class="cc-ring-pct cc-num">@porcentaje.ToString("N1")%</span>
                         <span class="cc-ring-lbl">disponible</span>

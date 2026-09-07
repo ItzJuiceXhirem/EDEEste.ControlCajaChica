@@ -138,7 +138,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             public string Nombre { get; set; } = "";
 
             [Required(ErrorMessage = "Indique una contraseña.")]
-            [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 8)]
+            [StringLength(LimitesContrasena.LongitudMaxima, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = LimitesContrasena.LongitudMinima)]
             [DataType(DataType.Password)]
             [Display(Name = "Contraseña")]
             public string Password { get; set; } = "";
