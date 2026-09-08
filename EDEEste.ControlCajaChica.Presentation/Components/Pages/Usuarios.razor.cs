@@ -82,36 +82,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         }
 
         private static bool Coincide(UsuarioResumenDto usuario, string busqueda) =>
-            ContieneSinAcentos(usuario.Usuario, busqueda) || ContieneSinAcentos(usuario.Nombre, busqueda);
-
-        private static bool ContieneSinAcentos(string texto, string busqueda) =>
-            NormalizarParaBusqueda(texto).Contains(NormalizarParaBusqueda(busqueda), StringComparison.OrdinalIgnoreCase);
-
-        private static string NormalizarParaBusqueda(string valor)
-        {
-            var normalizado = valor.Normalize(NormalizationForm.FormD);
-            var sinDiacriticos = normalizado.Where(c =>
-                CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark);
-
-            return new string(sinDiacriticos.ToArray()).Normalize(NormalizationForm.FormC);
-        }
+            BusquedaTexto.ContieneSinAcentos(usuario.Usuario, busqueda) || BusquedaTexto.ContieneSinAcentos(usuario.Nombre, busqueda);
 
         private void CambiarFiltroDirectorio(FiltroDirectorio nuevo) => filtroDirectorio = nuevo;
-
-        /// <summary>
-        /// Iniciales para el círculo dorado: primera letra del primer y del último
-        /// nombre/apellido, para que "Gerente Principal" dé "GP" en vez de "GE".
-        /// </summary>
-        private static string Iniciales(string nombre)
-        {
-            var partes = nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return partes.Length switch
-            {
-                0 => "?",
-                1 => partes[0][..1].ToUpperInvariant(),
-                _ => (partes[0][..1] + partes[^1][..1]).ToUpperInvariant()
-            };
-        }
 
         /// <summary>dd/MM/yyyy, h:mm a.m./p.m. -- mismo formato acordado en Reposiciones.</summary>
         private static string FormatoFechaHora(DateTime fechaUtc)

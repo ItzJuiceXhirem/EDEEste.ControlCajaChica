@@ -91,5 +91,20 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
         /// un cambio de foto.
         /// </summary>
         Task ActualizarFotoPerfilAsync(string usuarioId, string? rutaRelativa);
+
+        // --- Tema (claro/oscuro) ---
+
+        /// <summary>
+        /// "oscuro" o null (claro), tal cual esta guardado -- quien llama decide como
+        /// tratar cualquier valor que no sea exactamente "oscuro" (ver App.razor).
+        /// </summary>
+        Task<string?> ObtenerTemaPreferidoAsync(string usuarioId);
+
+        /// <summary>
+        /// Fija (o limpia, con null) el tema preferido. Mismo motivo que
+        /// <see cref="ActualizarFotoPerfilAsync"/>: UPDATE dirigido a una sola
+        /// columna, sin pasar por UserManager.UpdateAsync ni la bitácora de auditoría.
+        /// </summary>
+        Task ActualizarTemaPreferidoAsync(string usuarioId, string? tema);
     }
 }

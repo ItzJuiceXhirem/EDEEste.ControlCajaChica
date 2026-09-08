@@ -59,5 +59,10 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
 
         public Task ActualizarFotoPerfilAsync(string usuarioId, string? rutaRelativa) =>
             throw new NotImplementedException();
+
+        public Task<string?> ObtenerTemaPreferidoAsync(string usuarioId) => throw new NotImplementedException();
+
+        public Task ActualizarTemaPreferidoAsync(string usuarioId, string? tema) =>
+            throw new NotImplementedException();
     }
 }

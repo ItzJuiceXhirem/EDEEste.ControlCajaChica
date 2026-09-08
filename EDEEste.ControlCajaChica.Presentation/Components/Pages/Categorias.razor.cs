@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Features.Categorias;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Presentation.Common;
 using Microsoft.AspNetCore.Components;
 
 namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
@@ -91,19 +91,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         }
 
         private static bool Coincide(CategoriaGasto categoria, string busqueda) =>
-            ContieneSinAcentos(categoria.Nombre, busqueda) || ContieneSinAcentos(categoria.CuentaContable, busqueda);
-
-        private static bool ContieneSinAcentos(string texto, string busqueda) =>
-            NormalizarParaBusqueda(texto).Contains(NormalizarParaBusqueda(busqueda), StringComparison.OrdinalIgnoreCase);
-
-        private static string NormalizarParaBusqueda(string valor)
-        {
-            var normalizado = valor.Normalize(NormalizationForm.FormD);
-            var sinDiacriticos = normalizado.Where(c =>
-                CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark);
-
-            return new string(sinDiacriticos.ToArray()).Normalize(NormalizationForm.FormC);
-        }
+            BusquedaTexto.ContieneSinAcentos(categoria.Nombre, busqueda) || BusquedaTexto.ContieneSinAcentos(categoria.CuentaContable, busqueda);
 
         private void CambiarFiltro(Filtro nuevo) => filtro = nuevo;
 

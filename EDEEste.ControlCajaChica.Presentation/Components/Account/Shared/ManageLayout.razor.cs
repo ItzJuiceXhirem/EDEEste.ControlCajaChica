@@ -56,7 +56,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Shared
 
             usuario = cuenta.UserName ?? string.Empty;
             nombre = cuenta.Nombre;
-            iniciales = Iniciales(cuenta.Nombre);
+            iniciales = AvataresDefault.Iniciales(cuenta.Nombre);
 
             // La ruta guardada no se usa como URL: el archivo vive fuera de wwwroot y
             // solo se sirve por el endpoint, que ademas comprueba quien lo pide.
@@ -74,17 +74,6 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Shared
             {
                 ultimaSesionAnterior = fecha;
             }
-        }
-
-        private static string Iniciales(string nombreCompleto)
-        {
-            var partes = nombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return partes.Length switch
-            {
-                0 => "?",
-                1 => partes[0][..1].ToUpperInvariant(),
-                _ => (partes[0][..1] + partes[^1][..1]).ToUpperInvariant()
-            };
         }
 
         /// <summary>

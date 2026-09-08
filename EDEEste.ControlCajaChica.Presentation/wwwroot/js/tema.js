@@ -28,6 +28,33 @@ window.ccTema = (function () {
         }
     }
 
+    // Guarda el tema en la cuenta, para que viaje entre dispositivos. Solo
+    // aplica con sesion (App.razor marca data-tema-cuenta) -- en Login/Register
+    // no hay cuenta a la cual guardarle nada, y ahi el interruptor ni siquiera
+    // aparece. Es "mejor esfuerzo": si la peticion falla (red, sesion vencida),
+    // el tema ya se aplico en esta pestana igual, solo no queda guardado para la
+    // proxima -- mismo espiritu que el catch de localStorage de abajo.
+    function persistirEnCuenta(tema) {
+        if (document.documentElement.getAttribute("data-tema-cuenta") !== "1") {
+            return;
+        }
+
+        var campoToken = document.querySelector("#cc-tema-af input[name='__RequestVerificationToken']");
+        if (!campoToken) {
+            return;
+        }
+
+        var cuerpo = "tema=" + encodeURIComponent(tema) +
+            "&__RequestVerificationToken=" + encodeURIComponent(campoToken.value);
+
+        fetch("/perfil/tema", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: cuerpo,
+            credentials: "same-origin"
+        }).catch(function () { /* red o sesion vencida: se ignora */ });
+    }
+
     function fijar(tema) {
         var valor = tema === OSCURO ? OSCURO : CLARO;
 
@@ -44,6 +71,7 @@ window.ccTema = (function () {
             localStorage.setItem(CLAVE, valor);
         } catch (e) { /* sin persistencia: el tema dura lo que la pestana */ }
 
+        persistirEnCuenta(valor);
         pintarBotones(valor);
     }
 

@@ -52,6 +52,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             categoria.RequiereNCF = comando.RequiereNCF;
             categoria.Activo = comando.Activo;
 
+            // SaveChangesAsync liso y no IntentarGuardarCambiosAsync: a diferencia de
+            // FondoCajaChica.BalanceActual/Gasto.Estado/SolicitudReposicion.Estado,
+            // ninguna propiedad de CategoriaGasto esta marcada IsConcurrencyToken() en
+            // ApplicationDbContext, asi que su UPDATE nunca lleva una clausula de
+            // concurrencia -- DbUpdateConcurrencyException no puede ocurrir aca.
             await _contexto.SaveChangesAsync(cancellationToken);
 
             return ResultadoOperacion<Guid>.Ok(categoria.Id);

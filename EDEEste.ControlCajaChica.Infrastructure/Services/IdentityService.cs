@@ -282,5 +282,16 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             _userManager.Users
                 .Where(u => u.Id == usuarioId)
                 .ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.RutaFotoPerfil, rutaRelativa));
+
+        public Task<string?> ObtenerTemaPreferidoAsync(string usuarioId) =>
+            _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .Select(u => u.TemaPreferido)
+                .FirstOrDefaultAsync();
+
+        public Task ActualizarTemaPreferidoAsync(string usuarioId, string? tema) =>
+            _userManager.Users
+                .Where(u => u.Id == usuarioId)
+                .ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.TemaPreferido, tema));
     }
 }

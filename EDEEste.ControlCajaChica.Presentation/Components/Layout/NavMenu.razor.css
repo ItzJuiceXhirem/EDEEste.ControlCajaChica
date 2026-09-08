@@ -156,12 +156,21 @@
             color: rgba(255, 253, 245, 0.82);
         }
 
-        .cc-tema button[aria-pressed="true"] {
+        /* Por atributo data-tema del <html> y no por aria-pressed: ese lo pinta
+           tema.js, y cuando el circuito de SignalR se conecta despues del primer
+           pintado estatico, Blazor vuelve a renderizar este boton con los valores
+           fijos del markup, pisando lo que tema.js ya habia corregido. El aspecto
+           visual no debe depender de esa carrera -- aria-pressed se conserva solo
+           para accesibilidad, ya que un lector de pantalla si necesita el estado
+           real y no una aproximacion por CSS. */
+        html[data-tema="oscuro"] .cc-tema button[data-cc-tema="oscuro"],
+        html:not([data-tema="oscuro"]) .cc-tema button[data-cc-tema="claro"] {
             background: rgba(255, 253, 245, 0.14);
             color: var(--cc-ivory);
         }
 
-            .cc-tema button[aria-pressed="true"] .cc-ico {
+            html[data-tema="oscuro"] .cc-tema button[data-cc-tema="oscuro"] .cc-ico,
+            html:not([data-tema="oscuro"]) .cc-tema button[data-cc-tema="claro"] .cc-ico {
                 stroke: var(--cc-gold);
             }
 

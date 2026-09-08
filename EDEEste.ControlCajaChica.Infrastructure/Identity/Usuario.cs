@@ -58,5 +58,15 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
         /// evidencia contable, a diferencia de un comprobante.
         /// </summary>
         public string? RutaFotoPerfil { get; set; }
+
+        /// <summary>
+        /// "oscuro" o null (claro). Null cubre tanto a quien nunca ha tocado el
+        /// interruptor como a una cuenta creada antes de que existiera esta columna
+        /// -- el default es siempre claro, nunca al reves: cualquier valor que no
+        /// sea exactamente "oscuro" se trata como claro (ver App.razor).
+        ///
+        /// No entra en ninguna firma HMAC, mismo motivo que <see cref="RutaFotoPerfil"/>.
+        /// </summary>
+        public string? TemaPreferido { get; set; }
     }
 }

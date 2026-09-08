@@ -47,6 +47,14 @@
     --cc-text-faint: rgba(0, 8, 20, 0.45);
     --cc-crumb: rgba(0, 8, 20, 0.55);
 
+    /* Gris de texto de las pantallas interiores (Gastos y hermanas): un tono
+       distinto a --cc-text-soft/-faint (mismo nivel de opacidad aproximado,
+       pero tintado mas frio) -- no se reusan esos dos para no mover ni un pixel
+       el modo claro que ya estaba aprobado en esas pantallas. En oscuro SI
+       convergen a la misma familia tintada de marfil que el resto del texto. */
+    --cc-text-mute: #6B7482;   /* subtitulos, pistas, definiciones, totales */
+    --cc-text-label: #8A94A3; /* etiquetas en mayuscula con letter-spacing */
+
     /* Accion primaria. En oscuro pasa al dorado (decision aprobada); en claro
        se queda en el azul de marca, que es lo que ya estaba aprobado. */
     --cc-btn-bg: var(--cc-navy);
@@ -75,9 +83,11 @@
     --cc-ring-slot: #FFFFFF;
     --cc-ring-track: rgba(0, 53, 102, 0.10);
 
-    /* Denominaciones (Arqueos). El tinte es un triplete RGB porque cada fila
-       lo usa con su propia opacidad, graduada por denominacion. */
-    --cc-bill-tint: 0, 53, 102;
+    /* Tinte de tinta: navy en claro, marfil en oscuro -- el mismo triplete que
+       ya usan --cc-line/--cc-divider, pero expuesto como RGB crudo para quien
+       necesite su propia opacidad (sombras, fondos tenues, anillos de foco).
+       Nacio para las denominaciones de Arqueos, pero es de uso general. */
+    --cc-ink-tint: 0, 53, 102;
     --cc-bill-fg: var(--cc-prussian);
     --cc-bill-line: rgba(0, 53, 102, 0.30);
     --cc-coin-fg: #4A3800;
@@ -101,6 +111,27 @@
     --cc-info-bg: #CFF4FC;
     --cc-dark-bg: #E4E7EB;
     --cc-dark-fg: #343A40;
+
+    /* Texto de aviso Bootstrap "de fabrica" (info/warn/bad), distinto del texto
+       de las pildoras propias de arriba: son las variantes -text-emphasis que
+       trae Bootstrap 5.3 para .alert-*, usadas ya en 4-7 pantallas cada una
+       antes de que existieran tokens. En oscuro se reusa el mismo -edge/valor
+       de estado ya aclarado, no hace falta un tono nuevo. */
+    --cc-alert-info-fg: #055160;
+    --cc-alert-warn-fg: #664D03;
+    --cc-alert-bad-fg: #842029;
+
+    /* Fondo de aviso informativo (distinto de --cc-info-bg, que es el de las
+       pildoras -- parecido pero no el mismo literal, usado en 2 pantallas). */
+    --cc-alert-info-bg: #D7F3FA;
+
+    /* Bordes/lineas y textos de las pantallas interiores, compartidos entre 2+
+       pantallas -- mismo criterio que --cc-text-mute/-label de arriba: valor
+       exacto para no mover el modo claro, con su propia conversion a oscuro. */
+    --cc-line-card: #E1E5EA;        /* borde de tarjetas de cifras (Gastos, Fondos...) */
+    --cc-btn-ghost-fg: #3C4553;     /* texto de boton "ghost" */
+    --cc-bad-line: #E9AFB6;         /* borde de boton "ghost" de accion destructiva */
+    --cc-text-emphasis: #101822;    /* parrafo destacado (ej. texto de un modal) */
 
     --cc-ff-head: "Stack Sans Headline", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
     --cc-ff-text: "Stack Sans Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -166,6 +197,8 @@ html[data-tema="oscuro"] {
     --cc-text-strong: #FFFDF5;
     --cc-text-soft: rgba(255, 253, 245, 0.62);
     --cc-text-faint: rgba(255, 253, 245, 0.42);
+    --cc-text-mute: rgba(255, 253, 245, 0.62);
+    --cc-text-label: rgba(255, 253, 245, 0.42);
     --cc-crumb: var(--cc-gold);
 
     --cc-btn-bg: var(--cc-gold);
@@ -189,7 +222,7 @@ html[data-tema="oscuro"] {
     --cc-ring-slot: #08172A;
     --cc-ring-track: rgba(255, 253, 245, 0.12);
 
-    --cc-bill-tint: 255, 253, 245;
+    --cc-ink-tint: 255, 253, 245;
     --cc-bill-fg: var(--cc-ivory);
     --cc-bill-line: rgba(255, 253, 245, 0.26);
     --cc-coin-fg: var(--cc-gold);
@@ -211,6 +244,16 @@ html[data-tema="oscuro"] {
     --cc-info-bg: rgba(13, 202, 240, 0.14);
     --cc-dark-bg: rgba(255, 253, 245, 0.10);
     --cc-dark-fg: rgba(255, 253, 245, 0.72);
+
+    --cc-alert-info-fg: var(--cc-info);
+    --cc-alert-warn-fg: var(--cc-warn);
+    --cc-alert-bad-fg: var(--cc-bad);
+    --cc-alert-info-bg: rgba(13, 202, 240, 0.14);
+
+    --cc-line-card: rgba(255, 253, 245, 0.14);
+    --cc-btn-ghost-fg: rgba(255, 253, 245, 0.75);
+    --cc-bad-line: rgba(255, 154, 163, 0.4);
+    --cc-text-emphasis: #FFFDF5;
 
     --bs-body-bg: #000814;
     --bs-body-color: #FFFDF5;

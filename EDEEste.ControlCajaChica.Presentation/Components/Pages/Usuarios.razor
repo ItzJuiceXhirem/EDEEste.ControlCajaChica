@@ -1,6 +1,7 @@
 @page "/usuarios"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Permisos.AdministrarUsuarios)]
+@using EDEEste.ControlCajaChica.Presentation.Common
 
 <PageTitle>Usuarios y accesos</PageTitle>
 
@@ -237,7 +238,7 @@ else
            archivo desaparecio del disco: se cae a las iniciales en vez de dejar el
            icono roto del navegador. *@
         <span class="usu-initials">
-            <span class="usu-iniciales-texto">@Iniciales(usuario.Nombre)</span>
+            <span class="usu-iniciales-texto">@AvataresDefault.Iniciales(usuario.Nombre)</span>
             @if (usuario.TieneFoto)
             {
                 <img class="usu-foto" alt=""
@@ -258,7 +259,7 @@ else
     </div>;
 
     private RenderFragment RenderPersonaReset(SolicitudPasswordResetResumenDto solicitud) =>@<div class="usu-avatarname">
-        <span class="usu-initials">@Iniciales(solicitud.Nombre)</span>
+        <span class="usu-initials">@AvataresDefault.Iniciales(solicitud.Nombre)</span>
         <div>
             <div class="usu-an-name">@solicitud.Nombre</div>
             <div class="usu-an-user">@solicitud.Usuario</div>

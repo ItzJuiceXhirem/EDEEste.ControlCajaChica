@@ -285,6 +285,44 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
             })
             .RequireAuthorization(Permisos.GestionarPerfilPropio);
 
+            endpoints.MapPost("/perfil/tema", async (
+                HttpContext contexto,
+                IAntiforgery antiforgery,
+                ICurrentUserService usuarioActual,
+                IIdentityService identidad,
+                CancellationToken cancellationToken) =>
+            {
+                // Igual que /perfil/foto/eliminar: sin un IFormFile de por medio, el
+                // binding automatico no dispara la validacion de antiforgery, asi que
+                // se valida a mano. Este endpoint lo llama tema.js por fetch() (no un
+                // <form> de Blazor), por eso el token viaja como campo de formulario
+                // comun y no por el circuito.
+                try
+                {
+                    await antiforgery.ValidateRequestAsync(contexto);
+                }
+                catch (AntiforgeryValidationException)
+                {
+                    return Results.StatusCode(StatusCodes.Status400BadRequest);
+                }
+
+                var usuario = await usuarioActual.ObtenerAsync(cancellationToken);
+                if (usuario.Id is not { } usuarioId)
+                {
+                    return Results.StatusCode(StatusCodes.Status400BadRequest);
+                }
+
+                // Fail-safe: cualquier valor que no sea exactamente "oscuro" se guarda
+                // como null (claro). El tema es una preferencia de interfaz, no un
+                // dato de negocio -- no hace falta devolver un error por un valor raro,
+                // basta con no dejarlo pasar.
+                var tema = contexto.Request.Form["tema"].ToString();
+                await identidad.ActualizarTemaPreferidoAsync(usuarioId, tema == "oscuro" ? "oscuro" : null);
+
+                return Results.NoContent();
+            })
+            .RequireAuthorization(Permisos.GestionarPerfilPropio);
+
             return endpoints;
         }
     }

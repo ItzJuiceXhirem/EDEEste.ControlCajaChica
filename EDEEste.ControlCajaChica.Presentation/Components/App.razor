@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-tema="@temaInicial" data-tema-cuenta="@(estaAutenticado ? "1" : null)">
 
 <head>
     <meta charset="utf-8" />
@@ -16,19 +16,26 @@
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["EDEEste.ControlCajaChica.Presentation.styles.css"]" />
-    @* El tema se aplica en linea y ANTES de que el navegador pinte: con un
-       archivo externo la pagina se pintaria en claro y cambiaria a oscuro al
-       llegar el script, con un destello blanco en cada carga. Por eso esta
-       duplicada aqui la lectura de localStorage que tambien hace tema.js. *@
-    <script>
-        (function () {
-            try {
-                if (localStorage.getItem("cc-tema") === "oscuro") {
-                    document.documentElement.setAttribute("data-tema", "oscuro");
-                }
-            } catch (e) { /* almacenamiento bloqueado: se queda en claro */ }
-        })();
-    </script>
+    @if (!estaAutenticado)
+    {
+        @* Sin sesion no hay preferencia guardada que consultar (Login, Register,
+           etc.): el tema sigue viniendo de localStorage, en linea y ANTES de que
+           el navegador pinte -- con un archivo externo la pagina se pintaria en
+           claro y cambiaria a oscuro al llegar el script, con un destello blanco
+           en cada carga. Por eso esta duplicada aqui la lectura que tambien hace
+           tema.js. Con sesion, data-tema ya viene resuelto arriba desde la BDD y
+           este script no debe correr: si localStorage tuviera un valor viejo de
+           otro dispositivo, pisaria sin querer la preferencia real de la cuenta. *@
+        <script>
+            (function () {
+                try {
+                    if (localStorage.getItem("cc-tema") === "oscuro") {
+                        document.documentElement.setAttribute("data-tema", "oscuro");
+                    }
+                } catch (e) { /* almacenamiento bloqueado: se queda en claro */ }
+            })();
+        </script>
+    }
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet @rendermode="PageRenderMode" />
@@ -37,6 +44,17 @@
 <body>
     <Routes @rendermode="PageRenderMode" />
     <ReconnectModal />
+    @if (estaAutenticado)
+    {
+        @* Token para que tema.js persista el interruptor por fetch() -- ese
+           archivo es JS puro sin circuito (ver su propio comentario), asi que no
+           puede pedir el token via JSInterop como RegistrarGasto.razor.cs; lo lee
+           directo del DOM. hidden y no display:none: un lector de pantalla no
+           tiene por que anunciar un campo que nadie llena a mano. *@
+        <form id="cc-tema-af" hidden>
+            <AntiforgeryToken />
+        </form>
+    }
     <script src="@Assets["js/interop.js"]"></script>
     <script src="@Assets["js/tema.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
@@ -49,10 +67,53 @@
 
 </html>
 
+@using System.Security.Claims
+@using EDEEste.ControlCajaChica.Application.Common.Interfaces
+@using Microsoft.Extensions.DependencyInjection
 @code {
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
+    [Inject]
+    private IServiceScopeFactory AmbitoServicios { get; set; } = default!;
+
+    private bool estaAutenticado;
+    private string? temaInicial;
+
     private IComponentRenderMode? PageRenderMode =>
         HttpContext.AcceptsInteractiveRouting() ? InteractiveServer : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        estaAutenticado = HttpContext.User.Identity?.IsAuthenticated == true;
+        if (!estaAutenticado)
+        {
+            return;
+        }
+
+        var usuarioId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(usuarioId))
+        {
+            return;
+        }
+
+        // Ambito de DI propio y NO el de la peticion: App.razor se renderiza a la
+        // vez que el resto del arbol (Routes -> pagina), y ambos comparten el
+        // mismo ApplicationDbContext con alcance de peticion. Blazor no espera a
+        // que este OnInitializedAsync termine antes de arrancar el de la pagina
+        // (mismo problema ya documentado en ManageLayout.razor.cs para
+        // GetUserAsync, solo que aca no hay forma de compartir la Task porque son
+        // consultas de negocio distintas) -- sin este ambito propio, dos consultas
+        // a la vez sobre el MISMO DbContext tumban el render con
+        // ConcurrencyDetector ("A second operation was started..."). Un ambito
+        // propio crea su propio ApplicationDbContext, aislado del de la pagina.
+        using var ambito = AmbitoServicios.CreateScope();
+        var identidad = ambito.ServiceProvider.GetRequiredService<IIdentityService>();
+
+        // Fail-safe: cualquier valor que no sea exactamente "oscuro" (null, vacio,
+        // un dato corrupto) se trata como claro. El default es siempre claro;
+        // oscuro es la excepcion que hay que ganarse con un valor exacto.
+        var tema = await identidad.ObtenerTemaPreferidoAsync(usuarioId);
+        temaInicial = tema == "oscuro" ? "oscuro" : null;
+    }
 }
