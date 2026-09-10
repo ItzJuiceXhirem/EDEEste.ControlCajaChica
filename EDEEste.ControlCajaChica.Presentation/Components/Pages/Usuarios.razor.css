@@ -12,7 +12,7 @@
     font-size: 27px;
     letter-spacing: -0.02em;
     margin: 0 0 4px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .usu-sub {
@@ -22,7 +22,7 @@
 }
 
 .usu-mut {
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
 .usu-empty {
@@ -53,9 +53,9 @@
     margin-top: 2px;
 }
 
-.usu-a-bad { background: #f8d7da; color: #842029; }
-.usu-a-ok { background: #DCF3E7; color: #146C43; }
-.usu-a-info { background: #cff4fc; color: #055160; }
+.usu-a-bad { background: var(--cc-alert-bad-bg); color: var(--cc-alert-bad-fg); }
+.usu-a-ok { background: var(--cc-ok-bg); color: var(--cc-ok); }
+.usu-a-info { background: var(--cc-info-bg); color: var(--cc-alert-info-fg); }
 
 .usu-a-link {
     align-items: flex-start;
@@ -77,16 +77,21 @@
 /* ── Bandeja de trabajo ──────────────────────────────────────────────────── */
 .usu-job {
     background: var(--cc-surface);
-    border: 1px solid #ECEEF1;
+    border: 1px solid var(--cc-line-soft);
     border-radius: 12px;
     border-left: 4px solid var(--cc-gold);
     padding: 14px 18px;
     margin-bottom: 12px;
 }
 
+/* Tinte ok de un solo uso, sin token en app.css a proposito. */
 .usu-job-done {
-    border-left-color: #146C43;
+    border-left-color: var(--cc-ok);
     background: rgba(20, 108, 67, 0.03);
+}
+
+html[data-tema="oscuro"] .usu-job-done {
+    background: rgba(133, 224, 179, 0.06);
 }
 
 .usu-jh {
@@ -115,13 +120,13 @@
     }
 
 .usu-jic-cyan {
-    background: #cff4fc;
-    color: #055160;
+    background: var(--cc-info-bg);
+    color: var(--cc-alert-info-fg);
 }
 
 .usu-jic-ok {
-    background: #DCF3E7;
-    color: #146C43;
+    background: var(--cc-ok-bg);
+    color: var(--cc-ok);
 }
 
 .usu-jt {
@@ -132,7 +137,7 @@
 
 .usu-jd {
     font-size: 12px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin-top: 2px;
 }
 
@@ -141,22 +146,22 @@
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 22px;
-    color: var(--cc-navy);
+    color: var(--cc-accent);
 }
 
 .usu-job-done .usu-jn {
-    color: #146C43;
+    color: var(--cc-ok);
 }
 
 .usu-jbody {
     margin-top: 14px;
     padding-top: 14px;
-    border-top: 1px solid #ECEEF1;
+    border-top: 1px solid var(--cc-line-soft);
 }
 
 /* ── Pliegue hacia el directorio ─────────────────────────────────────────── */
 .usu-fold {
-    border-top: 1px dashed #D8DDE4;
+    border-top: 1px dashed var(--cc-ctrl-line);
     margin: 26px 0 18px;
     padding-top: 20px;
     display: flex;
@@ -169,7 +174,7 @@
     font-size: 10.5px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -177,7 +182,7 @@
 .usu-line {
     flex: 1;
     height: 1px;
-    background: #ECEEF1;
+    background: var(--cc-line-soft);
     min-width: 24px;
 }
 
@@ -189,7 +194,7 @@
 
 .usu-segmented {
     display: flex;
-    background: rgba(0, 53, 102, 0.06);
+    background: rgba(var(--cc-ink-tint), 0.06);
     border-radius: 8px;
     padding: 3px;
     gap: 2px;
@@ -203,14 +208,14 @@
     font-family: var(--cc-ff-text);
     font-size: 12.5px;
     font-weight: 600;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     white-space: nowrap;
 }
 
 .usu-seg-on {
     background: var(--cc-surface);
-    color: var(--cc-navy);
-    box-shadow: 0 1px 2px rgba(0, 53, 102, 0.15);
+    color: var(--cc-accent);
+    box-shadow: 0 1px 2px rgba(var(--cc-ink-tint), 0.15);
 }
 
 .usu-search {
@@ -218,18 +223,18 @@
     align-items: center;
     gap: 8px;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     padding: 6px 12px;
     min-height: 34px;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     white-space: nowrap;
     width: 240px;
 }
 
     .usu-search:focus-within {
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     .usu-search svg {
@@ -249,7 +254,7 @@
         background: transparent;
         font-family: var(--cc-ff-text);
         font-size: 13px;
-        color: #16202E;
+        color: var(--cc-ctrl-fg);
         padding: 0;
     }
 
@@ -260,7 +265,7 @@
 /* ── Tarjeta / tabla del directorio ──────────────────────────────────────── */
 .usu-card {
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
 }
 
@@ -280,13 +285,13 @@
         font-size: 10.5px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #8A94A3;
+        color: var(--cc-text-label);
         padding: 12px 18px 10px;
         white-space: nowrap;
     }
 
     .usu-table tbody tr {
-        border-top: 1px solid #ECEEF1;
+        border-top: 1px solid var(--cc-line-soft);
     }
 
     .usu-table td {
@@ -313,6 +318,10 @@
     gap: 10px;
 }
 
+/* Mismo degradado dorado fijo que el avatar por defecto del sidebar
+   (NavMenu.razor.css .avatar) -- no se tokeniza. El texto tambien se queda
+   fijo (no --cc-coin-fg, que en oscuro pasa a dorado y se volveria invisible
+   sobre este mismo fondo dorado). */
 .usu-initials {
     width: 30px;
     height: 30px;
@@ -347,13 +356,13 @@
 
 .usu-an-name {
     font-weight: 600;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
     font-size: 13px;
 }
 
 .usu-an-user {
     font-size: 11.5px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -367,30 +376,30 @@
     white-space: nowrap;
 }
 
-.usu-p-ok { background: #DCF3E7; color: #146C43; }
-.usu-p-bad { background: #FBE0E3; color: #B02A37; }
+.usu-p-ok { background: var(--cc-ok-bg); color: var(--cc-ok); }
+.usu-p-bad { background: var(--cc-bad-bg); color: var(--cc-bad); }
 
 /* ── Campos / botones ────────────────────────────────────────────────────── */
 .usu-field {
     width: 100%;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 7px;
     padding: 7px 10px;
     font-family: var(--cc-ff-text);
     font-size: 12.5px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
     min-height: 34px;
 }
 
 .usu-select {
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 7px;
     padding: 6px 9px;
     font-family: var(--cc-ff-text);
     font-size: 12.5px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
     min-height: 32px;
 }
 
@@ -414,24 +423,24 @@
 
 .usu-btn-ghost {
     background: var(--cc-surface);
-    color: var(--cc-navy);
-    border-color: rgba(0, 53, 102, 0.3);
+    color: var(--cc-accent);
+    border-color: var(--cc-line-bold);
 }
 
     .usu-btn-ghost:hover:not(:disabled) {
-        background: #F2F6FA;
+        background: var(--cc-surface-2);
     }
 
 .usu-btn-bad {
     background: var(--cc-surface);
-    color: #B02A37;
-    border-color: #E9AFB6;
+    color: var(--cc-bad);
+    border-color: var(--cc-bad-line);
 }
 
 .usu-btn-ok {
     background: var(--cc-surface);
-    color: #146C43;
-    border-color: #A6D9BE;
+    color: var(--cc-ok);
+    border-color: var(--cc-ok-line);
 }
 
 .usu-btn:disabled {

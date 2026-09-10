@@ -2,14 +2,18 @@
 
 .mgl-cardwrap {
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
     overflow: hidden;
     max-width: 780px;
 }
 
+/* Chrome de marca fijo, mismo motivo que la ficha/modal de Gastos/Arqueos/
+   Categorias -- no se tokeniza. Todo lo que vive DENTRO de esta franja
+   (avatar, nombre, rol, "ultima sesion", el link de "quitar foto") tampoco
+   se toca por la misma razon. */
 .mgl-band {
-    background: linear-gradient(to bottom right, #003566 0%, #001D3D 55%, #000814 100%);
+    background: linear-gradient(to bottom right, var(--cc-navy) 0%, var(--cc-prussian) 55%, var(--cc-ink) 100%);
     height: 110px;
     position: relative;
 }
@@ -36,7 +40,11 @@
     place-items: center;
     /* Si hay foto, el estilo en linea sobreescribe este degradado. cover recorta
        al circulo sin deformar: por eso no hace falta reprocesar la imagen en el
-       servidor (y no hay que reintroducir una libreria de imagenes para eso). */
+       servidor (y no hay que reintroducir una libreria de imagenes para eso).
+       Mismo degradado dorado fijo que el avatar por defecto del sidebar y de
+       Usuarios.razor.css -- no se tokeniza, y el texto tampoco (no
+       --cc-coin-fg, que en oscuro pasa a dorado e invisibilizaria el texto
+       sobre este mismo fondo dorado). */
     background-image: linear-gradient(135deg, #FFC300, #FF9F1C);
     background-size: cover;
     background-position: center;
@@ -172,7 +180,7 @@
 
 .mgl-tabs {
     display: inline-flex;
-    background: rgba(0, 53, 102, .06);
+    background: rgba(var(--cc-ink-tint), .06);
     border-radius: 9px;
     padding: 4px;
     gap: 3px;
@@ -190,26 +198,26 @@
     border-radius: 7px;
     font-size: 13px;
     font-weight: 600;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     text-decoration: none;
 }
 
     .mgl-tabs ::deep .mgl-tab:hover {
-        color: var(--cc-navy);
+        color: var(--cc-accent);
     }
 
 .mgl-tabs ::deep .mgl-tab-on {
     background: var(--cc-surface);
-    color: var(--cc-navy);
-    box-shadow: 0 1px 3px rgba(0, 53, 102, .18);
+    color: var(--cc-accent);
+    box-shadow: 0 1px 3px rgba(var(--cc-ink-tint), .18);
 }
 
     .mgl-tabs ::deep .mgl-tab-on:hover {
-        color: var(--cc-navy);
+        color: var(--cc-accent);
     }
 
 .mgl-inner {
-    border-top: 1px solid #ECEEF1;
+    border-top: 1px solid var(--cc-line-soft);
     margin: 0 26px 26px;
     padding-top: 20px;
 }

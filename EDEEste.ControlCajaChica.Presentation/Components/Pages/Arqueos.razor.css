@@ -29,7 +29,7 @@
     font-weight: 600;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: rgba(0, 8, 20, 0.5);
+    color: var(--cc-text-dim);
 }
 
 .arq-fondo-pick {
@@ -74,6 +74,9 @@
     text-align: right;
 }
 
+/* Fondo y borde fijos en los dos temas a proposito (igual en el artifact
+   aprobado): un aviso informativo ya es una superposicion translucida, se lee
+   bien sobre cualquiera de los dos fondos sin necesitar su propia variante. */
 .arq-notice {
     display: flex;
     align-items: flex-start;
@@ -83,7 +86,7 @@
     font-size: 12.5px;
     background: rgba(13, 202, 240, 0.12);
     border: 1px solid rgba(13, 202, 240, 0.4);
-    color: #05576B;
+    color: var(--cc-info);
     margin-bottom: 13px;
 }
 
@@ -104,7 +107,7 @@
     justify-content: space-between;
     gap: 14px;
     padding: 11px 18px;
-    border-bottom: 1px solid rgba(0, 53, 102, 0.1);
+    border-bottom: 1px solid var(--cc-divider);
 }
 
 .arq-card-t {
@@ -146,20 +149,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 53, 102, 0.06);
+    background: rgba(var(--cc-ink-tint), 0.06);
     border: 1px solid var(--cc-line-strong);
     flex: none;
     padding: 0;
 }
 
     .arq-chevbtn:hover {
-        background: rgba(0, 53, 102, 0.12);
+        background: rgba(var(--cc-ink-tint), 0.12);
     }
 
     .arq-chevbtn svg {
         width: 13px;
         height: 13px;
-        stroke: var(--cc-navy);
+        stroke: var(--cc-accent);
         fill: none;
         stroke-width: 2.1;
         stroke-linecap: round;
@@ -175,14 +178,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 53, 102, 0.09);
+    background: rgba(var(--cc-ink-tint), 0.09);
     flex: none;
 }
 
     .arq-lockbtn svg {
         width: 12px;
         height: 12px;
-        stroke: rgba(0, 8, 20, 0.5);
+        stroke: var(--cc-text-dim);
         fill: none;
         stroke-width: 2;
         stroke-linecap: round;
@@ -273,8 +276,8 @@
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 11.5px;
-    color: var(--cc-prussian);
-    border: 1px solid rgba(0, 53, 102, 0.3);
+    color: var(--cc-bill-fg);
+    border: 1px solid var(--cc-bill-line);
 }
 
 .arq-coin {
@@ -287,8 +290,8 @@
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 10.5px;
-    color: #4A3800;
-    border: 1px solid rgba(255, 195, 0, 0.65);
+    color: var(--cc-coin-fg);
+    border: 1px solid var(--cc-coin-line);
     margin: 0 auto;
 }
 
@@ -309,15 +312,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 53, 102, 0.05);
+    background: var(--cc-step-bg);
     border: none;
-    color: var(--cc-navy);
+    color: var(--cc-step-fg);
     padding: 0;
     flex: none;
 }
 
     .arq-sbtn:hover {
-        background: rgba(0, 53, 102, 0.12);
+        background: rgba(var(--cc-ink-tint), 0.12);
     }
 
     .arq-sbtn svg {
@@ -350,26 +353,37 @@
         margin: 0;
     }
 
+    /* Mismo tono (.32) que .arq-none mas abajo -- de un solo uso repetido en
+       este archivo, sin token en app.css a proposito. */
     .arq-sval::placeholder {
         color: rgba(0, 8, 20, 0.32);
         font-weight: 400;
     }
 
+    html[data-tema="oscuro"] .arq-sval::placeholder {
+        color: rgba(255, 253, 245, 0.32);
+    }
+
     .arq-sval:focus {
-        outline: 2px solid rgba(0, 53, 102, 0.35);
+        outline: 2px solid rgba(var(--cc-ink-tint), 0.35);
         outline-offset: -2px;
     }
 
 .arq-sub-amt {
     text-align: right;
     font-size: 12px;
-    color: rgba(0, 8, 20, 0.62);
+    color: var(--cc-text-quiet);
 }
 
 /* Una fila en cero se apaga en vez de desaparecer: sigue estando disponible para
-   contar, pero no compite con las que sí tienen efectivo. */
+   contar, pero no compite con las que sí tienen efectivo. De un solo uso, sin
+   token en app.css a proposito. */
 .arq-zero .arq-sub-amt {
     color: rgba(0, 8, 20, 0.3);
+}
+
+html[data-tema="oscuro"] .arq-zero .arq-sub-amt {
+    color: rgba(255, 253, 245, 0.3);
 }
 
 .arq-obs-block {
@@ -401,14 +415,14 @@
     gap: 14px;
     margin-top: 14px;
     padding-top: 12px;
-    border-top: 2px solid var(--cc-navy);
+    border-top: 2px solid var(--cc-total-rule);
 }
 
 .arq-total-amt {
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 22px;
-    color: var(--cc-navy);
+    color: var(--cc-total);
     letter-spacing: -0.02em;
 }
 
@@ -437,14 +451,24 @@
     font-weight: 600;
 }
 
+/* Fondo/borde de un solo uso (el veredicto de Arqueos), sin token en app.css a
+   proposito. Valores de oscuro confirmados por el artifact aprobado para el
+   caso "Cuadrado" (rgba(25,135,84,.12) / rgba(133,224,179,.4)); bad/up siguen
+   la misma proporcion sobre sus propios hues, reusando --cc-bad-line/
+   --cc-info-line -- los mismos bordes que ya comparten las pildoras. */
 .arq-verdict-ok {
     background: rgba(25, 135, 84, 0.1);
     border-color: rgba(25, 135, 84, 0.35);
 }
 
+html[data-tema="oscuro"] .arq-verdict-ok {
+    background: rgba(25, 135, 84, 0.12);
+    border-color: var(--cc-ok-line);
+}
+
     .arq-verdict-ok .arq-verdict-big,
     .arq-verdict-ok .arq-verdict-state {
-        color: #146C43;
+        color: var(--cc-ok);
     }
 
 .arq-verdict-bad {
@@ -452,9 +476,14 @@
     border-color: rgba(220, 53, 69, 0.35);
 }
 
+html[data-tema="oscuro"] .arq-verdict-bad {
+    background: rgba(220, 53, 69, 0.1);
+    border-color: var(--cc-bad-line);
+}
+
     .arq-verdict-bad .arq-verdict-big,
     .arq-verdict-bad .arq-verdict-state {
-        color: #B02A37;
+        color: var(--cc-bad);
     }
 
 .arq-verdict-up {
@@ -462,9 +491,14 @@
     border-color: rgba(13, 202, 240, 0.44);
 }
 
+html[data-tema="oscuro"] .arq-verdict-up {
+    background: rgba(13, 202, 240, 0.1);
+    border-color: var(--cc-info-line);
+}
+
     .arq-verdict-up .arq-verdict-big,
     .arq-verdict-up .arq-verdict-state {
-        color: #05576B;
+        color: var(--cc-info);
     }
 
 .arq-facts {
@@ -478,7 +512,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(0, 53, 102, 0.09);
+    border-bottom: 1px solid var(--cc-divider-soft);
 }
 
     .arq-fact:last-child {
@@ -490,10 +524,17 @@
     color: var(--cc-text-soft);
 }
 
+/* --cc-prussian es marca fija (no cambia de tema) -- funciona en claro porque
+   coincide con el valor de hoy, pero en oscuro necesita pasar a ivory. Sin
+   token en app.css por ser de un solo uso. */
 .arq-fact-v {
     font-size: 13.5px;
     font-weight: 600;
     color: var(--cc-prussian);
+}
+
+html[data-tema="oscuro"] .arq-fact-v {
+    color: var(--cc-ivory);
 }
 
 /* flex:1 + centrado en las tres direcciones: el bloque ocupa todo el alto que le
@@ -547,11 +588,11 @@
 }
 
 .arq-inv-ok {
-    color: #146C43;
+    color: var(--cc-ok);
 }
 
 .arq-inv-bad {
-    color: #B02A37;
+    color: var(--cc-bad);
 }
 
 /* ── Botones ─────────────────────────────────────────────────────────────── */
@@ -565,14 +606,14 @@
     padding: 9px 16px;
     border-radius: 6px;
     font-weight: 500;
-    background: var(--cc-navy);
-    color: var(--cc-ivory);
-    border: 1px solid var(--cc-navy);
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
+    border: 1px solid var(--cc-btn-border);
 }
 
     .arq-btn:hover:not(:disabled) {
-        background: var(--cc-prussian);
-        border-color: var(--cc-prussian);
+        background: var(--cc-btn-bg-hover);
+        border-color: var(--cc-btn-bg-hover);
     }
 
     .arq-btn:disabled {
@@ -585,14 +626,14 @@
 
 .arq-btn-ghost {
     background: transparent;
-    color: var(--cc-navy);
-    border-color: rgba(0, 53, 102, 0.3);
+    color: var(--cc-accent);
+    border-color: var(--cc-line-bold);
 }
 
     .arq-btn-ghost:hover:not(:disabled) {
-        background: rgba(0, 53, 102, 0.06);
-        color: var(--cc-navy);
-        border-color: var(--cc-navy);
+        background: rgba(var(--cc-ink-tint), 0.06);
+        color: var(--cc-accent);
+        border-color: var(--cc-accent);
     }
 
 .arq-btn-sm {
@@ -626,7 +667,7 @@
     width: 28px;
     height: 28px;
     border-radius: 6px;
-    background: rgba(0, 53, 102, 0.07);
+    background: rgba(var(--cc-ink-tint), 0.07);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -636,7 +677,7 @@
     .arq-cb-ic svg {
         width: 15px;
         height: 15px;
-        stroke: var(--cc-navy);
+        stroke: var(--cc-accent);
         fill: none;
         stroke-width: 1.7;
         stroke-linecap: round;
@@ -673,15 +714,21 @@
 }
 
 .arq-locked {
-    background: rgba(0, 53, 102, 0.03);
+    background: rgba(var(--cc-ink-tint), 0.03);
 }
 
     .arq-locked .arq-cb-ic {
-        background: rgba(0, 53, 102, 0.08);
+        background: rgba(var(--cc-ink-tint), 0.08);
     }
 
+    /* De un solo uso (.68), cercano a --cc-text-quiet pero no igual -- sin
+       token en app.css a proposito. */
     .arq-locked .arq-cb-title {
         color: rgba(0, 8, 20, 0.68);
+    }
+
+    html[data-tema="oscuro"] .arq-locked .arq-cb-title {
+        color: rgba(255, 253, 245, 0.68);
     }
 
 /* ── Badges de estado (§5.7: píldora con fondo tenue) ────────────────────── */
@@ -702,34 +749,44 @@
         stroke-width: 2.6;
     }
 
-/* Opacos y no rgba a proposito (DESIGN.md §5.7): un fondo semitransparente se ve
+/* Opacos en claro a proposito (DESIGN.md §5.7): un fondo semitransparente se ve
    bien sobre blanco (aqui, o en la franja plegada) pero sobre el degradado
    oscuro del modal se mezcla con el azul/negro de fondo y el texto pierde casi
    todo el contraste — que era justo el bug. Con hex opaco, el badge se ve
    identico en cualquier de los dos fondos, que es la regla de la seccion 5.3:
-   "los badges no se invierten sobre fondo oscuro". Mismos hex que usa Gastos. */
+   "los badges no se invierten sobre fondo oscuro". Mismos hex que usa Gastos.
+
+   En oscuro, en cambio, el artifact aprobado SI usa fondo translucido + borde
+   (--cc-ok-bg/--cc-bad-bg/--cc-info-bg ya convergen a eso) -- la regla de
+   arriba dejo de aplicar porque el modal, en modo oscuro, ya es del mismo
+   color de familia que el resto de la app; el badge no necesita blindarse
+   contra un fondo que quedo fijo desde el modo claro. */
 .arq-bdg-ok {
-    background: #DCF3E7;
-    color: #146C43;
+    background: var(--cc-ok-bg);
+    color: var(--cc-ok);
 }
 
 .arq-bdg-bad {
-    background: #FBE0E3;
-    color: #B02A37;
+    background: var(--cc-bad-bg);
+    color: var(--cc-bad);
 }
 
 .arq-bdg-up {
-    background: #cff4fc;
-    color: #055160;
+    background: var(--cc-info-bg);
+    color: var(--cc-alert-info-fg);
 }
+
+html[data-tema="oscuro"] .arq-bdg-ok { border: 1px solid var(--cc-ok-line); }
+html[data-tema="oscuro"] .arq-bdg-bad { border: 1px solid var(--cc-bad-line); }
+html[data-tema="oscuro"] .arq-bdg-up { border: 1px solid var(--cc-info-line); }
 
 .arq-dif {
     font-weight: 600;
 }
 
-.arq-txt-ok { color: #146C43; }
-.arq-txt-bad { color: #B02A37; }
-.arq-txt-up { color: #05576B; }
+.arq-txt-ok { color: var(--cc-ok); }
+.arq-txt-bad { color: var(--cc-bad); }
+.arq-txt-up { color: var(--cc-alert-info-fg); }
 
 /* ── Historial ───────────────────────────────────────────────────────────── */
 .arq-hist {
@@ -768,7 +825,7 @@
    —más alto que el texto plano— deja cada raya a una altura distinta. */
 .arq-hist-row {
     padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 53, 102, 0.09);
+    border-bottom: 1px solid var(--cc-divider-soft);
     font-size: 12.5px;
 }
 
@@ -781,13 +838,19 @@
    ojo/Desglose se junta con un margen negativo en la última. */
 .arq-obs-cell {
     font-size: 11.5px;
-    color: rgba(0, 8, 20, 0.62);
+    color: var(--cc-text-quiet);
     line-height: 1.42;
     padding-left: 10px;
 }
 
+/* Mismo tono (.32) que .arq-sval::placeholder arriba -- de un solo uso, sin
+   token en app.css a proposito. */
 .arq-none {
     color: rgba(0, 8, 20, 0.32);
+}
+
+html[data-tema="oscuro"] .arq-none {
+    color: rgba(255, 253, 245, 0.32);
 }
 
 .arq-hist-row > :last-child,
@@ -802,19 +865,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(0, 53, 102, 0.25);
+    border: 1px solid rgba(var(--cc-ink-tint), 0.25);
     background: var(--cc-surface);
     padding: 0;
 }
 
     .arq-eyebtn:hover {
-        background: rgba(0, 53, 102, 0.06);
+        background: rgba(var(--cc-ink-tint), 0.06);
     }
 
     .arq-eyebtn svg {
         width: 14px;
         height: 14px;
-        stroke: var(--cc-navy);
+        stroke: var(--cc-accent);
         fill: none;
         stroke-width: 1.8;
         stroke-linecap: round;
@@ -822,7 +885,7 @@
     }
 
 .arq-expand {
-    background: rgba(0, 53, 102, 0.035);
+    background: rgba(var(--cc-ink-tint), 0.035);
     border-radius: 6px;
     padding: 13px 16px;
     margin: 0 0 12px;
@@ -830,7 +893,7 @@
 
 .arq-ecap {
     font-size: 10px;
-    color: rgba(0, 8, 20, 0.5);
+    color: var(--cc-text-dim);
     margin: 0 0 10px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -850,7 +913,7 @@
     gap: 8px;
     font-size: 12px;
     padding: 4px 0;
-    border-bottom: 1px solid rgba(0, 53, 102, 0.07);
+    border-bottom: 1px solid rgba(var(--cc-ink-tint), 0.07);
 }
 
 .arq-dk {
@@ -866,7 +929,7 @@
 }
 
     .arq-dtotal .arq-dv {
-        color: var(--cc-navy);
+        color: var(--cc-total);
     }
 
 .arq-empty {
@@ -880,6 +943,8 @@
    se dimensionan contra el viewport y DESPUÉS se escalan: con inset:0 acabaría
    sobresaliendo un 10%. Se le devuelve la escala a 1 (los zoom anidados se
    multiplican) y se le reaplica al propio modal, que sí debe crecer. */
+/* El velo y la sombra del modal se quedan fijos en los dos temas a proposito
+   -- ver el mismo comentario en Gastos.razor.css. */
 .arq-scrim {
     position: fixed;
     inset: 0;
@@ -905,9 +970,10 @@
 
 /* Degradado esquina a esquina — `to bottom right` y no `135deg`: en una caja
    ancha y baja ese ángulo recorre casi todo su rango en horizontal y se lee
-   como un degradado lateral, no diagonal. */
+   como un degradado lateral, no diagonal. Chrome de marca fijo, igual que el
+   sidebar -- no se tokeniza. */
 .arq-modal-grad {
-    background: linear-gradient(to bottom right, #003566 0%, #001D3D 50%, #000814 100%);
+    background: linear-gradient(to bottom right, var(--cc-navy) 0%, var(--cc-prussian) 50%, var(--cc-ink) 100%);
 }
 
 .arq-modal-h {
@@ -926,6 +992,8 @@
         color: var(--cc-ivory);
     }
 
+/* Ivory a proposito y no un token: vive sobre el degradado de marca fijo de
+   .arq-modal-grad, que tampoco cambia de tema. */
 .arq-modal-x {
     width: 28px;
     height: 28px;
@@ -970,16 +1038,17 @@
     color: var(--cc-ivory);
 }
 
-/* Variantes aclaradas solo para texto suelto sobre el degradado. */
+/* Variantes aclaradas solo para texto suelto sobre el degradado -- fijas en
+   los dos temas, mismo motivo que .arq-modal-grad de arriba. */
 .arq-txt-ok-dark { color: #85E0B3; }
 .arq-txt-bad-dark { color: #FF9AA3; }
 .arq-txt-up-dark { color: #7EE7FF; }
 
 /* Franja fina con los dos dorados e Ivory al centro: es donde el sistema pone
-   el amarillo junto al azul sin que compitan. */
+   el amarillo junto al azul sin que compitan. Tokens de marca, fijos. */
 .arq-modal-divider {
     height: 3px;
-    background: radial-gradient(ellipse at center, #FFFDF5 0%, #FFDA20 34%, #FFC300 100%);
+    background: radial-gradient(ellipse at center, var(--cc-ivory) 0%, var(--cc-gold-lt) 34%, var(--cc-gold) 100%);
 }
 
 .arq-modal-b {
@@ -991,13 +1060,15 @@
     margin: 0;
     font-size: 14px;
     line-height: 1.65;
-    color: #101822;
+    color: var(--cc-text-emphasis);
     white-space: pre-wrap;
     word-break: break-word;
 }
 
+/* Chrome de marca fijo (igual que .arq-modal-grad); el boton de abajo tambien
+   se queda con sus colores fijos, mismo motivo que en Gastos.razor.css. */
 .arq-modal-f {
-    background: linear-gradient(to bottom right, #003566 0%, #001D3D 50%, #000814 100%);
+    background: linear-gradient(to bottom right, var(--cc-navy) 0%, var(--cc-prussian) 50%, var(--cc-ink) 100%);
     padding: 13px 22px;
     display: flex;
     justify-content: flex-end;

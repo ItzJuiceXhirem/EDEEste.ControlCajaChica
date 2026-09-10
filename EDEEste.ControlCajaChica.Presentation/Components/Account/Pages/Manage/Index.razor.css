@@ -13,54 +13,54 @@
     font-size: 10px;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     margin-bottom: 5px;
 }
 
 ::deep .acc-field {
     width: 100%;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 7px;
     padding: 9px 12px;
     font-family: var(--cc-ff-text);
     font-size: 13px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
     min-height: 38px;
 }
 
     ::deep .acc-field:focus {
         outline: none;
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     ::deep .acc-field.invalid {
-        border-color: #DC3545;
+        border-color: var(--cc-bad-edge);
     }
 
 .acc-field-off {
-    background: #F4F6F8;
-    color: #6B7482;
+    background: var(--cc-surface-lock);
+    color: var(--cc-text-mute);
 }
 
 .acc-help {
     font-size: 11px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin: 5px 0 0;
 }
 
 ::deep .acc-help-bad {
     display: block;
     font-size: 11px;
-    color: #842029;
+    color: var(--cc-alert-bad-fg);
     margin: 5px 0 0;
 }
 
 ::deep .acc-summary ul {
     margin: 0 0 14px;
     padding-left: 18px;
-    color: #842029;
+    color: var(--cc-alert-bad-fg);
     font-size: 12.5px;
 }
 
@@ -78,10 +78,10 @@
 }
 
 .acc-btn-pri {
-    background: var(--cc-navy);
-    color: #fff;
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
 }
 
     .acc-btn-pri:hover {
-        background: var(--cc-prussian);
+        background: var(--cc-btn-bg-hover);
     }

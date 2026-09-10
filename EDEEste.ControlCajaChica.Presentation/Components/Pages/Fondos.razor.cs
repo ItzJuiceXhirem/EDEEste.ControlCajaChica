@@ -575,6 +575,19 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             MenorAMayor
         }
 
+        /// <summary>
+        /// En cero, el campo del monto fijo va vacío con el 0 de marca de agua --
+        /// mismo patrón que el conteo de denominaciones de Arqueos: así se escribe
+        /// la cifra directamente, sin tener que borrar antes el cero que había.
+        /// </summary>
+        private static string MontoFijoTexto(decimal monto) =>
+            monto == 0 ? string.Empty : monto.ToString(CultureInfo.InvariantCulture);
+
+        private static void FijarMontoFijo(EntradaFondo entrada, string? valor) =>
+            entrada.MontoFijo = decimal.TryParse(valor, NumberStyles.Number, CultureInfo.InvariantCulture, out var monto)
+                ? Math.Max(0, monto)
+                : 0;
+
         private sealed class EntradaFondo
         {
             public decimal MontoFijo { get; set; }

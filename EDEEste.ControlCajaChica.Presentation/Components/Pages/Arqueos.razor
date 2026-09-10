@@ -106,7 +106,7 @@ else
                                         @foreach (var fila in FilasBilletes)
                                         {
                                             <div class="arq-den @(fila.Cantidad == 0 ? "arq-zero" : "")">
-                                                <span class="arq-bill" style="background: rgba(0,53,102,@OpacidadBillete(fila.ValorDenominacion))">
+                                                <span class="arq-bill" style="background: rgba(var(--cc-ink-tint),@OpacidadBillete(fila.ValorDenominacion))">
                                                     @fila.ValorDenominacion.ToString("N0")
                                                 </span>
                                                 @RenderStepper(fila)
