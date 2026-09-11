@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 
@@ -22,8 +24,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
         [CascadingParameter]
         private HttpContext HttpContext { get; set; } = default!;
 
-        // La carga la sirve ManageLayout (ver su comentario): llamar GetUserAsync
-        // aqui tambien competiria por el mismo DbContext con scope de la peticion.
+        // La carga la sirve ManageLayout (ver su comentario). Es una copia de solo
+        // lectura: para cambiar la contraseña se carga una propia (ver OnValidSubmitAsync).
         [CascadingParameter]
         private Task<Usuario?> CuentaTask { get; set; } = default!;
 
@@ -56,8 +58,20 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
                 return;
             }
 
+            // La copia de ManageLayout viene de su propio ambito de DI, ya desprendida.
+            // ChangePasswordAsync termina en un Attach sobre el DbContext de esta
+            // peticion, y ese Attach revienta si el DbContext ya rastrea al usuario --
+            // pasa cada vez que la validacion del sello de la cookie corre en esta misma
+            // peticion. Por eso se carga una copia propia justo antes de cambiarla.
+            var fresca = await UserManager.FindByIdAsync(cuenta.Id);
+            if (fresca is null)
+            {
+                RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+                return;
+            }
+
             var resultado = await UserManager.ChangePasswordAsync(
-                cuenta, Input.PasswordActual, Input.PasswordNueva);
+                fresca, Input.PasswordActual, Input.PasswordNueva);
 
             if (!resultado.Succeeded)
             {
@@ -65,10 +79,29 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages.Manage
                 return;
             }
 
-            await SignInManager.RefreshSignInAsync(cuenta);
-            Logger.LogInformation("El usuario {Usuario} cambió su contraseña.", cuenta.UserName);
+            await ReemitirSesionAsync(fresca);
+            Logger.LogInformation("El usuario {Usuario} cambió su contraseña.", fresca.UserName);
 
             RedirectManager.RedirectToCurrentPageWithStatus("Su contraseña fue actualizada.", HttpContext);
+        }
+
+        /// <summary>
+        /// ChangePasswordAsync rota el sello de seguridad: sin reemitir la cookie, la
+        /// validacion del sello terminaria cerrando tambien esta sesion (las de otros
+        /// dispositivos si deben cerrarse, y se cierran). Hace lo mismo que
+        /// SignInManager.RefreshSignInAsync -- conserva los claims amr/metodo de
+        /// autenticacion y las propiedades de la sesion, "Recordarme" incluido -- pero
+        /// ademas conserva UltimoAccesoAnterior, que RefreshSignInAsync descarta: sin
+        /// esto, "Ultima sesion" desaparecia del perfil hasta el proximo login.
+        /// </summary>
+        private async Task ReemitirSesionAsync(Usuario usuario)
+        {
+            var sesion = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+            var conservar = sesion.Principal?.Claims
+                .Where(c => c.Type is ClaimsApp.UltimoAccesoAnterior or ClaimTypes.AuthenticationMethod or "amr")
+                .ToList() ?? [];
+
+            await SignInManager.SignInWithClaimsAsync(usuario, sesion.Properties, conservar);
         }
 
         private sealed class InputModel

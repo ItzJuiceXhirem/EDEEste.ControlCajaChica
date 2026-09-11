@@ -2,9 +2,9 @@
 
 <PageTitle>Perfil</PageTitle>
 
-<StatusMessage />
+<StatusMessage Message="@(mensaje ?? MensajeDeEndpoint)" />
 
-<EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+<EditForm Model="Input" OnValidSubmit="GuardarAsync">
     <DataAnnotationsValidator />
     <ValidationSummary class="acc-summary" role="alert" />
 
@@ -25,5 +25,5 @@
         <ValidationMessage For="() => Input.Extension" class="acc-help-bad" />
     </div>
 
-    <button type="submit" class="acc-btn acc-btn-pri">Guardar</button>
+    <button type="submit" class="acc-btn acc-btn-pri" disabled="@guardando">Guardar</button>
 </EditForm>

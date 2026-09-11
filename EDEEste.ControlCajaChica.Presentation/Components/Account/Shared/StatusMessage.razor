@@ -1,4 +1,4 @@
-﻿@if (!string.IsNullOrEmpty(DisplayMessage))
+@if (!string.IsNullOrEmpty(DisplayMessage))
 {
     var statusMessageClass = DisplayMessage.StartsWith("Error") ? "danger" : "success";
     <div class="alert alert-@statusMessageClass" role="alert">
@@ -12,13 +12,20 @@
     [Parameter]
     public string? Message { get; set; }
 
+    // Null en una pagina interactiva (Perfil): ahi no hay peticion HTTP de la cual
+    // leer la cookie, y el mensaje llega por Message.
     [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private HttpContext? HttpContext { get; set; }
 
     private string? DisplayMessage => Message ?? messageFromCookie;
 
     protected override void OnInitialized()
     {
+        if (HttpContext is null)
+        {
+            return;
+        }
+
         messageFromCookie = HttpContext.Request.Cookies[IdentityRedirectManager.StatusCookieName];
 
         if (messageFromCookie is not null)
