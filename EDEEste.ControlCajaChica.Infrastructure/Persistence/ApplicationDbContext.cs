@@ -23,10 +23,26 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         // Scoped, cualquier forma de conectarlas -- por aqui o por el lambda de
         // AddDbContext -- revienta con ManyServiceProvidersCreatedWarning pasadas ~20
         // peticiones, porque EF ve una instancia de interceptor distinta cada vez.
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly ICurrentUserService _usuarioActual;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentUserService usuarioActual)
             : base(options)
         {
+            _usuarioActual = usuarioActual;
         }
+
+        /// <summary>
+        /// Quien queda en la bitacora de este guardado. AuditoriaInterceptor lo pide a
+        /// traves del contexto porque, siendo Singleton, no puede recibir
+        /// ICurrentUserService (Scoped) por constructor; el contexto si, y vive en el
+        /// mismo ambito de DI que la peticion o el circuito que esta guardando. Un
+        /// contexto de un ambito creado a mano con IServiceScopeFactory dentro de un
+        /// circuito no tiene su AuthenticationStateProvider inicializado y puede
+        /// quedar como "Sistema": ese ambito necesita recibir el estado de
+        /// autenticacion del circuito antes de guardar.
+        /// </summary>
+        internal async Task<string?> ObtenerUsuarioAuditoriaAsync(CancellationToken cancellationToken) =>
+            (await _usuarioActual.ObtenerAsync(cancellationToken)).Id;
 
         public DbSet<Gasto> Gastos { get; set; }
         public DbSet<FondoCajaChica> Fondos { get; set; }
