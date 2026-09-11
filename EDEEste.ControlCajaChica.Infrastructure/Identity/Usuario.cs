@@ -32,8 +32,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
         /// Cuando se creo la cuenta -- para una cuenta todavia Pendiente es, en la
         /// practica, "cuando se solicito el acceso". Se inicializa aqui (no en el
         /// momento de guardar) para que quede fijada al instante de construir el
-        /// objeto, igual para una cuenta creada por CrearUsuarioAsync que por
-        /// CrearUsuarioPendienteAsync.
+        /// objeto.
         /// </summary>
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 
@@ -52,21 +51,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
         /// Guarda la ruta y no los bytes a proposito: una imagen en la fila del usuario
         /// se arrastraria en cada consulta que materialice la entidad (Identity la
         /// carga entera en cada login y en cada UserManager.GetUserAsync).
-        ///
-        /// No entra en ninguna firma HMAC: esta clase vive fuera de la jerarquia
-        /// AuditableEntity/ITamperProofEntity del Domain -- una foto de perfil no es
-        /// evidencia contable, a diferencia de un comprobante.
         /// </summary>
         public string? RutaFotoPerfil { get; set; }
 
-        /// <summary>
-        /// "oscuro" o null (claro). Null cubre tanto a quien nunca ha tocado el
-        /// interruptor como a una cuenta creada antes de que existiera esta columna
-        /// -- el default es siempre claro, nunca al reves: cualquier valor que no
-        /// sea exactamente "oscuro" se trata como claro (ver App.razor).
-        ///
-        /// No entra en ninguna firma HMAC, mismo motivo que <see cref="RutaFotoPerfil"/>.
-        /// </summary>
+        // "oscuro" o null (claro) -- el default es siempre claro.
         public string? TemaPreferido { get; set; }
     }
 }
