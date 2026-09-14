@@ -15,6 +15,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Configuration
     {
         public const string Seccion = "Almacenamiento";
 
+        /// <summary>Carpeta especial de ASP.NET Core que no se sirve por HTTP.</summary>
+        public const string NombreCarpeta = "App_Data";
+
         /// <summary>Ruta absoluta a la carpeta App_Data.</summary>
         public string RutaRaiz { get; set; } = string.Empty;
 

@@ -6,11 +6,11 @@
     font-size: 29px;
     letter-spacing: -0.02em;
     margin: 0 0 4px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .rg-sub {
-    color: #6B7482;
+    color: var(--cc-text-mute);
     font-size: 13px;
     margin: 0 0 18px;
 }
@@ -20,7 +20,7 @@
     font-weight: 600;
     font-size: 16px;
     margin: 0;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .rg-cap {
@@ -28,14 +28,14 @@
     font-size: 10.5px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     margin-bottom: 6px;
 }
 
 .rg-help {
     display: block;
     font-size: 11.5px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin-top: 5px;
     line-height: 1.5;
 }
@@ -47,7 +47,7 @@
 
 /* Mismo rojo que .rg-a-bad: error de subida de un comprobante puntual. */
 .rg-help-bad {
-    color: #B02A37;
+    color: var(--cc-bad);
 }
 
 .rg-mt14 { margin-top: 14px; }
@@ -56,7 +56,7 @@
 /* ── Tarjeta ─────────────────────────────────────────────────────────────── */
 .rg-card {
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
 }
 
@@ -67,8 +67,8 @@
     gap: 16px;
     flex-wrap: wrap;
     padding: 16px 20px;
-    background: #FBFCFD;
-    border-bottom: 1px solid #ECEEF1;
+    background: var(--cc-surface-muted);
+    border-bottom: 1px solid var(--cc-line-soft);
     border-radius: 12px 12px 0 0;
 }
 
@@ -82,8 +82,8 @@
 
 .rg-foot {
     padding: 15px 20px;
-    border-top: 1px solid #ECEEF1;
-    background: #FBFCFD;
+    border-top: 1px solid var(--cc-line-soft);
+    background: var(--cc-surface-muted);
     border-radius: 0 0 12px 12px;
     display: flex;
     justify-content: flex-end;
@@ -92,7 +92,7 @@
 
 .rg-divider {
     height: 1px;
-    background: #ECEEF1;
+    background: var(--cc-line-soft);
     margin: 22px 0;
 }
 
@@ -108,23 +108,23 @@
 .rg-card ::deep .rg-input {
     width: 100%;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     padding: 8px 12px;
     font-family: var(--cc-ff-text);
     font-size: 13px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
     min-height: 38px;
 }
 
     .rg-card ::deep .rg-input::placeholder {
-        color: #8A94A3;
+        color: var(--cc-text-label);
     }
 
     .rg-card ::deep .rg-input:focus {
         outline: none;
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     /* Blazor marca los campos validados; sobre este diseño el outline cuadrado del
@@ -135,7 +135,7 @@
     }
 
     .rg-card ::deep .rg-input.invalid {
-        border-color: #DC3545;
+        border-color: var(--cc-bad-edge);
     }
 
 .rg-grid {
@@ -168,7 +168,7 @@
 }
 
     .rg-tot .k {
-        color: #6B7482;
+        color: var(--cc-text-mute);
         text-align: right;
     }
 
@@ -186,14 +186,14 @@
 
     .rg-tot .gk {
         font-weight: 600;
-        color: var(--cc-ink);
+        color: var(--cc-text-strong);
     }
 
     .rg-tot .gv {
         font-family: var(--cc-ff-head);
         font-weight: 700;
         font-size: 19px;
-        color: var(--cc-ink);
+        color: var(--cc-text-strong);
     }
 
 /* ── Aviso del tope ──────────────────────────────────────────────────────── */
@@ -207,13 +207,13 @@
 }
 
 .rg-a-ok {
-    background: #DCF3E7;
-    color: #0F5132;
+    background: var(--cc-ok-bg);
+    color: var(--cc-alert-ok-fg);
 }
 
 .rg-a-bad {
-    background: #FBE0E3;
-    color: #B02A37;
+    background: var(--cc-bad-bg);
+    color: var(--cc-bad);
 }
 
 /* ── Comprobantes ────────────────────────────────────────────────────────── */
@@ -222,12 +222,12 @@
    lector de pantalla que un <div> con onclick habría perdido. */
 .rg-drop {
     display: block;
-    border: 1.5px dashed #D8DDE4;
+    border: 1.5px dashed var(--cc-ctrl-line);
     border-radius: 10px;
-    background: #FAFBFC;
+    background: var(--cc-surface-off);
     padding: 16px;
     text-align: center;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     font-size: 12.5px;
     margin-top: 10px;
     cursor: pointer;
@@ -235,23 +235,23 @@
 
     .rg-drop:hover,
     .rg-drop.cc-drop-over {
-        border-color: var(--cc-navy);
-        background: #F5F8FB;
+        border-color: var(--cc-accent);
+        background: var(--cc-surface-hover);
     }
 
     /* Clase que aplica interop.js mientras un archivo pasa por encima arrastrado. */
     .rg-drop.cc-drop-over {
         border-style: solid;
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     .rg-drop b {
-        color: var(--cc-navy);
+        color: var(--cc-accent);
     }
 
     .rg-drop:focus-within {
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     /* Mientras el circuito interactivo todavia no confirmo su primer render (ver
@@ -263,8 +263,8 @@
     }
 
         .rg-drop.rg-drop-deshabilitada:hover {
-            border-color: #D8DDE4;
-            background: #FAFBFC;
+            border-color: var(--cc-ctrl-line);
+            background: var(--cc-surface-off);
         }
 
 /* ::deep: el <input type="file"> lo renderiza el componente InputFile. Oculto
@@ -297,13 +297,13 @@
         font-size: 10.5px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #8A94A3;
+        color: var(--cc-text-label);
         padding: 0 9px 12px;
         border: 0;
     }
 
     .rg-table tbody tr {
-        border-bottom: 1px solid #ECEEF1;
+        border-bottom: 1px solid var(--cc-line-soft);
     }
 
         .rg-table tbody tr:last-child {
@@ -328,7 +328,7 @@
 .rg-xsm {
     border: none;
     background: transparent;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     font-size: 14px;
     line-height: 1;
     padding: 4px;
@@ -336,8 +336,8 @@
 }
 
     .rg-xsm:hover {
-        background: #FBE0E3;
-        color: #B02A37;
+        background: var(--cc-bad-bg);
+        color: var(--cc-bad);
     }
 
 /* ── Botones ─────────────────────────────────────────────────────────────── */
@@ -357,24 +357,24 @@
 }
 
 .rg-btn-pri {
-    background: var(--cc-navy);
-    color: #fff;
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
 }
 
     .rg-btn-pri:hover:not(:disabled) {
-        background: var(--cc-prussian);
-        color: #fff;
+        background: var(--cc-btn-bg-hover);
+        color: var(--cc-btn-fg);
     }
 
 .rg-btn-ghost {
     background: var(--cc-surface);
-    color: #3C4553;
-    border-color: #D8DDE4;
+    color: var(--cc-btn-ghost-fg);
+    border-color: var(--cc-ctrl-line);
 }
 
     .rg-btn-ghost:hover {
-        background: #F2F6FA;
-        color: #3C4553;
+        background: var(--cc-surface-2);
+        color: var(--cc-btn-ghost-fg);
     }
 
 .rg-btn:disabled {

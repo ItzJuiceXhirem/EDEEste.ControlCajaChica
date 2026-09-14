@@ -17,7 +17,7 @@
     font-size: 29px;
     letter-spacing: -0.02em;
     margin: 0 0 4px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .rep-sub {
@@ -31,7 +31,7 @@
     font-weight: 600;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: rgba(0, 8, 20, 0.5);
+    color: var(--cc-text-dim);
 }
 
 .rep-fondo-pick {
@@ -49,11 +49,11 @@
     height: 38px;
     padding: 0 12px;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     font-family: var(--cc-ff-text);
     font-size: 13px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
 }
 
 .rep-select-sm {
@@ -92,7 +92,7 @@
 
 .rep-job {
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
     border-left: 4px solid var(--cc-gold);
     display: grid;
@@ -103,18 +103,18 @@
 }
 
 .rep-job.quiet {
-    border-left-color: #E1E5EA;
-    background: rgba(0, 53, 102, 0.02);
+    border-left-color: var(--cc-line-card);
+    background: rgba(var(--cc-ink-tint), 0.02);
 }
 
 .rep-jic {
     width: 44px;
     height: 44px;
     border-radius: 10px;
-    background: rgba(0, 53, 102, 0.06);
+    background: rgba(var(--cc-ink-tint), 0.06);
     display: grid;
     place-items: center;
-    color: var(--cc-navy);
+    color: var(--cc-accent);
 }
 
     .rep-jic .rep-ico {
@@ -123,8 +123,8 @@
     }
 
 .rep-job.quiet .rep-jic {
-    color: #6B7482;
-    background: rgba(0, 53, 102, 0.045);
+    color: var(--cc-text-mute);
+    background: rgba(var(--cc-ink-tint), 0.045);
 }
 
 .rep-jt {
@@ -135,7 +135,7 @@
 
 .rep-jd {
     font-size: 12px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin-top: 3px;
     display: flex;
     align-items: center;
@@ -147,20 +147,20 @@
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 22px;
-    color: var(--cc-navy);
+    color: var(--cc-accent);
     line-height: 1;
     text-align: right;
 }
 
 .rep-job.quiet .rep-jn {
-    color: #8A94A3;
+    color: var(--cc-text-label);
 }
 
 .rep-jnl {
     font-size: 10.5px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     text-align: right;
     margin-top: 3px;
 }
@@ -173,18 +173,25 @@
     font-weight: 600;
     padding: 3px 9px;
     border-radius: 999px;
-    background: rgba(0, 53, 102, 0.06);
-    color: var(--cc-navy);
+    background: rgba(var(--cc-ink-tint), 0.06);
+    color: var(--cc-accent);
 }
 
+/* De un solo uso: fondo dorado translucido + texto de advertencia. En oscuro
+   se sube un poco la opacidad para que el tinte siga notandose sobre un fondo
+   ya oscuro. */
 .rep-scope.fondo {
     background: rgba(255, 195, 0, 0.18);
-    color: #7A5C00;
+    color: var(--cc-warn);
+}
+
+html[data-tema="oscuro"] .rep-scope.fondo {
+    background: rgba(255, 195, 0, 0.22);
 }
 
 /* ── Pliegue: separa la bandeja de la consulta por fondo ─────────────────── */
 .rep-fold {
-    border-top: 1px dashed #D8DDE4;
+    border-top: 1px dashed var(--cc-ctrl-line);
     margin-top: 22px;
     padding-top: 20px;
 }
@@ -201,21 +208,21 @@
     font-size: 10.5px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     font-weight: 600;
 }
 
 .rep-line {
     flex: 1;
     height: 1px;
-    background: #E1E5EA;
+    background: var(--cc-line-card);
     min-width: 30px;
 }
 
 /* ── Tarjetas ────────────────────────────────────────────────────────────── */
 .rep-card {
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
 }
 
@@ -236,7 +243,7 @@
     font-weight: 600;
     font-size: 16px;
     margin: 0;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .rep-row {
@@ -299,13 +306,13 @@
 }
 
 .rep-btn-pri {
-    background: var(--cc-navy);
-    color: #fff;
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
 }
 
     .rep-btn-pri:hover:not(:disabled) {
-        background: var(--cc-prussian);
-        color: #fff;
+        background: var(--cc-btn-bg-hover);
+        color: var(--cc-btn-fg);
     }
 
 /* Mismo trazo y color navy que el botón "Desglose" de Arqueos: usado sólo por
@@ -313,20 +320,20 @@
    dirección A. */
 .rep-btn-ghost {
     background: var(--cc-surface);
-    color: var(--cc-navy);
-    border-color: rgba(0, 53, 102, 0.3);
+    color: var(--cc-accent);
+    border-color: var(--cc-line-bold);
 }
 
 .rep-btn-ok {
     background: var(--cc-surface);
-    color: #146C43;
-    border-color: #A6D9BE;
+    color: var(--cc-ok);
+    border-color: var(--cc-ok-line);
 }
 
 .rep-btn-bad {
     background: var(--cc-surface);
-    color: #B02A37;
-    border-color: #E9AFB6;
+    color: var(--cc-bad);
+    border-color: var(--cc-bad-line);
 }
 
 .rep-btn:hover:not(:disabled) {
@@ -348,17 +355,17 @@
     height: 34px;
     padding: 0 11px;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     font-family: var(--cc-ff-text);
     font-size: 12.5px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
 }
 
     .rep-input:focus {
         outline: none;
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
 /* ── Buscador (§5.8) ─────────────────────────────────────────────────────── */
@@ -367,18 +374,18 @@
     align-items: center;
     gap: 8px;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     padding: 5px 10px;
     min-height: 32px;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     white-space: nowrap;
     flex: 0 1 230px;
 }
 
     .rep-search:focus-within {
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     .rep-search svg {
@@ -398,7 +405,7 @@
         background: transparent;
         font-family: var(--cc-ff-text);
         font-size: 12.5px;
-        color: #16202E;
+        color: var(--cc-ctrl-fg);
         padding: 0;
     }
 
@@ -423,15 +430,15 @@
         font-size: 10.5px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #8A94A3;
+        color: var(--cc-text-label);
         padding: 0 9px 12px;
         border: 0;
-        border-bottom: 1px solid rgba(0, 53, 102, 0.22);
+        border-bottom: 1px solid var(--cc-line-strong);
         white-space: nowrap;
     }
 
     .rep-table tbody tr {
-        border-bottom: 1px solid #ECEEF1;
+        border-bottom: 1px solid var(--cc-line-soft);
     }
 
         .rep-table tbody tr:last-child {
@@ -465,11 +472,11 @@
 .rep-code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 11.5px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
 .rep-tfoot {
-    border-top: 2px solid #E1E5EA;
+    border-top: 2px solid var(--cc-line-card);
     display: flex;
     justify-content: space-between;
     padding: 14px 9px 0;
@@ -480,7 +487,7 @@
     .rep-tfoot .v {
         font-family: var(--cc-ff-head);
         font-size: 17px;
-        color: var(--cc-navy);
+        color: var(--cc-total);
     }
 
 /* ── Píldoras de estado (§5.7: fondo tenue, no la variante sólida) ───────── */
@@ -493,11 +500,11 @@
     white-space: nowrap;
 }
 
-.rep-p-ok { background: #DCF3E7; color: #146C43; }
-.rep-p-bad { background: #FBE0E3; color: #B02A37; }
-.rep-p-dark { background: #E4E7EB; color: #343A40; }
-.rep-p-warn { background: #fff3cd; color: #664d03; }
-.rep-p-info { background: #cff4fc; color: #055160; }
+.rep-p-ok { background: var(--cc-ok-bg); color: var(--cc-ok); }
+.rep-p-bad { background: var(--cc-bad-bg); color: var(--cc-bad); }
+.rep-p-dark { background: var(--cc-dark-bg); color: var(--cc-dark-fg); }
+.rep-p-warn { background: var(--cc-warn-bg); color: var(--cc-alert-warn-fg); }
+.rep-p-info { background: var(--cc-info-bg); color: var(--cc-alert-info-fg); }
 
 /* ── Avisos ──────────────────────────────────────────────────────────────── */
 .rep-alert {
@@ -510,13 +517,13 @@
 }
 
 .rep-a-warn {
-    background: #fff3cd;
-    color: #664d03;
+    background: var(--cc-warn-bg);
+    color: var(--cc-alert-warn-fg);
 }
 
 .rep-a-info {
-    background: #D7F3FA;
-    color: #05576B;
+    background: var(--cc-alert-info-bg);
+    color: var(--cc-info);
 }
 
 /* ── Pantallas estrechas ─────────────────────────────────────────────────── */

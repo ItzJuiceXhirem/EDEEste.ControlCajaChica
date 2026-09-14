@@ -16,11 +16,11 @@
     font-size: 29px;
     letter-spacing: -0.02em;
     margin: 0 0 4px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .fnd-sub {
-    color: #6B7482;
+    color: var(--cc-text-mute);
     font-size: 13px;
     margin: 0;
 }
@@ -30,7 +30,7 @@
     font-weight: 600;
     font-size: 14px;
     margin: 0;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .fnd-cap {
@@ -38,19 +38,19 @@
     font-size: 10.5px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     margin-bottom: 6px;
 }
 
 .fnd-help {
     font-size: 11.5px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin: 5px 0 0;
     line-height: 1.5;
 }
 
 .fnd-help-bad {
-    color: #B02A37;
+    color: var(--cc-bad);
 }
 
 .fnd-nomt { margin-top: 0; }
@@ -91,19 +91,19 @@
 ::deep .fnd-input {
     width: 100%;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     padding: 8px 12px;
     font-family: var(--cc-ff-text);
     font-size: 13px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
     min-height: 38px;
 }
 
     ::deep .fnd-input:focus {
         outline: none;
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     ::deep .fnd-input.valid.modified,
@@ -112,7 +112,7 @@
     }
 
     ::deep .fnd-input.invalid {
-        border-color: #DC3545;
+        border-color: var(--cc-bad-edge);
     }
 
 /* El monto condiciona todas las cifras de los pasos siguientes, así que se
@@ -132,12 +132,12 @@
 
 .fnd-select {
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     padding: 8px 12px;
     font-family: var(--cc-ff-text);
     font-size: 13px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
     min-height: 38px;
 }
 
@@ -154,18 +154,18 @@
     align-items: center;
     gap: 8px;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     padding: 6px 12px;
     min-height: 34px;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     white-space: nowrap;
     width: 280px;
 }
 
     .fnd-search:focus-within {
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     .fnd-search svg {
@@ -185,7 +185,7 @@
         background: transparent;
         font-family: var(--cc-ff-text);
         font-size: 13px;
-        color: #16202E;
+        color: var(--cc-ctrl-fg);
         padding: 0;
     }
 
@@ -210,30 +210,37 @@
 }
 
 .fnd-btn-pri {
-    background: var(--cc-navy);
-    color: #fff;
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
 }
 
     .fnd-btn-pri:hover:not(:disabled) {
-        background: var(--cc-prussian);
-        color: #fff;
+        background: var(--cc-btn-bg-hover);
+        color: var(--cc-btn-fg);
     }
 
 .fnd-btn-ghost {
     background: var(--cc-surface);
-    color: var(--cc-navy);
-    border-color: rgba(0, 53, 102, 0.3);
+    color: var(--cc-accent);
+    border-color: var(--cc-line-bold);
 }
 
     .fnd-btn-ghost:hover {
-        background: #F2F6FA;
-        color: var(--cc-navy);
+        background: var(--cc-surface-2);
+        color: var(--cc-accent);
     }
 
+/* De un solo uso (deshabilitado neutro), sin token en app.css a proposito. */
 .fnd-btn:disabled {
     background: #E9ECEF;
     color: #9AA3AE;
     border-color: #E9ECEF;
+}
+
+html[data-tema="oscuro"] .fnd-btn:disabled {
+    background: rgba(255, 253, 245, 0.1);
+    color: rgba(255, 253, 245, 0.4);
+    border-color: transparent;
 }
 
 /* ── Tarjetas de la lista ────────────────────────────────────────────────── */
@@ -250,19 +257,19 @@
     flex-direction: column;
     text-align: left;
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
     padding: 16px 18px;
     font-family: var(--cc-ff-text);
 }
 
     .fnd-card:hover {
-        border-color: var(--cc-navy);
-        box-shadow: 0 2px 10px rgba(0, 53, 102, 0.08);
+        border-color: var(--cc-accent);
+        box-shadow: 0 2px 10px rgba(var(--cc-ink-tint), 0.08);
     }
 
 .fnd-off {
-    background: #FAFBFC;
+    background: var(--cc-surface-off);
 }
 
 .fnd-card-h {
@@ -277,13 +284,13 @@
     font-family: var(--cc-ff-head);
     font-weight: 600;
     font-size: 14.5px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .fnd-role {
     display: block;
     font-size: 11px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin-top: 1px;
 }
 
@@ -291,18 +298,18 @@
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 24px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
     letter-spacing: -0.02em;
     margin-top: 14px;
 }
 
 .fnd-off .fnd-bal {
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
 .fnd-of {
     font-size: 11.5px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
 /* ── Medidor tricolor ────────────────────────────────────────────────────── */
@@ -314,7 +321,7 @@
     display: block;
     height: 10px;
     border-radius: 5px;
-    background: rgba(0, 53, 102, 0.09);
+    background: var(--cc-divider-soft);
     margin-top: 14px;
 }
 
@@ -322,19 +329,28 @@
     position: absolute;
     inset: 0 auto 0 0;
     border-radius: 5px;
-    background: linear-gradient(90deg, #146C43, #198754);
+    background: linear-gradient(90deg, var(--cc-ok), var(--cc-ok-edge));
 }
 
-.fnd-warn .fnd-fill { background: linear-gradient(90deg, #E0A800, #FFC107); }
-.fnd-low .fnd-fill { background: linear-gradient(90deg, #B02A37, #DC3545); }
+/* El extremo claro del degradado de advertencia (#E0A800) es de un solo uso,
+   sin token en app.css a proposito -- el extremo oscuro ya es --cc-warn-edge. */
+.fnd-warn .fnd-fill { background: linear-gradient(90deg, #E0A800, var(--cc-warn-edge)); }
+
+html[data-tema="oscuro"] .fnd-warn .fnd-fill { background: linear-gradient(90deg, #B38600, var(--cc-warn-edge)); }
+
+.fnd-low .fnd-fill { background: linear-gradient(90deg, var(--cc-bad), var(--cc-bad-edge)); }
+
+/* #9AA3AE (gris "fondo retirado") es de un solo uso, sin token a proposito. */
 .fnd-mute .fnd-fill { background: #9AA3AE; }
+
+html[data-tema="oscuro"] .fnd-mute .fnd-fill { background: rgba(255, 253, 245, 0.35); }
 
 .fnd-mark {
     position: absolute;
     top: -4px;
     bottom: -4px;
     width: 2px;
-    background: #DC3545;
+    background: var(--cc-bad-edge);
 }
 
 .fnd-knobs {
@@ -343,7 +359,7 @@
     gap: 8px;
     margin-top: 14px;
     padding-top: 13px;
-    border-top: 1px solid #ECEEF1;
+    border-top: 1px solid var(--cc-line-soft);
 }
 
 .fnd-knob .k {
@@ -351,14 +367,14 @@
     font-size: 9.5px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #8A94A3;
+    color: var(--cc-text-label);
 }
 
 .fnd-knob .v {
     display: block;
     font-size: 13px;
     font-weight: 600;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
     margin-top: 1px;
 }
 
@@ -367,10 +383,10 @@
     gap: 7px;
     align-items: flex-start;
     font-size: 11.5px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin-top: 12px;
     padding-top: 11px;
-    border-top: 1px dashed #E1E5EA;
+    border-top: 1px dashed var(--cc-line-card);
 }
 
     .fnd-note svg {
@@ -390,38 +406,43 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border: 1.5px dashed #D8DDE4;
+    border: 1.5px dashed var(--cc-ctrl-line);
     border-radius: 12px;
     padding: 26px;
-    background: #FAFBFC;
-    color: #6B7482;
+    background: var(--cc-surface-off);
+    color: var(--cc-text-mute);
     text-align: center;
     min-height: 210px;
     font-family: var(--cc-ff-text);
 }
 
     .fnd-new:hover:not(:disabled) {
-        border-color: var(--cc-navy);
-        background: #F5F8FB;
+        border-color: var(--cc-accent);
+        background: var(--cc-surface-hover);
     }
 
     .fnd-new svg {
         width: 26px;
         height: 26px;
-        stroke: var(--cc-navy);
+        stroke: var(--cc-accent);
         fill: none;
         stroke-width: 1.6;
     }
 
+    /* #9AA3AE de un solo uso, mismo tono que .fnd-mute mas arriba. */
     .fnd-new:disabled svg {
         stroke: #9AA3AE;
+    }
+
+    html[data-tema="oscuro"] .fnd-new:disabled svg {
+        stroke: rgba(255, 253, 245, 0.35);
     }
 
 .fnd-new-t {
     font-family: var(--cc-ff-head);
     font-weight: 600;
     font-size: 13.5px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .fnd-new-d {
@@ -432,13 +453,13 @@
     grid-column: 1 / -1;
     margin: 0;
     font-size: 13px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
 /* ── Estado vacío sin custodios ──────────────────────────────────────────── */
 .fnd-empty {
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
     padding: 44px 40px;
     display: flex;
@@ -452,7 +473,7 @@
     width: 52px;
     height: 52px;
     border-radius: 14px;
-    background: #fff3cd;
+    background: var(--cc-warn-bg);
     display: grid;
     place-items: center;
     margin-bottom: 6px;
@@ -461,7 +482,7 @@
     .fnd-empty-ic svg {
         width: 26px;
         height: 26px;
-        stroke: #664d03;
+        stroke: var(--cc-alert-warn-fg);
         fill: none;
         stroke-width: 1.7;
     }
@@ -471,12 +492,12 @@
     font-weight: 600;
     font-size: 17px;
     margin: 0;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .fnd-empty-d {
     font-size: 13px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     max-width: 56ch;
     margin: 0;
 }
@@ -495,7 +516,7 @@
     gap: 11px;
     align-items: flex-start;
     font-size: 12.5px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
     .fnd-empty-step .n {
@@ -503,8 +524,8 @@
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        background: rgba(0, 53, 102, 0.08);
-        color: var(--cc-navy);
+        background: rgba(var(--cc-ink-tint), 0.08);
+        color: var(--cc-accent);
         display: grid;
         place-items: center;
         font-size: 10.5px;
@@ -513,7 +534,7 @@
     }
 
     .fnd-empty-step b {
-        color: #16202E;
+        color: var(--cc-text);
         font-weight: 600;
     }
 
@@ -527,15 +548,15 @@
     white-space: nowrap;
 }
 
-.fnd-p-ok { background: #DCF3E7; color: #146C43; }
-.fnd-p-dark { background: #E4E7EB; color: #343A40; }
-.fnd-p-warn { background: #fff3cd; color: #664d03; }
-.fnd-p-info { background: #cff4fc; color: #055160; }
+.fnd-p-ok { background: var(--cc-ok-bg); color: var(--cc-ok); }
+.fnd-p-dark { background: var(--cc-dark-bg); color: var(--cc-dark-fg); }
+.fnd-p-warn { background: var(--cc-warn-bg); color: var(--cc-alert-warn-fg); }
+.fnd-p-info { background: var(--cc-info-bg); color: var(--cc-alert-info-fg); }
 
 /* ── Tarjeta plana de los formularios ────────────────────────────────────── */
 .fnd-card-plain {
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
 }
 
@@ -545,8 +566,8 @@
 
 .fnd-foot {
     padding: 15px 18px;
-    border-top: 1px solid #ECEEF1;
-    background: #FBFCFD;
+    border-top: 1px solid var(--cc-line-soft);
+    background: var(--cc-surface-muted);
     border-radius: 0 0 11px 11px;
     display: flex;
     gap: 8px;
@@ -587,27 +608,27 @@
     font-size: 11px;
     font-weight: 700;
     font-family: var(--cc-ff-head);
-    background: rgba(0, 53, 102, 0.09);
-    color: #6B7482;
+    background: var(--cc-divider-soft);
+    color: var(--cc-text-mute);
 }
 
-.fnd-on .fnd-num { background: var(--cc-navy); color: #fff; }
-.fnd-done .fnd-num { background: #198754; color: #fff; }
+.fnd-on .fnd-num { background: var(--cc-accent); color: var(--cc-btn-fg); }
+.fnd-done .fnd-num { background: var(--cc-ok-edge); color: var(--cc-btn-fg); }
 
 .fnd-st {
     font-size: 12.5px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
 .fnd-on .fnd-st {
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
     font-weight: 600;
 }
 
 .fnd-line {
     flex: 1;
     height: 1px;
-    background: #E1E5EA;
+    background: var(--cc-line-card);
     margin: 0 14px;
     min-width: 24px;
 }
@@ -616,8 +637,8 @@
 /* Dos escalas separadas a propósito: el fondo se mide en decenas de miles y un
    gasto en cientos; en la misma regla, la segunda desaparecería. */
 .fnd-scale {
-    background: #FBFCFD;
-    border: 1px solid #E1E5EA;
+    background: var(--cc-surface-muted);
+    border: 1px solid var(--cc-line-card);
     border-radius: 10px;
     padding: 14px 16px;
 }
@@ -639,14 +660,14 @@
     font-family: var(--cc-ff-head);
     font-weight: 600;
     font-size: 13px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .fnd-track {
     position: relative;
     height: 26px;
     border-radius: 6px;
-    background: rgba(0, 53, 102, 0.07);
+    background: rgba(var(--cc-ink-tint), 0.07);
 }
 
 .fnd-zone {
@@ -657,6 +678,9 @@
     border-radius: 6px 0 0 6px;
 }
 
+/* Superposiciones translucidas -- ya se leen bien sobre cualquiera de los dos
+   fondos sin necesitar su propia variante de oscuro (a diferencia de una
+   pildora opaca, un tinte translucido se funde con lo que tenga debajo). */
 .fnd-zone-ok { background: rgba(25, 135, 84, 0.16); }
 .fnd-zone-stop { background: rgba(220, 53, 69, 0.14); }
 
@@ -673,8 +697,8 @@
 }
 
 .fnd-pin-gold { background: var(--cc-gold); }
-.fnd-pin-red { background: #DC3545; }
-.fnd-pin-navy { background: var(--cc-navy); }
+.fnd-pin-red { background: var(--cc-bad-edge); }
+.fnd-pin-navy { background: var(--cc-accent); }
 
 .fnd-pin::after {
     content: "";
@@ -701,15 +725,15 @@
    para que no se pisen. */
 .fnd-lbl-low { margin-top: 26px; }
 
-.fnd-lbl-gold { color: #7A5C00; }
-.fnd-lbl-red { color: #B02A37; }
-.fnd-lbl-navy { color: var(--cc-navy); }
+.fnd-lbl-gold { color: var(--cc-warn); }
+.fnd-lbl-red { color: var(--cc-bad); }
+.fnd-lbl-navy { color: var(--cc-accent); }
 
 .fnd-ends {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin-top: 34px;
 }
 
@@ -733,9 +757,9 @@
         margin-top: 2px;
     }
 
-.fnd-verdict-ok { color: #146C43; }
-.fnd-verdict-warn { color: #664d03; }
-.fnd-verdict-bad { color: #B02A37; }
+.fnd-verdict-ok { color: var(--cc-ok); }
+.fnd-verdict-warn { color: var(--cc-alert-warn-fg); }
+.fnd-verdict-bad { color: var(--cc-bad); }
 
 /* ── Resumen y sello ─────────────────────────────────────────────────────── */
 .fnd-review {
@@ -747,13 +771,13 @@
 }
 
     .fnd-review dt {
-        color: #6B7482;
+        color: var(--cc-text-mute);
     }
 
     .fnd-review dd {
         margin: 0;
         font-weight: 600;
-        color: var(--cc-ink);
+        color: var(--cc-text-strong);
     }
 
 .fnd-seal {
@@ -762,8 +786,8 @@
     gap: 10px;
     padding: 13px 15px;
     border-radius: 10px;
-    background: #fff3cd;
-    color: #664d03;
+    background: var(--cc-warn-bg);
+    color: var(--cc-alert-warn-fg);
     font-size: 12.5px;
     margin-top: 18px;
 }
@@ -783,8 +807,8 @@
     display: flex;
     align-items: center;
     gap: 11px;
-    background: #F4F6F8;
-    border: 1px solid #E1E5EA;
+    background: var(--cc-surface-lock);
+    border: 1px solid var(--cc-line-card);
     border-radius: 8px;
     padding: 12px 14px;
 }
@@ -792,7 +816,7 @@
     .fnd-lock svg {
         width: 18px;
         height: 18px;
-        stroke: #6B7482;
+        stroke: var(--cc-text-mute);
         fill: none;
         stroke-width: 1.9;
         flex: none;
@@ -801,7 +825,7 @@
 .fnd-lock-t {
     font-size: 12px;
     font-weight: 600;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .fnd-lock-v {
@@ -809,7 +833,7 @@
     font-family: var(--cc-ff-head);
     font-weight: 700;
     font-size: 18px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 /* ── Avisos ──────────────────────────────────────────────────────────────── */
@@ -822,14 +846,16 @@
     align-items: flex-start;
 }
 
-.fnd-a-info { background: #cff4fc; color: #055160; }
-.fnd-a-warn { background: #fff3cd; color: #664d03; }
-.fnd-a-bad { background: #f8d7da; color: #842029; }
+.fnd-a-info { background: var(--cc-info-bg); color: var(--cc-alert-info-fg); }
+.fnd-a-warn { background: var(--cc-warn-bg); color: var(--cc-alert-warn-fg); }
+.fnd-a-bad { background: var(--cc-alert-bad-bg); color: var(--cc-alert-bad-fg); }
 
 /* ── Modal de cambio de custodio (§5.3) ──────────────────────────────────── */
 /* Contrapeso de --cc-zoom: el velo es `fixed` dentro del árbol escalado y con
    inset:0 acabaría sobresaliendo un 10%. Se le devuelve la escala a 1 (los zoom
    anidados se multiplican) y se le reaplica al modal, que sí debe crecer. */
+/* El velo y la sombra del modal se quedan fijos en los dos temas a proposito
+   -- ver el mismo comentario en Gastos.razor.css. */
 .fnd-scrim {
     position: fixed;
     inset: 0;
@@ -853,8 +879,9 @@
     box-shadow: 0 24px 60px -16px rgba(0, 8, 20, 0.6);
 }
 
+/* Chrome de marca fijo, igual que en Gastos/Arqueos -- no se tokeniza. */
 .fnd-modal-grad {
-    background: linear-gradient(to bottom right, #003566 0%, #001D3D 50%, #000814 100%);
+    background: linear-gradient(to bottom right, var(--cc-navy) 0%, var(--cc-prussian) 50%, var(--cc-ink) 100%);
     padding: 16px 22px;
     display: flex;
     align-items: flex-start;
@@ -870,6 +897,8 @@
         color: var(--cc-ivory);
     }
 
+/* Ivory a proposito y no un token: vive sobre el degradado de marca fijo de
+   .fnd-modal-grad, que tampoco cambia de tema. */
 .fnd-modal-x {
     width: 28px;
     height: 28px;
@@ -897,7 +926,7 @@
 
 .fnd-modal-divider {
     height: 3px;
-    background: radial-gradient(ellipse at center, #FFFDF5 0%, #FFDA20 34%, #FFC300 100%);
+    background: radial-gradient(ellipse at center, var(--cc-ivory) 0%, var(--cc-gold-lt) 34%, var(--cc-gold) 100%);
 }
 
 .fnd-modal-b {
@@ -905,11 +934,12 @@
     background: var(--cc-surface);
     font-size: 13.5px;
     line-height: 1.6;
-    color: #16202E;
+    color: var(--cc-text);
 }
 
+/* Chrome de marca fijo, igual que .fnd-modal-grad. */
 .fnd-modal-f {
-    background: linear-gradient(to bottom right, #003566 0%, #001D3D 50%, #000814 100%);
+    background: linear-gradient(to bottom right, var(--cc-navy) 0%, var(--cc-prussian) 50%, var(--cc-ink) 100%);
     padding: 13px 22px;
     display: flex;
     justify-content: flex-end;
@@ -963,8 +993,8 @@
     align-items: center;
     margin-top: 16px;
     padding: 14px;
-    background: #FBFCFD;
-    border: 1px solid #E1E5EA;
+    background: var(--cc-surface-muted);
+    border: 1px solid var(--cc-line-card);
     border-radius: 9px;
 }
 
@@ -977,7 +1007,7 @@
         font-size: 10px;
         letter-spacing: 0.07em;
         text-transform: uppercase;
-        color: #8A94A3;
+        color: var(--cc-text-label);
     }
 
     .fnd-swap-who .v {
@@ -986,11 +1016,11 @@
         font-weight: 600;
         font-size: 13.5px;
         margin-top: 3px;
-        color: var(--cc-ink);
+        color: var(--cc-text-strong);
     }
 
 .fnd-swap-arrow {
-    color: #8A94A3;
+    color: var(--cc-text-label);
 }
 
     .fnd-swap-arrow svg {

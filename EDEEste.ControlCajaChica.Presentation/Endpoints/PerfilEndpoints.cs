@@ -26,12 +26,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
     /// dueño. Una foto de perfil se escribe y se referencia en el acto, sobre la
     /// propia fila del usuario, que nadie mas toca en operacion normal.
     ///
-    /// La pantalla de Perfil es SSR estatico (no declara @rendermode, usa HttpContext
-    /// en cascada y EditForm method="post"), asi que aqui NO se puede usar el patron de
-    /// RegistrarGasto -- no hay circuito para InputFile ni para interop de JS. Se posta
-    /// con un formulario HTML normal y se responde con una redireccion mas un mensaje
-    /// en la cookie de estado, que es exactamente como esa pantalla ya guarda el resto
-    /// del perfil.
+    /// El avatar vive en ManageLayout, que se usa desde Perfil (interactiva) y desde
+    /// Contraseña (SSR estatico): se posta con un formulario HTML normal, que funciona
+    /// igual en los dos modos, y se responde con una redireccion mas un mensaje en la
+    /// cookie de estado. Perfil lee esa cookie durante su prerender (el unico momento
+    /// con HttpContext) y la conserva con [PersistentState] para la pasada interactiva.
     /// </summary>
     public static class PerfilEndpoints
     {
@@ -282,6 +281,44 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 }
 
                 return VolverAlPerfil(contexto, "Su foto de perfil fue eliminada.");
+            })
+            .RequireAuthorization(Permisos.GestionarPerfilPropio);
+
+            endpoints.MapPost("/perfil/tema", async (
+                HttpContext contexto,
+                IAntiforgery antiforgery,
+                ICurrentUserService usuarioActual,
+                IIdentityService identidad,
+                CancellationToken cancellationToken) =>
+            {
+                // Igual que /perfil/foto/eliminar: sin un IFormFile de por medio, el
+                // binding automatico no dispara la validacion de antiforgery, asi que
+                // se valida a mano. Este endpoint lo llama tema.js por fetch() (no un
+                // <form> de Blazor), por eso el token viaja como campo de formulario
+                // comun y no por el circuito.
+                try
+                {
+                    await antiforgery.ValidateRequestAsync(contexto);
+                }
+                catch (AntiforgeryValidationException)
+                {
+                    return Results.StatusCode(StatusCodes.Status400BadRequest);
+                }
+
+                var usuario = await usuarioActual.ObtenerAsync(cancellationToken);
+                if (usuario.Id is not { } usuarioId)
+                {
+                    return Results.StatusCode(StatusCodes.Status400BadRequest);
+                }
+
+                // Fail-safe: cualquier valor que no sea exactamente "oscuro" se guarda
+                // como null (claro). El tema es una preferencia de interfaz, no un
+                // dato de negocio -- no hace falta devolver un error por un valor raro,
+                // basta con no dejarlo pasar.
+                var tema = contexto.Request.Form["tema"].ToString();
+                await identidad.ActualizarTemaPreferidoAsync(usuarioId, tema == "oscuro" ? "oscuro" : null);
+
+                return Results.NoContent();
             })
             .RequireAuthorization(Permisos.GestionarPerfilPropio);
 

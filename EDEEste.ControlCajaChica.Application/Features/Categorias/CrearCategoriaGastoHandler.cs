@@ -11,9 +11,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
 {
     public sealed class CrearCategoriaGastoHandler
     {
-        private const int LongitudMaximaNombre = 100;
-        private const int LongitudMaximaCuentaContable = 50;
-
         private readonly ICategoriaGastoRepository _categorias;
         private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
@@ -67,9 +64,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             {
                 errores.Add("El nombre es obligatorio.");
             }
-            else if (nombre.Length > LongitudMaximaNombre)
+            else if (nombre.Length > LimitesCategoriaGasto.LongitudMaximaNombre)
             {
-                errores.Add($"El nombre no puede superar {LongitudMaximaNombre} caracteres.");
+                errores.Add($"El nombre no puede superar {LimitesCategoriaGasto.LongitudMaximaNombre} caracteres.");
             }
             else if (nombreDuplicado)
             {
@@ -77,9 +74,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             }
 
             var cuentaContable = comando.CuentaContable?.Trim() ?? string.Empty;
-            if (cuentaContable.Length > LongitudMaximaCuentaContable)
+            if (cuentaContable.Length > LimitesCategoriaGasto.LongitudMaximaCuentaContable)
             {
-                errores.Add($"La cuenta contable no puede superar {LongitudMaximaCuentaContable} caracteres.");
+                errores.Add($"La cuenta contable no puede superar {LimitesCategoriaGasto.LongitudMaximaCuentaContable} caracteres.");
             }
 
             return errores;

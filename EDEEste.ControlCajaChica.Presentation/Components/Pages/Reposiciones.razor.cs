@@ -410,19 +410,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 NombreUsuario(solicitud.FinanzasUsuarioId)
             };
 
-            return campos.Any(campo => campo is not null && ContieneSinAcentos(campo, busqueda));
-        }
-
-        private static bool ContieneSinAcentos(string texto, string busqueda) =>
-            NormalizarParaBusqueda(texto).Contains(NormalizarParaBusqueda(busqueda), StringComparison.OrdinalIgnoreCase);
-
-        private static string NormalizarParaBusqueda(string valor)
-        {
-            var normalizado = valor.Normalize(NormalizationForm.FormD);
-            var sinDiacriticos = normalizado.Where(c =>
-                CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark);
-
-            return new string(sinDiacriticos.ToArray()).Normalize(NormalizationForm.FormC);
+            return campos.Any(campo => campo is not null && BusquedaTexto.ContieneSinAcentos(campo, busqueda));
         }
 
         private decimal TotalRepuesto =>

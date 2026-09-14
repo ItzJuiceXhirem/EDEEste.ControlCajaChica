@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using Microsoft.AspNetCore.Components;
 
 namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
@@ -65,7 +66,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Account.Pages
         private sealed class InputModel
         {
             [Required(ErrorMessage = "Indique la contraseña nueva.")]
-            [StringLength(100, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = 8)]
+            [StringLength(LimitesContrasena.LongitudMaxima, ErrorMessage = "La {0} debe tener entre {2} y {1} caracteres.", MinimumLength = LimitesContrasena.LongitudMinima)]
             [DataType(DataType.Password)]
             [Display(Name = "Contraseña nueva")]
             public string Password { get; set; } = "";

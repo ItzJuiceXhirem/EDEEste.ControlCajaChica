@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
@@ -22,10 +23,26 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         // Scoped, cualquier forma de conectarlas -- por aqui o por el lambda de
         // AddDbContext -- revienta con ManyServiceProvidersCreatedWarning pasadas ~20
         // peticiones, porque EF ve una instancia de interceptor distinta cada vez.
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly ICurrentUserService _usuarioActual;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentUserService usuarioActual)
             : base(options)
         {
+            _usuarioActual = usuarioActual;
         }
+
+        /// <summary>
+        /// Quien queda en la bitacora de este guardado. AuditoriaInterceptor lo pide a
+        /// traves del contexto porque, siendo Singleton, no puede recibir
+        /// ICurrentUserService (Scoped) por constructor; el contexto si, y vive en el
+        /// mismo ambito de DI que la peticion o el circuito que esta guardando. Un
+        /// contexto de un ambito creado a mano con IServiceScopeFactory dentro de un
+        /// circuito no tiene su AuthenticationStateProvider inicializado y puede
+        /// quedar como "Sistema": ese ambito necesita recibir el estado de
+        /// autenticacion del circuito antes de guardar.
+        /// </summary>
+        internal async Task<string?> ObtenerUsuarioAuditoriaAsync(CancellationToken cancellationToken) =>
+            (await _usuarioActual.ObtenerAsync(cancellationToken)).Id;
 
         public DbSet<Gasto> Gastos { get; set; }
         public DbSet<FondoCajaChica> Fondos { get; set; }
@@ -327,7 +344,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             // Texto libre del mismo tenor que Concepto, asi que se le da la misma cota.
             modelBuilder.Entity<Gasto>()
                 .Property(g => g.MotivoAnulacion)
-                .HasMaxLength(500);
+                .HasMaxLength(LimitesGasto.LongitudMaximaMotivoAnulacion);
 
             modelBuilder.Entity<ComprobanteAdjunto>(comprobante =>
             {
@@ -348,8 +365,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
             modelBuilder.Entity<CategoriaGasto>(categoria =>
             {
-                categoria.Property(c => c.Nombre).HasMaxLength(100);
-                categoria.Property(c => c.CuentaContable).HasMaxLength(50);
+                categoria.Property(c => c.Nombre).HasMaxLength(LimitesCategoriaGasto.LongitudMaximaNombre);
+                categoria.Property(c => c.CuentaContable).HasMaxLength(LimitesCategoriaGasto.LongitudMaximaCuentaContable);
             });
 
             modelBuilder.Entity<SolicitudReposicion>(reposicion =>

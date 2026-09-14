@@ -107,6 +107,33 @@
     <AuthorizeView>
         <Authorized>
             <div class="cc-navfoot">
+                @* Control de dos posiciones y no un interruptor de una: con las
+                   dos etiquetas a la vista nunca hay que adivinar si el icono
+                   representa el estado actual o el que se va a activar.
+
+                   onclick nativo y no @@onclick de Blazor: el tema es una
+                   preferencia del navegador, no estado de la aplicacion — por el
+                   circuito costaria un viaje al servidor por clic. El
+                   aria-pressed inicial lo corrige tema.js al cargar, porque aqui
+                   el servidor no puede saber que eligio este navegador. *@
+                <div class="cc-tema" role="group" aria-label="Tema de la aplicación">
+                    <button type="button" data-cc-tema="claro" aria-pressed="true"
+                            onclick="ccTema.fijar('claro')">
+                        <svg class="cc-ico cc-ico-sm" viewBox="0 0 20 20" aria-hidden="true">
+                            <circle cx="10" cy="10" r="3.4" />
+                            <path d="M10 2.6v1.7M10 15.7v1.7M2.6 10h1.7M15.7 10h1.7M4.75 4.75l1.2 1.2M14.05 14.05l1.2 1.2M15.25 4.75l-1.2 1.2M5.95 14.05l-1.2 1.2" />
+                        </svg>
+                        <span>Claro</span>
+                    </button>
+                    <button type="button" data-cc-tema="oscuro" aria-pressed="false"
+                            onclick="ccTema.fijar('oscuro')">
+                        <svg class="cc-ico cc-ico-sm" viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M15.6 11.9A6.3 6.3 0 0 1 8.1 4.4a6.3 6.3 0 1 0 7.5 7.5Z" />
+                        </svg>
+                        <span>Oscuro</span>
+                    </button>
+                </div>
+
                 <NavLink class="cc-profile" href="Account/Manage">
                     @* El icono generico queda debajo como respaldo y la foto lo tapa
                        cuando carga. Se pide siempre, sin consultar antes si existe: una

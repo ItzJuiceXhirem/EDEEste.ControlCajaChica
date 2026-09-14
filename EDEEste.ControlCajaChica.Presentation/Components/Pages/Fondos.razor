@@ -211,7 +211,9 @@ else if (vista == Vista.Nuevo)
                     <div class="fnd-grid2">
                         <div>
                             <label class="fnd-cap" for="fnd-monto">Monto fijo (RD$)</label>
-                            <InputNumber id="fnd-monto" @bind-Value="entrada.MontoFijo" class="fnd-input fnd-input-xl" />
+                            <input type="number" id="fnd-monto" class="fnd-input fnd-input-xl" min="0" step="0.01"
+                                   placeholder="0" value="@MontoFijoTexto(entrada.MontoFijo)"
+                                   @onchange="e => FijarMontoFijo(entrada, e.Value?.ToString())" />
                             <p class="fnd-help">
                                 Es el efectivo con el que arranca la caja y contra el que se calculan todos
                                 los límites. <b>NO se puede editar una vez creado el fondo.</b>

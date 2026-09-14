@@ -64,7 +64,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
         }
 
         /// <summary>
-        /// Elige de donde salen las contrasenas segun <c>Autenticacion:Modo</c>.
+        /// Elige de donde salen las contraseñas segun <c>Autenticacion:Modo</c>.
         ///
         /// El cliente del APICommon se registra SIEMPRE, incluso en modo Local:
         /// consultar la ficha de alguien en el directorio es util por si solo y no
@@ -173,7 +173,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
         /// </summary>
         private static void AgregarAlmacenamiento(IServiceCollection services, string rutaRaizContenido) =>
             services.Configure<OpcionesAlmacenamiento>(
-                opciones => opciones.RutaRaiz = Path.Combine(rutaRaizContenido, "App_Data"));
+                opciones => opciones.RutaRaiz = Path.Combine(rutaRaizContenido, OpcionesAlmacenamiento.NombreCarpeta));
 
         private static void AgregarCriptografia(IServiceCollection services, IConfiguration configuration)
         {
@@ -228,8 +228,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             // SIEMPRE la misma instancia o revienta con ManyServiceProvidersCreated
             // Warning pasadas ~20 peticiones (se probo con instancias Scoped, por dos
             // caminos distintos, y las dos lo dispararon). AuditoriaInterceptor no
-            // puede entonces recibir ICurrentUserService (Scoped) por constructor; lee
-            // el usuario actual de AmbientUsuarioActual en su lugar -- ver ese archivo.
+            // puede entonces recibir ICurrentUserService (Scoped) por constructor; se lo
+            // pide al ApplicationDbContext que guarda (ver ObtenerUsuarioAuditoriaAsync).
             services.AddSingleton<IInterceptor, AuditoriaInterceptor>();
             services.AddSingleton<IInterceptor, IntegridadInterceptor>();
 

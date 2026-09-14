@@ -117,18 +117,23 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         /// lectura uniforme de todos los fondos de un vistazo, mientras que el aviso de
         /// "toca solicitar reposicion" si respeta el umbral configurado de cada fondo.
         /// </summary>
+        /* Devuelven el NOMBRE del token, no el color: estos valores terminan en un
+           atributo style, donde var(--x) se resuelve igual que en una hoja de
+           estilo. Asi el semaforo sigue al tema (los tonos de estado se aclaran
+           sobre fondo oscuro, DESIGN.md §5.3/§5.4) sin que C# tenga que saber
+           cual esta activo — que no puede: el tema vive en el navegador. */
         private static string ColorAnillo(decimal porcentaje) => porcentaje switch
         {
-            >= 50m => "#198754",
-            >= 30m => "#FFC107",
-            _ => "#DC3545"
+            >= 50m => "var(--cc-ok-edge)",
+            >= 30m => "var(--cc-warn-edge)",
+            _ => "var(--cc-bad-edge)"
         };
 
         private static string ColorResultado(ResultadoArqueo resultado) => resultado switch
         {
-            ResultadoArqueo.Cuadrado => "#198754",
-            ResultadoArqueo.Sobrante => "#0DCAF0",
-            _ => "#DC3545"
+            ResultadoArqueo.Cuadrado => "var(--cc-ok-edge)",
+            ResultadoArqueo.Sobrante => "var(--cc-info-edge)",
+            _ => "var(--cc-bad-edge)"
         };
 
         private static string EtiquetaResultado(ResultadoArqueo resultado) => resultado switch
@@ -165,7 +170,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
                 if (separacion > 0d)
                 {
-                    tramos.Append(Invariante, $", #FFFFFF {finColor:0.##}deg {finTramo:0.##}deg");
+                    // La rendija toma el color de la SUPERFICIE, no un blanco fijo:
+                    // con #FFFFFF, en tema oscuro quedaba una raya blanca cortando
+                    // el anillo en vez de una separacion invisible.
+                    tramos.Append(Invariante, $", var(--cc-ring-slot) {finColor:0.##}deg {finTramo:0.##}deg");
                 }
             }
 

@@ -16,7 +16,7 @@
     font-size: 27px;
     letter-spacing: -0.02em;
     margin: 0 0 4px;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .cat-sub {
@@ -34,7 +34,7 @@
 
 .cat-segmented {
     display: flex;
-    background: rgba(0, 53, 102, 0.06);
+    background: rgba(var(--cc-ink-tint), 0.06);
     border-radius: 8px;
     padding: 3px;
     gap: 2px;
@@ -48,13 +48,13 @@
     font-family: var(--cc-ff-text);
     font-size: 12.5px;
     font-weight: 600;
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
 .cat-seg-on {
     background: var(--cc-surface);
-    color: var(--cc-navy);
-    box-shadow: 0 1px 2px rgba(0, 53, 102, 0.15);
+    color: var(--cc-accent);
+    box-shadow: 0 1px 2px rgba(var(--cc-ink-tint), 0.15);
 }
 
 /* §5.8: el buscador no parte su texto en dos líneas. */
@@ -63,18 +63,18 @@
     align-items: center;
     gap: 8px;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 8px;
     padding: 6px 12px;
     min-height: 34px;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     white-space: nowrap;
     width: 260px;
 }
 
     .cat-search:focus-within {
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
     .cat-search svg {
@@ -94,7 +94,7 @@
         background: transparent;
         font-family: var(--cc-ff-text);
         font-size: 13px;
-        color: #16202E;
+        color: var(--cc-ctrl-fg);
         padding: 0;
     }
 
@@ -144,8 +144,8 @@
 }
 
 .cat-a-bad {
-    background: #f8d7da;
-    color: #842029;
+    background: var(--cc-alert-bad-bg);
+    color: var(--cc-alert-bad-fg);
 }
 
 /* ── Layout de dos columnas ──────────────────────────────────────────────── */
@@ -158,13 +158,13 @@
 
 .cat-card {
     background: var(--cc-surface);
-    border: 1px solid #E1E5EA;
+    border: 1px solid var(--cc-line-card);
     border-radius: 12px;
 }
 
 .cat-card-h {
     padding: 14px 18px;
-    border-bottom: 1px solid #ECEEF1;
+    border-bottom: 1px solid var(--cc-line-soft);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -175,11 +175,11 @@
     font-weight: 600;
     font-size: 15px;
     margin: 0;
-    color: var(--cc-ink);
+    color: var(--cc-text-strong);
 }
 
 .cat-mut {
-    color: #6B7482;
+    color: var(--cc-text-mute);
     font-size: 12px;
 }
 
@@ -200,13 +200,13 @@
         font-size: 10.5px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #8A94A3;
+        color: var(--cc-text-label);
         padding: 12px 18px 10px;
         white-space: nowrap;
     }
 
 .cat-row {
-    border-top: 1px solid #ECEEF1;
+    border-top: 1px solid var(--cc-line-soft);
 }
 
     .cat-row td {
@@ -217,7 +217,7 @@
 .cat-code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
 }
 
 .cat-table .act {
@@ -234,8 +234,8 @@
     white-space: nowrap;
 }
 
-.cat-p-ok { background: #DCF3E7; color: #146C43; }
-.cat-p-dark { background: #E4E7EB; color: #343A40; }
+.cat-p-ok { background: var(--cc-ok-bg); color: var(--cc-ok); }
+.cat-p-dark { background: var(--cc-dark-bg); color: var(--cc-dark-fg); }
 
 /* ── Botones ─────────────────────────────────────────────────────────────── */
 .cat-btn {
@@ -253,22 +253,22 @@
 }
 
 .cat-btn-pri {
-    background: var(--cc-navy);
-    color: #fff;
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
 }
 
     .cat-btn-pri:hover:not(:disabled) {
-        background: var(--cc-prussian);
+        background: var(--cc-btn-bg-hover);
     }
 
 .cat-btn-ghost {
     background: var(--cc-surface);
-    color: var(--cc-navy);
-    border-color: rgba(0, 53, 102, 0.3);
+    color: var(--cc-accent);
+    border-color: var(--cc-line-bold);
 }
 
     .cat-btn-ghost:hover {
-        background: #F2F6FA;
+        background: var(--cc-surface-2);
     }
 
 .cat-btn:disabled {
@@ -285,8 +285,8 @@
 }
 
 .cat-editbox {
-    background: #FBFCFD;
-    border: 1px solid #E1E5EA;
+    background: var(--cc-surface-muted);
+    border: 1px solid var(--cc-line-card);
     border-radius: 10px;
     padding: 14px 16px;
 }
@@ -295,8 +295,8 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    background: #cff4fc;
-    color: #055160;
+    background: var(--cc-info-bg);
+    color: var(--cc-alert-info-fg);
     border-radius: 8px;
     padding: 9px 12px;
     font-size: 12px;
@@ -331,31 +331,31 @@
     font-size: 10px;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: #8A94A3;
+    color: var(--cc-text-label);
     margin-bottom: 5px;
 }
 
 .cat-field {
     width: 100%;
     background: var(--cc-surface);
-    border: 1px solid #D8DDE4;
+    border: 1px solid var(--cc-ctrl-line);
     border-radius: 7px;
     padding: 7px 10px;
     font-family: var(--cc-ff-text);
     font-size: 13px;
-    color: #16202E;
+    color: var(--cc-ctrl-fg);
     min-height: 34px;
 }
 
     .cat-field:focus {
         outline: none;
-        border-color: var(--cc-navy);
-        box-shadow: 0 0 0 3px rgba(0, 53, 102, 0.12);
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
     }
 
 .cat-help {
     font-size: 11px;
-    color: #6B7482;
+    color: var(--cc-text-mute);
     margin: 5px 0 0;
 }
 
@@ -375,7 +375,7 @@
     align-items: center;
     gap: 8px;
     font-size: 12.5px;
-    color: #16202E;
+    color: var(--cc-text);
     cursor: pointer;
 }
 
@@ -391,12 +391,16 @@
     width: 34px;
     height: 19px;
     border-radius: 999px;
-    background: #E1E5EA;
+    background: var(--cc-line-card);
     position: relative;
     flex: none;
     transition: background .15s ease;
 }
 
+/* La perilla se queda blanca y con sombra neutra en los dos temas a
+   proposito: es la metafora de un interruptor fisico, no una superficie de
+   la app -- igual que la perilla de cualquier switch de iOS/Android se
+   mantiene blanca en su propio modo oscuro. */
 .cat-sw-kn {
     position: absolute;
     top: 2px;
@@ -410,7 +414,7 @@
 }
 
 .cat-sw-input:checked + .cat-sw {
-    background: var(--cc-navy);
+    background: var(--cc-accent);
 }
 
 .cat-sw-input:checked + .cat-sw .cat-sw-kn {
@@ -418,20 +422,21 @@
 }
 
 .cat-sw-input:focus-visible + .cat-sw {
-    outline: 2px solid rgba(0, 53, 102, 0.35);
+    outline: 2px solid rgba(var(--cc-ink-tint), 0.35);
     outline-offset: 2px;
 }
 
 /* ── Panel de alta con look de ficha (§5.3/§5.9) ─────────────────────────── */
 .cat-ficha {
     background: var(--cc-surface);
-    border: 1px solid #ECEEF1;
+    border: 1px solid var(--cc-line-soft);
     border-radius: 12px;
     overflow: hidden;
 }
 
+/* Chrome de marca fijo (igual que Gastos/Arqueos/Fondos) -- no se tokeniza. */
 .cat-ficha-h {
-    background: linear-gradient(to bottom right, #003566, #001D3D 55%, #000814);
+    background: linear-gradient(to bottom right, var(--cc-navy), var(--cc-prussian) 55%, var(--cc-ink));
     color: var(--cc-ivory);
     padding: 16px 18px;
 }
@@ -442,6 +447,7 @@
         font-size: 16px;
     }
 
+    /* #BCCDE0 fijo: texto secundario sobre el degradado de marca de arriba. */
     .cat-ficha-h .s {
         font-size: 11.5px;
         color: #BCCDE0;
@@ -450,7 +456,7 @@
 
 .cat-hair {
     height: 3px;
-    background: linear-gradient(90deg, #FFC300, #FFDA20, #FFFDF5, #FFDA20, #FFC300);
+    background: linear-gradient(90deg, var(--cc-gold), var(--cc-gold-lt), var(--cc-ivory), var(--cc-gold-lt), var(--cc-gold));
 }
 
 .cat-ficha-b {
@@ -459,8 +465,8 @@
 
 .cat-ficha-foot {
     padding: 14px 18px;
-    border-top: 1px solid #ECEEF1;
-    background: #FBFCFD;
+    border-top: 1px solid var(--cc-line-soft);
+    background: var(--cc-surface-muted);
 }
 
 /* ── Pantallas estrechas ─────────────────────────────────────────────────── */

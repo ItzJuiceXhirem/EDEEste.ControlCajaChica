@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using EDEEste.ControlCajaChica.Domain.Common;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using EDEEste.ControlCajaChica.Domain.Interfaces;
 using System.Text;
@@ -22,7 +23,7 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         /// Se guarda como porcentaje (2.5), no como fraccion, igual que
         /// PorcentajeAlertaReposicion.
         /// </summary>
-        public decimal PorcentajeMaximoPorGasto { get; set; } = 2.5m;
+        public decimal PorcentajeMaximoPorGasto { get; set; } = LimitesFondo.TopePorGastoPorDefecto;
 
         public decimal PorcentajeAlertaReposicion { get; set; }
         public string CustodioId { get; set; } = string.Empty; //FK hacia Usuario (Identity)
