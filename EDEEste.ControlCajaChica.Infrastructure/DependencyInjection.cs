@@ -228,8 +228,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             // SIEMPRE la misma instancia o revienta con ManyServiceProvidersCreated
             // Warning pasadas ~20 peticiones (se probo con instancias Scoped, por dos
             // caminos distintos, y las dos lo dispararon). AuditoriaInterceptor no
-            // puede entonces recibir ICurrentUserService (Scoped) por constructor; lee
-            // el usuario actual de AmbientUsuarioActual en su lugar -- ver ese archivo.
+            // puede entonces recibir ICurrentUserService (Scoped) por constructor; se lo
+            // pide al ApplicationDbContext que guarda (ver ObtenerUsuarioAuditoriaAsync).
             services.AddSingleton<IInterceptor, AuditoriaInterceptor>();
             services.AddSingleton<IInterceptor, IntegridadInterceptor>();
 

@@ -1,2 +1,4 @@
 @using EDEEste.ControlCajaChica.Presentation.Components.Account.Shared
-@attribute [ExcludeFromInteractiveRouting]
+@* Sin [ExcludeFromInteractiveRouting] aqui: cada pagina lo declara por su cuenta.
+   Perfil (Manage/Index) es interactiva; Contraseña, Login, Register y la
+   recuperacion siguen en SSR estatico a proposito (ver AGENTS.md, Gotchas). *@

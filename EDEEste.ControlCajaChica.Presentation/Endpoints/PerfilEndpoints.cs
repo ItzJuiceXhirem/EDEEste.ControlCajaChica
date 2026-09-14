@@ -26,12 +26,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
     /// dueño. Una foto de perfil se escribe y se referencia en el acto, sobre la
     /// propia fila del usuario, que nadie mas toca en operacion normal.
     ///
-    /// La pantalla de Perfil es SSR estatico (no declara @rendermode, usa HttpContext
-    /// en cascada y EditForm method="post"), asi que aqui NO se puede usar el patron de
-    /// RegistrarGasto -- no hay circuito para InputFile ni para interop de JS. Se posta
-    /// con un formulario HTML normal y se responde con una redireccion mas un mensaje
-    /// en la cookie de estado, que es exactamente como esa pantalla ya guarda el resto
-    /// del perfil.
+    /// El avatar vive en ManageLayout, que se usa desde Perfil (interactiva) y desde
+    /// Contraseña (SSR estatico): se posta con un formulario HTML normal, que funciona
+    /// igual en los dos modos, y se responde con una redireccion mas un mensaje en la
+    /// cookie de estado. Perfil lee esa cookie durante su prerender (el unico momento
+    /// con HttpContext) y la conserva con [PersistentState] para la pasada interactiva.
     /// </summary>
     public static class PerfilEndpoints
     {

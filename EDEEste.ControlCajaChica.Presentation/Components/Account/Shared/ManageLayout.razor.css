@@ -108,6 +108,13 @@
         color: #B3261E;
     }
 
+    .mgl-av-quitar button:disabled,
+    .mgl-av-quitar button:disabled:hover {
+        color: var(--cc-ivory);
+        opacity: .6;
+        cursor: progress;
+    }
+
 .mgl-av-ov {
     grid-area: 1 / 1;
     position: absolute;
@@ -123,6 +130,18 @@
 
     .mgl-av:hover .mgl-av-ov {
         opacity: 1;
+    }
+
+/* Perfil se prerenderiza antes de que conecte el circuito (ver FotoDisponible en
+   ManageLayout.razor.cs): mientras tanto el avatar no abre el selector, y no debe
+   invitar a pulsarlo con el lapiz. Va despues de la regla de :hover a proposito --
+   misma especificidad, gana la ultima. */
+.mgl-av-espera {
+    cursor: progress;
+}
+
+    .mgl-av-espera:hover .mgl-av-ov {
+        opacity: 0;
     }
 
     .mgl-av-ov svg {

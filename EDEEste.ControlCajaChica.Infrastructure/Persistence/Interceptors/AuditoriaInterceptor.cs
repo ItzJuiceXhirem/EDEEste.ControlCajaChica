@@ -30,9 +30,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
     /// pasadas ~20 peticiones, porque en ambas EF ve una instancia distinta cada vez).
     ///
     /// Por ser Singleton, NO puede recibir ICurrentUserService (Scoped) por
-    /// constructor. En su lugar lee AmbientUsuarioActual, un AsyncLocal que
-    /// ICurrentUserService.ObtenerAsync() deja puesto -- ver ese archivo y el
-    /// comentario de AmbientUsuarioActual para el porque esto es seguro.
+    /// constructor. Se lo pide al ApplicationDbContext que esta guardando, que si es
+    /// Scoped (ver ApplicationDbContext.ObtenerUsuarioAuditoriaAsync). No usar un
+    /// AsyncLocal asignado dentro de un metodo async para esto: el metodo restaura el
+    /// ExecutionContext al salir, el valor nunca llega al llamador, y toda la
+    /// bitacora quedaba a nombre de "Sistema".
     /// </summary>
     public class AuditoriaInterceptor : SaveChangesInterceptor
     {
@@ -94,8 +96,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
         {
             if (eventData.Context is not null)
             {
-                var usuarioId = ResolverUsuario();
-                var logs = PrepararEntidades(eventData.Context, usuarioId);
+                // El lado sincrono no puede esperar a ICurrentUserService.ObtenerAsync.
+                // Ningun camino de la app guarda de forma sincrona (ver
+                // ApplicationDbContext.SaveChanges), asi que aqui queda "Sistema".
+                var logs = PrepararEntidades(eventData.Context, UsuarioSistema);
 
                 if (logs.Count > 0)
                 {
@@ -122,7 +126,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
         {
             if (eventData.Context is not null)
             {
-                var usuarioId = ResolverUsuario();
+                var usuarioId = await ResolverUsuarioAsync(eventData.Context, cancellationToken);
                 var logs = PrepararEntidades(eventData.Context, usuarioId);
 
                 if (logs.Count > 0)
@@ -143,7 +147,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             return await base.SavingChangesAsync(eventData, result, cancellationToken);
         }
 
-        private static string ResolverUsuario() => AmbientUsuarioActual.UsuarioId ?? UsuarioSistema;
+        private static async Task<string> ResolverUsuarioAsync(DbContext context, CancellationToken cancellationToken) =>
+            context is ApplicationDbContext aplicacion
+                ? await aplicacion.ObtenerUsuarioAuditoriaAsync(cancellationToken) ?? UsuarioSistema
+                : UsuarioSistema;
 
         /// <summary>
         /// Recorre el ChangeTracker aplicando auditoria y firma, y devuelve los logs
