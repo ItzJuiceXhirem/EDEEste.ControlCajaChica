@@ -3,9 +3,7 @@ using System.Collections.Generic;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 {
-    /// <summary>
-    /// Datos para registrar un gasto de caja chica junto con sus comprobantes.
-    /// </summary>
+    // Datos para registrar un gasto de caja chica junto con sus comprobantes
     public sealed class RegistrarGastoCommand
     {
         public Guid FondoCajaChicaId { get; set; }
@@ -25,12 +23,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
         /// <summary>
         /// Un comprobante ya subido a staging (ver GastoEndpoints, endpoint POST
-        /// /gastos/comprobantes/staging) y la transcripcion que le puso el usuario.
+        /// /gastos/comprobantes/staging) y la transcripción que le puso el usuario.
         ///
-        /// No lleva nombre, MIME, tamaño ni contenido: esos datos nunca se confia en
+        /// No lleva nombre, MIME, tamaño ni contenido: esos datos nunca se confía en
         /// ellos si vienen del cliente -- el handler los resuelve del lado del
-        /// servidor a partir de Referencia (via IFileStorageService), leyendolos del
-        /// manifiesto firmado que se guardo al subir el archivo.
+        /// servidor a partir de Referencia (via IFileStorageService), leyéndolos del
+        /// manifiesto firmado que se guardó al subir el archivo.
         /// </summary>
         public sealed class ComprobanteEntrada
         {

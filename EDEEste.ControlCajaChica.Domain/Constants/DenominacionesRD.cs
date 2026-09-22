@@ -22,7 +22,7 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
             25m, 10m, 5m, 1m
         ];
 
-        /// <summary>De mayor a menor, que es el orden en que se cuenta una caja.</summary>
+        // De mayor a menor, que es el orden en que se cuenta una caja
         public static readonly IReadOnlyList<decimal> Todas =
         [
             2000m, 1000m, 500m, 200m, 100m, 50m, 25m, 10m, 5m, 1m

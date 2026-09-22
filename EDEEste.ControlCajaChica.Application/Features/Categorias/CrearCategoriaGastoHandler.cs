@@ -70,7 +70,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             }
             else if (nombreDuplicado)
             {
-                errores.Add($"Ya existe una categoria llamada '{nombre}'.");
+                errores.Add($"Ya existe una categoría llamada '{nombre}'.");
             }
 
             var cuentaContable = comando.CuentaContable?.Trim() ?? string.Empty;

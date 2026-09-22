@@ -11,9 +11,9 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 {
     /// <summary>
-    /// El Gerente decide que la anulacion que pidio el Custodio no procede: el gasto
+    /// El Gerente decide que la anulación que pidió el Custodio no procede: el gasto
     /// vuelve a PendienteReposicion tal como estaba. No inyecta IFondoRepository a
-    /// proposito: como SolicitarAnulacionGastoHandler nunca abono el fondo, revertir
+    /// propósito: como SolicitarAnulacionGastoHandler nunca abonó el fondo, revertir
     /// tampoco tiene nada que devolver.
     /// </summary>
     public sealed class RevertirAnulacionGastoHandler
@@ -34,8 +34,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             RevertirAnulacionGastoCommand comando,
             CancellationToken cancellationToken = default)
         {
-            // Mismo permiso que anular directo: revertir es la misma autoridad
-            // (Gerente) sobre el mismo expediente.
+            // Mismo permiso que anular directo: revertir es la misma autoridad (Gerente) sobre el mismo expediente.
             if (!await _autorizacion.TienePermisoAsync(Permisos.AnularGasto, cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo("No tiene permiso para revertir una anulación.");
@@ -55,15 +54,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
             gasto.Estado = EstadoGasto.PendienteReposicion;
 
-            // Se limpia el motivo: dejarlo puesto en un gasto que vuelve a estar vivo
-            // haria creer que sigue anulado. El intento queda registrado en
-            // LogAuditoria de todas formas.
+            /* Se limpia el motivo: dejarlo puesto en un gasto que vuelve a estar vivo haría
+               creer que sigue anulado. El intento queda registrado en LogAuditoria de todas formas */
             gasto.MotivoAnulacion = null;
 
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo(
-                    "Otro usuario modifico este gasto mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+                    "Otro usuario modificó este gasto mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
             }
 
             return ResultadoOperacion<Guid>.Ok(gasto.Id);
@@ -76,7 +74,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             if (gasto.Estado != EstadoGasto.AnulacionPendiente)
             {
                 errores.Add(
-                    $"Solo se puede revertir un gasto con anulacion pendiente. Este gasto esta en estado {gasto.Estado}.");
+                    $"Solo se puede revertir un gasto con anulación pendiente. Este gasto está en estado {gasto.Estado}.");
             }
 
             if (!gasto.IntegridadVerificada)

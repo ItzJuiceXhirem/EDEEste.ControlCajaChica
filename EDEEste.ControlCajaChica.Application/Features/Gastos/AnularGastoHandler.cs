@@ -11,10 +11,10 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 {
     /// <summary>
-    /// Anula un gasto y devuelve su monto al fondo. Es el unico handler del flujo de
-    /// anulacion que inyecta IFondoRepository, precisamente porque es el unico que
-    /// tiene autoridad para mover dinero (Gerente): tanto la anulacion directa como
-    /// la confirmacion de una que pidio el Custodio pasan por aqui.
+    /// Anula un gasto y devuelve su monto al fondo. Es el único handler del flujo de
+    /// anulación que inyecta IFondoRepository, precisamente porque es el único que
+    /// tiene autoridad para mover dinero (Gerente): tanto la anulación directa como
+    /// la confirmación de una que pidió el Custodio pasan por aquí.
     /// </summary>
     public sealed class AnularGastoHandler
     {
@@ -68,15 +68,15 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
             gasto.Estado = EstadoGasto.Anulado;
 
-            // Aqui vuelve el efectivo: es el unico momento del flujo de anulacion en
-            // que alguien con autoridad lo aprueba. El paso AnulacionPendiente no
-            // abona nada, asi que este += es el primero y el ultimo del flujo.
+          /* Aquí vuelve el efectivo: es el único momento del flujo de anulación en
+             que alguien con autoridad lo aprueba. El paso AnulacionPendiente no
+             abona nada, asi que este += es el primero y el ultimo del flujo. */
             fondo.BalanceActual += gasto.MontoTotal;
 
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo(
-                    "Otro usuario modifico este gasto o el fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+                    "Otro usuario modificó este gasto o el fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
             }
 
             return ResultadoOperacion<Guid>.Ok(gasto.Id);
@@ -89,31 +89,31 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             if (gasto.Estado is not (EstadoGasto.PendienteReposicion or EstadoGasto.AnulacionPendiente))
             {
                 errores.Add(
-                    $"Solo se puede anular un gasto pendiente de reposicion o con anulacion pendiente. " +
-                    $"Este gasto esta en estado {gasto.Estado}.");
+                    $"Solo se puede anular un gasto pendiente de reposición o con anulación pendiente. " +
+                    $"Este gasto está en estado {gasto.Estado}.");
             }
 
             if (gasto.ReposicionId is not null)
             {
-                errores.Add("El gasto ya forma parte de una solicitud de reposicion y no se puede anular.");
+                errores.Add("El gasto ya forma parte de una solicitud de reposición y no se puede anular.");
             }
 
             var motivo = comando.Motivo?.Trim() ?? string.Empty;
             if (esAnulacionDirecta && string.IsNullOrWhiteSpace(motivo))
             {
-                errores.Add("Debe indicar el motivo de la anulacion.");
+                errores.Add("Debe indicar el motivo de la anulación.");
             }
             else if (motivo.Length > LimitesGasto.LongitudMaximaMotivoAnulacion)
             {
-                errores.Add($"El motivo de la anulacion no puede superar {LimitesGasto.LongitudMaximaMotivoAnulacion} caracteres.");
+                errores.Add($"El motivo de la anulación no puede superar {LimitesGasto.LongitudMaximaMotivoAnulacion} caracteres.");
             }
 
-            // Guarda de techo: si esto se dispara, algo ya se conto dos veces.
+            // Guarda de techo: si esto se dispara, algo ya se contó dos veces.
             var balanceResultante = fondo.BalanceActual + gasto.MontoTotal;
             if (balanceResultante > fondo.MontoFijo)
             {
                 errores.Add(
-                    $"Devolver RD$ {gasto.MontoTotal:N2} dejaria el fondo en RD$ {balanceResultante:N2}, por encima " +
+                    $"Devolver RD$ {gasto.MontoTotal:N2} dejaría el fondo en RD$ {balanceResultante:N2}, por encima " +
                     $"del fondo fijo de RD$ {fondo.MontoFijo:N2}.");
             }
 

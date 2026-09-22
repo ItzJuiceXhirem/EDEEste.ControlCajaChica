@@ -4,9 +4,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 {
     /// <summary>
     /// Anula un gasto. Cubre dos casos con el mismo comando porque son la misma
-    /// decision del mismo rol (Gerente) sobre el mismo expediente:
-    ///  - Anulacion directa, desde PendienteReposicion.
-    ///  - Confirmacion de una anulacion que el Custodio ya habia pedido, desde
+    /// decisión del mismo rol (Gerente) sobre el mismo expediente:
+    ///  - Anulación directa, desde PendienteReposicion.
+    ///  - Confirmación de una anulación que el Custodio ya había pedido, desde
     ///    AnulacionPendiente.
     /// En ambos casos es el momento en que el dinero vuelve al fondo.
     /// </summary>
@@ -15,9 +15,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         public Guid GastoId { get; set; }
 
         /// <summary>
-        /// Obligatorio en la anulacion directa. Al confirmar una anulacion que ya
-        /// venia pedida, es opcional: si se deja vacio se conserva el motivo que
-        /// escribio el Custodio, y si se escribe algo lo reemplaza.
+        /// Obligatorio en la anulación directa. Al confirmar una anulación que ya
+        /// venía pedida, es opcional: si se deja vacío se conserva el motivo que
+        /// escribió el Custodio, y si se escribe algo lo reemplaza.
         /// </summary>
         public string? Motivo { get; set; }
     }

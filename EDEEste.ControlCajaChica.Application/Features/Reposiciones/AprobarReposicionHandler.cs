@@ -12,9 +12,9 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 {
     /// <summary>
-    /// Aprueba o rechaza una solicitud de reposicion.
+    /// Aprueba o rechaza una solicitud de reposición.
     ///
-    /// No inyecta IFondoRepository a proposito: ni aprobar ni rechazar mueven dinero,
+    /// No inyecta IFondoRepository a propósito: ni aprobar ni rechazar mueven dinero,
     /// y no tener el repositorio disponible lo hace evidente en la firma del
     /// constructor. El efectivo solo vuelve al fondo cuando Finanzas paga
     /// (ProcesarPagoReposicionHandler).
@@ -72,11 +72,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             {
                 solicitud.Estado = EstadoReposicion.Rechazada;
 
-                // Los gastos vuelven al ruedo para que el custodio corrija y arme otra
-                // solicitud. El balance NO se toca: el efectivo nunca volvio a la
-                // caja, se sigue debiendo. ToList() no es cosmetico: al poner
-                // ReposicionId en null, el arreglo de relaciones de EF saca el gasto
-                // de solicitud.Gastos en plena iteracion.
+              /* Los gastos vuelven al ruedo para que el custodio corrija y arme otra
+                 solicitud. El balance NO se toca: el efectivo nunca volvió a la
+                 caja, se sigue debiendo. ToList() no es cosmético: al poner
+                 ReposicionId en null, el arreglo de relaciones de EF saca el gasto
+                 de solicitud.Gastos en plena iteración. */
                 foreach (var gasto in solicitud.Gastos.ToList())
                 {
                     gasto.ReposicionId = null;
@@ -84,12 +84,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                 }
             }
 
-            // RutaPdfConsolidado se conserva: una rechazada queda en el historial con
-            // su expediente.
+            // RutaPdfConsolidado se conserva: una rechazada queda en el historial con su expediente.
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo(
-                    "Otro usuario modifico esta solicitud mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+                    "Otro usuario modificó esta solicitud mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
             }
 
             return ResultadoOperacion<Guid>.Ok(solicitud.Id);
@@ -102,8 +101,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             if (solicitud.Estado != EstadoReposicion.PendienteAprobacion)
             {
                 errores.Add(
-                    $"Solo se puede aprobar o rechazar una solicitud pendiente de aprobacion. " +
-                    $"Esta solicitud esta en estado {solicitud.Estado}.");
+                    $"Solo se puede aprobar o rechazar una solicitud pendiente de aprobación. " +
+                    $"Esta solicitud está en estado {solicitud.Estado}.");
             }
 
             ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);

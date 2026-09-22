@@ -12,9 +12,9 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
 {
     /// <summary>
-    /// Registra el conteo fisico de un fondo. El arqueo MIDE, no corrige: si el
-    /// conteo no cuadra con el saldo teorico, el resultado queda como Sobrante o
-    /// Faltante y ninguna linea del fondo se toca -- corregir el balance aqui seria
+    /// Registra el conteo físico de un fondo. El arqueo MIDE, no corrige: si el
+    /// conteo no cuadra con el saldo teórico, el resultado queda como Sobrante o
+    /// Faltante y ninguna línea del fondo se toca -- corregir el balance aquí sería
     /// exactamente el agujero que el arqueo existe para detectar.
     /// </summary>
     public sealed class RegistrarArqueoMensualHandler
@@ -64,17 +64,17 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
 
             var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
-            // El Id resuelto tambien queda como RealizadoPorUsuarioId mas abajo -- sin
-            // poder identificarlo, esto falla cerrado en vez de dejar un registro con
-            // el campo vacio (y sin poder verificar tampoco que el fondo sea el suyo).
+          /* El Id resuelto también queda como RealizadoPorUsuarioId más abajo -- sin
+             poder identificarlo, esto falla cerrado en vez de dejar un registro con
+             el campo vacío (y sin poder verificar tampoco que el fondo sea el suyo). */
             if (usuario.Id is not { } usuarioIdArquear)
             {
                 return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
             }
 
-            // Defensa en profundidad: sin esto, un Custodio podria arquear el fondo de
-            // otro custodio armando la peticion contra el circuito de Blazor Server,
-            // aunque la pantalla ya solo le ofrezca el suyo en el desplegable.
+          /* Defensa en profundidad: sin esto, un Custodio podría arquear el fondo de
+             otro custodio armando la petición contra el circuito de Blazor Server,
+             aunque la pantalla ya solo le ofrezca el suyo en el desplegable. */
             if (await _identidad.EstaEnRolAsync(usuarioIdArquear, RolesApp.Custodio) && fondo.CustodioId != usuarioIdArquear)
             {
                 return ResultadoOperacion<Guid>.Fallo("No tiene permiso para arquear el fondo de otro custodio.");
@@ -86,10 +86,10 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
                 return ResultadoOperacion<Guid>.Fallo(errores);
             }
 
-            // Se materializa la lista (y no un SumAsync) a proposito: al traer los
-            // gastos, IntegridadInterceptor valida la firma de cada uno. Un agregado
-            // calculado en la BDD seria mas rapido, pero un gasto manipulado entraria
-            // en el arqueo sin que nadie lo notara.
+          /* Se materializa la lista (y no un SumAsync) a propósito: al traer los
+             gastos, IntegridadInterceptor valida la firma de cada uno. Un agregado
+             calculado en la BDD sería mas rápido, pero un gasto manipulado entraría
+             en el arqueo sin que nadie lo notara. */
             var noRepuestos = await _gastos.ListarNoRepuestosAsync(fondo.Id, cancellationToken);
             var montoComprobantesPendientes = noRepuestos.Sum(g => g.MontoTotal);
 
@@ -116,8 +116,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
                 RealizadoPorUsuarioId = usuarioIdArquear
             };
 
-            // Solo se guardan las denominaciones que de verdad se contaron: una fila
-            // en cero no aporta nada al expediente y solo infla la tabla de detalle.
+          /* Solo se guardan las denominaciones que de verdad se contaron: una fila
+             en cero no aporta nada al expediente y solo infla la tabla de detalle. */
             foreach (var denominacion in comando.Denominaciones.Where(d => d.Cantidad > 0))
             {
                 arqueo.DetallesDenominacion.Add(new DetalleArqueoDenominacion
@@ -140,7 +140,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
 
             if (fondo.Estado != EstadoFondo.Activo)
             {
-                errores.Add("El fondo no esta activo, no admite arqueos.");
+                errores.Add("El fondo no está activo, no admite arqueos.");
             }
 
             if (comando.FechaArqueo.Date > DateTime.Today)
@@ -150,28 +150,28 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
 
             if (comando.Denominaciones.Count == 0)
             {
-                errores.Add("Debe indicar el conteo por denominacion.");
+                errores.Add("Debe indicar el conteo por denominación.");
             }
 
-            // Se validan todas las filas, no solo las que tienen cantidad > 0: un
-            // total contado en cero es un resultado legitimo (una caja vacia), asi
-            // que "sin denominaciones" solo significa que no se envio la lista.
+          /* Se validan todas las filas, no solo las que tienen cantidad > 0: un
+             total contado en cero es un resultado legítimo (una caja vacía), así
+             que "sin denominaciones" solo significa que no se envió la lista. */
             var valoresVistos = new HashSet<decimal>();
             foreach (var denominacion in comando.Denominaciones)
             {
                 if (denominacion.Cantidad < 0)
                 {
-                    errores.Add($"La cantidad de la denominacion RD$ {denominacion.ValorDenominacion:N2} no puede ser negativa.");
+                    errores.Add($"La cantidad de la denominación RD$ {denominacion.ValorDenominacion:N2} no puede ser negativa.");
                 }
 
                 if (!DenominacionesRD.Todas.Contains(denominacion.ValorDenominacion))
                 {
-                    errores.Add($"RD$ {denominacion.ValorDenominacion:N2} no es una denominacion valida del peso dominicano.");
+                    errores.Add($"RD$ {denominacion.ValorDenominacion:N2} no es una denominación válida del peso dominicano.");
                 }
 
                 if (!valoresVistos.Add(denominacion.ValorDenominacion))
                 {
-                    errores.Add($"La denominacion RD$ {denominacion.ValorDenominacion:N2} esta repetida en el conteo.");
+                    errores.Add($"La denominación RD$ {denominacion.ValorDenominacion:N2} está repetida en el conteo.");
                 }
             }
 

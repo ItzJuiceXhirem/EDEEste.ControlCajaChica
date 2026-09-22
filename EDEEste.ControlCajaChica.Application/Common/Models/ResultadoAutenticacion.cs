@@ -7,9 +7,9 @@ namespace EDEEste.ControlCajaChica.Application.Common.Models
     /// Resultado de verificar unas credenciales.
     ///
     /// Deliberadamente NO trae un motivo de fallo detallado: quien la consume la
-    /// traduce siempre al mismo mensaje generico ("usuario o contrasena invalidos"),
-    /// asi que distinguir "no existe" de "contrasena incorrecta" solo serviria para
-    /// filtrar que cuentas existen.
+    /// traduce siempre al mismo mensaje genérico ("usuario o contraseña inválidos"),
+    /// así que distinguir "no existe" de "contraseña incorrecta" solo serviría para
+    /// filtrar qué cuentas existen.
     ///
     /// <see cref="Perfil"/> solo se llena en modo ActiveDirectory: es la ficha que
     /// devuelve el directorio, para poder crear o refrescar el registro local del

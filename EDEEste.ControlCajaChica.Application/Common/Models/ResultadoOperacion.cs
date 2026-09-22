@@ -7,7 +7,7 @@ namespace EDEEste.ControlCajaChica.Application.Common.Models
     /* Resultado de un caso de uso. Las reglas de negocio incumplidas (por ejemplo
        "el gasto supera el 2.5% del fondo") no son excepciones: son respuestas
        esperadas que la UI tiene que poder mostrar. Las excepciones se reservan para
-       fallas reales de infraestructura. Sigue el mismo patron que ResultadoIdentidad. */
+       fallas reales de infraestructura. Sigue el mismo patrón que ResultadoIdentidad. */
     public sealed record ResultadoOperacion<T>(bool Exitoso, T? Valor, IReadOnlyList<string> Errores)
     {
         public static ResultadoOperacion<T> Ok(T valor) =>

@@ -17,12 +17,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 {
     public sealed class PasswordResetService : IPasswordResetService
     {
-        // 12h y no las 24h que vencen por defecto los tokens de Identity: es una
-        // segunda ventana, mas corta y bajo control nuestro, sobre el mismo enlace.
+        /* 12h y no las 24h que vencen por defecto los tokens de Identity: es una
+           segunda ventana, más corta y bajo control nuestro, sobre el mismo enlace. */
         private static readonly TimeSpan VigenciaSecreto = TimeSpan.FromHours(12);
 
-        // 256 bits: mismo tamano que exige la clave HMAC de la aplicacion. No hace
-        // falta mas para un secreto de un solo uso que ademas expira.
+        /* 256 bits: mismo tamaño que exige la clave HMAC de la aplicación. No hace
+           falta más para un secreto de un solo uso que además expira. */
         private const int BytesSecreto = 32;
 
         private readonly ApplicationDbContext _context;
@@ -42,10 +42,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 return null;
             }
 
-            // Si ya hay una solicitud Pendiente de este mismo usuario, se reutiliza en
-            // vez de crear otra: sin esto, alguien que reintenta unas cuantas veces le
-            // llenaria la pantalla al Administrador de filas duplicadas para la misma
-            // persona.
+            /* Si ya hay una solicitud Pendiente de este mismo usuario, se reutiliza en
+               vez de crear otra: sin esto, alguien que reintenta unas cuantas veces le
+               llenaría la pantalla al Administrador de filas duplicadas para la misma persona. */
             var existente = await _context.SolicitudesPasswordReset
                 .Where(s => s.UsuarioId == entidad.Id && s.Estado == EstadoSolicitudPasswordReset.Pendiente)
                 .Select(s => s.Id)
@@ -81,8 +80,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 .OrderBy(s => s.FechaSolicitud)
                 .ToListAsync();
 
-            // Un solo batch en vez de un FindByIdAsync por solicitud: con la bandeja
-            // llena, esto era N consultas secuenciales para pintar una sola pantalla.
+            /* Un solo batch en vez de un FindByIdAsync por solicitud: con la bandeja
+               llena, esto era N consultas secuenciales para pintar una sola pantalla. */
             var idsUsuarios = pendientes.Select(s => s.UsuarioId).ToList();
             var usuariosPorId = await _userManager.Users
                 .Where(u => idsUsuarios.Contains(u.Id))
@@ -93,8 +92,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             {
                 if (!usuariosPorId.TryGetValue(solicitud.UsuarioId, out var usuario))
                 {
-                    // La cuenta se borro despues de pedir el reseteo; no hay a quien
-                    // devolverle acceso, asi que no tiene sentido mostrar la fila.
+                    /* La cuenta se borró después de pedir el reseteo; no hay a quien
+                       devolverle acceso, así que no tiene sentido mostrar la fila. */
                     continue;
                 }
 
@@ -122,15 +121,15 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 return ResultadoOperacion<EnlaceRestablecimientoDto>.Fallo("El usuario de esta solicitud ya no existe.");
             }
 
-            // Se genera aqui y no al solicitar: el token de Identity vence por su
-            // cuenta (1 dia por defecto), y ese plazo debe contar desde que se habilita
-            // el cambio, no desde que se pidio, que pudo haber sido dias antes.
+            /* Se genera aquí y no al solicitar: el token de Identity vence por su
+               cuenta (1 día por defecto), y ese plazo debe contar desde que se habilita
+               el cambio, no desde que se pidió, que pudo haber sido días antes. */
             solicitud.TokenReseteo = await _userManager.GeneratePasswordResetTokenAsync(usuario);
 
-            // El secreto en si NUNCA se guarda -- solo su hash. Quien pidio el
-            // restablecimiento ya conoce el Id de la solicitud (se lo devuelve
-            // SolicitarAsync), asi que sin este segundo dato, conocer el Id no le
-            // sirve de nada: el enlace real solo lo tiene quien recibe este resultado.
+            /* El secreto en sí NUNCA se guarda -- solo su hash. Quien pidió el
+               restablecimiento ya conoce el Id de la solicitud (se lo devuelve
+               SolicitarAsync), así que sin este segundo dato, conocer el Id no le
+               sirve de nada: el enlace real solo lo tiene quien recibe este resultado. */
             var secreto = CodificarBase64Url(RandomNumberGenerator.GetBytes(BytesSecreto));
             solicitud.HashSecreto = CalcularHashSecreto(secreto);
             solicitud.FechaExpiracionSecreto = DateTime.UtcNow.Add(VigenciaSecreto);
@@ -154,8 +153,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             solicitud.Estado = EstadoSolicitudPasswordReset.Ignorada;
             solicitud.FechaResolucion = DateTime.UtcNow;
-            // Mismo campo que AceptarAsync: sin esto, la bitacora de auditoria mostraba
-            // que la solicitud paso a Ignorada, pero no quien tomo esa decision.
+            /* Mismo campo que AceptarAsync: sin esto, la bitácora de auditoría mostraba
+               que la solicitud pasó a Ignorada, pero no quién tomó esa decisión. */
             solicitud.ResueltaPorUsuarioId = administradorId;
 
             await _context.SaveChangesAsync();
@@ -186,14 +185,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var resultado = await _userManager.ResetPasswordAsync(usuario, solicitud.TokenReseteo!, nuevaPassword);
             if (!resultado.Succeeded)
             {
-                // El token vencido cae aqui tambien (UserManager lo valida internamente),
-                // asi que un enlace viejo se rechaza sin que la solicitud tenga que
-                // rastrear su propio vencimiento por separado.
+                /* El token vencido cae aquí también (UserManager lo valida internamente),
+                   así que un enlace viejo se rechaza sin que la solicitud tenga que
+                   rastrear su propio vencimiento por separado. */
                 return ResultadoOperacion<string>.Fallo(resultado.Errors.Select(e => e.Description));
             }
 
-            // De un solo uso: una vez cambiada la contrasena, la misma URL no debe
-            // volver a servir aunque el token de Identity todavia no haya vencido.
+            /* De un solo uso: una vez cambiada la contraseña, la misma URL no debe
+               volver a servir aunque el token de Identity todavía no haya vencido. */
             solicitud.Estado = EstadoSolicitudPasswordReset.Usada;
             await _context.SaveChangesAsync();
 
@@ -204,7 +203,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// Tres condiciones, todas obligatorias: Aprobada, dentro de la ventana de
         /// <see cref="VigenciaSecreto"/>, y el secreto recibido coincide con el hash
         /// guardado. Sin el secreto correcto, conocer el Id de la solicitud (que el
-        /// solicitante SI conoce) no alcanza para nada.
+        /// solicitante SÍ conoce) no alcanza para nada.
         /// </summary>
         private static bool EnlaceEsValido(SolicitudPasswordReset? solicitud, string secreto)
         {
@@ -226,9 +225,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 return false;
             }
 
-            // Comparacion en tiempo constante: el secreto decide si alguien puede
-            // cambiar una contrasena ajena, asi que se trata como cualquier otro
-            // secreto criptografico de la aplicacion.
+            /* Comparación en tiempo constante: el secreto decide si alguien puede
+               cambiar una contraseña ajena, así que se trata como cualquier otro
+               secreto criptográfico de la aplicación. */
             return CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(CalcularHashSecreto(secreto)),
                 Encoding.UTF8.GetBytes(solicitud.HashSecreto));

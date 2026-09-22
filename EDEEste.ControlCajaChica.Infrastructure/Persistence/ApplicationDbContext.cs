@@ -17,12 +17,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 {
     public class ApplicationDbContext : IdentityDbContext<Usuario>, IApplicationDbContext
     {
-        // Los interceptores se registran en DependencyInjection.AgregarPersistencia
-        // (AddInterceptors sobre instancias Singleton) y no se reciben aqui por
-        // constructor. Ver el comentario de AuditoriaInterceptor: con instancias
-        // Scoped, cualquier forma de conectarlas -- por aqui o por el lambda de
-        // AddDbContext -- revienta con ManyServiceProvidersCreatedWarning pasadas ~20
-        // peticiones, porque EF ve una instancia de interceptor distinta cada vez.
+      /* Los interceptores se registran en DependencyInjection.AgregarPersistencia
+         (AddInterceptors sobre instancias Singleton) y no se reciben aquí por
+         constructor. Ver el comentario de AuditoriaInterceptor: con instancias
+         Scoped, cualquier forma de conectarlas -- por aquí o por el lambda de
+         AddDbContext -- revienta con ManyServiceProvidersCreatedWarning pasadas ~20
+         peticiones, porque EF ve una instancia de interceptor distinta cada vez. */
         private readonly ICurrentUserService _usuarioActual;
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentUserService usuarioActual)
@@ -32,14 +32,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         }
 
         /// <summary>
-        /// Quien queda en la bitacora de este guardado. AuditoriaInterceptor lo pide a
-        /// traves del contexto porque, siendo Singleton, no puede recibir
-        /// ICurrentUserService (Scoped) por constructor; el contexto si, y vive en el
-        /// mismo ambito de DI que la peticion o el circuito que esta guardando. Un
-        /// contexto de un ambito creado a mano con IServiceScopeFactory dentro de un
+        /// Quién queda en la bitácora de este guardado. AuditoriaInterceptor lo pide a
+        /// través del contexto porque, siendo Singleton, no puede recibir
+        /// ICurrentUserService (Scoped) por constructor; el contexto sí, y vive en el
+        /// mismo ámbito de DI que la petición o el circuito que está guardando. Un
+        /// contexto de un ámbito creado a mano con IServiceScopeFactory dentro de un
         /// circuito no tiene su AuthenticationStateProvider inicializado y puede
-        /// quedar como "Sistema": ese ambito necesita recibir el estado de
-        /// autenticacion del circuito antes de guardar.
+        /// quedar como "Sistema": ese ámbito necesita recibir el estado de
+        /// autenticación del circuito antes de guardar.
         /// </summary>
         internal async Task<string?> ObtenerUsuarioAuditoriaAsync(CancellationToken cancellationToken) =>
             (await _usuarioActual.ObtenerAsync(cancellationToken)).Id;
@@ -55,18 +55,18 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         public DbSet<Identity.SolicitudPasswordReset> SolicitudesPasswordReset { get; set; }
 
         /// <summary>
-        /// Envuelve el guardado en su propia transaccion, salvo que ya haya una
+        /// Envuelve el guardado en su propia transacción, salvo que ya haya una
         /// activa. Existe para que AuditoriaInterceptor pueda tomar un lock nombrado
         /// (sp_getapplock, @LockOwner='Transaction') que serialice la lectura del
-        /// ultimo HashFirma de LogsAuditoria con el INSERT de los logs nuevos: sin
-        /// esto, dos SaveChanges concurrentes podian leer el mismo "ultimo hash" y
-        /// encadenar los dos desde ahi, bifurcando la cadena -- y una bifurcacion deja
+        /// último HashFirma de LogsAuditoria con el INSERT de los logs nuevos: sin
+        /// esto, dos SaveChanges concurrentes podían leer el mismo "último hash" y
+        /// encadenar los dos desde ahí, bifurcando la cadena -- y una bifurcación deja
         /// indetectable el borrado de una de las hojas resultantes, que es
         /// precisamente lo que la cadena existe para impedir. El lock se libera solo
-        /// al hacer commit o rollback de esta transaccion, nunca hay que soltarlo a
+        /// al hacer commit o rollback de esta transacción, nunca hay que soltarlo a
         /// mano.
         ///
-        /// Si algo mas adelante abre su propia transaccion antes de llamar
+        /// Si algo más adelante abre su propia transacción antes de llamar
         /// SaveChanges, se reutiliza tal cual: no se abre una segunda ni se intenta
         /// manejar su commit/rollback.
         /// </summary>
@@ -83,9 +83,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             return filasAfectadas;
         }
 
-        /// <summary>Misma razon que la sobrecarga asincrona; ningun camino de la app
-        /// llama a esta hoy (IApplicationDbContext solo expone la version async), pero
-        /// AuditoriaInterceptor tambien sobreescribe su lado sincrono (SavingChanges)
+        /// <summary>Misma razón que la sobrecarga asíncrona; ningún camino de la app
+        /// llama a esta hoy (IApplicationDbContext solo expone la versión async), pero
+        /// AuditoriaInterceptor también sobreescribe su lado síncrono (SavingChanges)
         /// por si algo fuera de la app llegara a usarlo.</summary>
         public override int SaveChanges()
         {
@@ -104,7 +104,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         /// Ver <see cref="IApplicationDbContext.IntentarGuardarCambiosAsync"/>.
         ///
         /// El ChangeTracker.Clear() no es opcional: en Blazor Server el contexto vive
-        /// todo el circuito, no la interaccion, asi que si se deja sucio despues de un
+        /// todo el circuito, no la interacción, así que si se deja sucio después de un
         /// fallo, el siguiente clic del usuario -- aunque sea sobre otra pantalla --
         /// arrastra las entidades del intento fallido y vuelve a intentar escribirlas.
         /// </summary>
@@ -133,21 +133,21 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
             base.OnModelCreating(modelBuilder);
 
-            // Usuario lo descubre base.OnModelCreating (viene de IdentityDbContext),
-            // asi que se configura despues.
+            /* Usuario lo descubre base.OnModelCreating (viene de IdentityDbContext),
+               así que se configura después. */
             modelBuilder.Entity<Identity.Usuario>()
                 .Property(u => u.Nombre)
                 .HasMaxLength(150);
 
-            // Misma cota que ComprobanteAdjunto.RutaArchivo: es el mismo tipo de valor
-            // (una ruta relativa dentro del almacenamiento), y sin tope EF la habria
-            // creado como nvarchar(max).
+            /* Misma cota que ComprobanteAdjunto.RutaArchivo: es el mismo tipo de valor
+               (una ruta relativa dentro del almacenamiento), y sin tope EF la habría
+               creado como nvarchar(max). */
             modelBuilder.Entity<Identity.Usuario>()
                 .Property(u => u.RutaFotoPerfil)
                 .HasMaxLength(400);
 
-            // Estas dos recorren el modelo completo, asi que van despues de que EF
-            // termino de descubrir los tipos (incluidos los de Identity).
+            /* Estas dos recorren el modelo completo, así que van después de que EF
+               terminó de descubrir los tipos (incluidos los de Identity). */
             AplicarPrecisionDeMontos(modelBuilder);
             AplicarLongitudDeFirmas(modelBuilder);
         }
@@ -155,10 +155,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         /// <summary>
         /// Todas las relaciones usan DeleteBehavior.Restrict.
         ///
-        /// El borrado fisico no deberia ocurrir nunca: AuditoriaInterceptor convierte
-        /// los Remove() en borrado logico. Restrict es la red de seguridad para el
+        /// El borrado físico no debería ocurrir nunca: AuditoriaInterceptor convierte
+        /// los Remove() en borrado lógico. Restrict es la red de seguridad para el
         /// caso en que algo se salte esa ruta: preferimos que la BDD rechace la
-        /// operacion antes que arrastrar gastos o comprobantes en cascada y perder
+        /// operación antes que arrastrar gastos o comprobantes en cascada y perder
         /// evidencia contable.
         /// </summary>
         private static void ConfigurarRelaciones(ModelBuilder modelBuilder)
@@ -175,7 +175,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                      .HasForeignKey(g => g.CategoriaGastoId)
                      .OnDelete(DeleteBehavior.Restrict);
 
-                // Opcional: un gasto vive sin reposicion hasta que se incluye en una.
+                // Opcional: un gasto vive sin reposición hasta que se incluye en una.
                 gasto.HasOne(g => g.Reposicion)
                      .WithMany(r => r.Gastos)
                      .HasForeignKey(g => g.ReposicionId)
@@ -217,9 +217,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         {
             modelBuilder.Entity<LogAuditoria>(log =>
             {
-                // Correlativo que fija el orden de la cadena de hashes. Lo genera la
-                // BDD para que dos escrituras concurrentes no puedan reclamar el
-                // mismo lugar en la cadena.
+              /* Correlativo que fija el orden de la cadena de hashes. Lo genera la
+                 BDD para que dos escrituras concurrentes no puedan reclamar el
+                 mismo lugar en la cadena. */
                 log.Property(l => l.Secuencia).ValueGeneratedOnAdd();
                 log.HasIndex(l => l.Secuencia).IsUnique();
 
@@ -229,35 +229,35 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         }
 
         /// <summary>
-        /// Indices de consulta.
+        /// Índices de consulta.
         ///
-        /// El indice de NCF se deja <b>no unico</b> a proposito. Un NCF si es unico en
-        /// la practica, pero lo es por proveedor (la secuencia la emite cada proveedor
-        /// con su propio RNC), no a nivel global, y ademas conviven NCF de papel con
-        /// e-NCF. Poner UNIQUE aqui sin confirmar la regla real con negocio haria que
-        /// el sistema rechace facturas legitimas, asi que por ahora solo acelera las
-        /// busquedas por NCF, que es para lo que se usa hoy.
+        /// El índice de NCF se deja <b>no único</b> a propósito. Un NCF si es único en
+        /// la práctica, pero lo es por proveedor (la secuencia la emite cada proveedor
+        /// con su propio RNC), no a nivel global, y además conviven NCF de papel con
+        /// e-NCF. Poner UNIQUE aquí sin confirmar la regla real con negocio haría que
+        /// el sistema rechace facturas legítimas, así que por ahora solo acelera las
+        /// búsquedas por NCF, que es para lo que se usa hoy.
         /// </summary>
         /// <summary>
         /// Control de concurrencia optimista sobre tres propiedades que ya existen.
         ///
         /// Re-chequear el estado dentro del handler es necesario pero no basta: dos
         /// usuarios pueden leer la misma solicitud "Aprobada", pasar los dos la
-        /// validacion y abonar el fondo dos veces. Marcando estas propiedades, el
+        /// validación y abonar el fondo dos veces. Marcando estas propiedades, el
         /// UPDATE pasa a llevar "AND columna = @valorOriginal": el segundo en llegar
         /// afecta cero filas, EF lanza DbUpdateConcurrencyException y toda la
-        /// transaccion revierte.
+        /// transacción revierte.
         ///
-        /// Se usan columnas existentes y NO un rowversion a proposito: la BDD asigna
-        /// el rowversion despues de que el interceptor calcula el HMAC, asi que
-        /// entrarlo en la firma daria falso positivo de manipulacion en cada relectura,
+        /// Se usan columnas existentes y NO un rowversion a propósito: la BDD asigna
+        /// el rowversion despues de que el interceptor calcula el HMAC, así que
+        /// entrarlo en la firma daría falso positivo de manipulación en cada relectura,
         /// y dejarlo fuera de la firma obliga a explicar por que una columna del
         /// registro no esta sellada. Con columnas ya firmadas no hay conflicto: el
         /// token compara el valor original, el hash se calcula sobre el actual.
         ///
         /// - FondoCajaChica.BalanceActual sostiene la invariante del dinero.
         /// - SolicitudReposicion.Estado impide aprobar/rechazar/pagar por duplicado.
-        /// - Gasto.Estado impide que una anulacion y una reposicion se pisen, y de
+        /// - Gasto.Estado impide que una anulación y una reposición se pisen, y de
         ///   paso que dos reposiciones simultaneas reclamen los mismos gastos.
         /// </summary>
         private static void ConfigurarConcurrencia(ModelBuilder modelBuilder)
@@ -281,15 +281,15 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             {
                 gasto.HasIndex(g => g.NCF);
 
-                // Es la consulta que corre cada vez que se arma una reposicion.
+                // Es la consulta que corre cada vez que se arma una reposición.
                 gasto.HasIndex(g => new { g.FondoCajaChicaId, g.Estado });
             });
 
             modelBuilder.Entity<ComprobanteAdjunto>()
                 .HasIndex(c => c.GastoId);
 
-            // Es la consulta del sondeo de la pantalla de espera y la que evita
-            // duplicar una solicitud Pendiente del mismo usuario.
+            /* Es la consulta del sondeo de la pantalla de espera y la que evita
+               duplicar una solicitud Pendiente del mismo usuario. */
             modelBuilder.Entity<Identity.SolicitudPasswordReset>()
                 .HasIndex(s => new { s.UsuarioId, s.Estado });
         }
@@ -297,9 +297,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         /// <summary>
         /// Filtro global para que nunca traiga registros donde IsDeleted == true al
         /// hacer un query normal. Se aplica a todas las entidades auditables: si una
-        /// quedara sin filtro, un registro "borrado" seguiria apareciendo a traves de
-        /// sus navegaciones. Para el historial de auditoria hay que usar
-        /// IgnoreQueryFilters() explicitamente.
+        /// quedara sin filtro, un registro "borrado" seguiría apareciendo a través de
+        /// sus navegaciones. Para el historial de auditoría hay que usar
+        /// IgnoreQueryFilters() explícitamente.
         /// </summary>
         private static void ConfigurarBorradoLogico(ModelBuilder modelBuilder)
         {
@@ -315,25 +315,25 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
         /// <summary>
         /// Longitudes reales para columnas de texto que hasta ahora quedaban en
-        /// nvarchar(max) por convencion. CodigoSolicitud (SolicitudReposicion) y
-        /// CodigoArqueo (ArqueoCaja) se dejan fuera a proposito: son codigos internos
-        /// propios y aun no se confirmo su formato con negocio.
+        /// nvarchar(max) por convención. CodigoSolicitud (SolicitudReposicion) y
+        /// CodigoArqueo (ArqueoCaja) se dejan fuera a propósito: son códigos internos
+        /// propios y aún no se confirmó su formato con negocio.
         /// </summary>
         private static void ConfigurarLongitudesDeTexto(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Gasto>(gasto =>
             {
-                // DGII: NCF "de papel" = 11 caracteres, e-NCF electronico = 13. Se usa
-                // el mas largo para poder guardar cualquiera de los dos formatos; a
-                // nvarchar(N) mas corto no le afecta que quepa un string mas corto.
+                /* DGII: NCF "de papel" = 11 caracteres, e-NCF electrónico = 13. Se usa
+                   el más largo para poder guardar cualquiera de los dos formatos; a
+                   nvarchar(N) más corto no le afecta que quepa un string más corto. */
                 gasto.Property(g => g.NCF).HasMaxLength(13);
 
-                // Sin tope legal fijo; se sigue la convencion de 80-150 caracteres que
-                // usan los sistemas contables dominicanos, tomando el limite superior.
+                /* Sin tope legal fijo; se sigue la convención de 80-150 caracteres que
+                   usan los sistemas contables dominicanos, tomando el límite superior. */
                 gasto.Property(g => g.Proveedor).HasMaxLength(150);
 
-                // RNC (empresa) = 9 digitos, cedula (persona fisica) = 11 digitos, sin
-                // guiones. Se usa el mas largo de los dos.
+                /* RNC (empresa) = 9 dígitos, cédula (persona física) = 11 dígitos, sin
+                   guiones. Se usa el más largo de los dos. */
                 gasto.Property(g => g.RNCProveedor).HasMaxLength(11);
             });
 
@@ -341,20 +341,20 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 .Property(g => g.Concepto)
                 .HasMaxLength(500);
 
-            // Texto libre del mismo tenor que Concepto, asi que se le da la misma cota.
+            // Texto libre del mismo tenor que Concepto, así que se le da la misma cota.
             modelBuilder.Entity<Gasto>()
                 .Property(g => g.MotivoAnulacion)
                 .HasMaxLength(LimitesGasto.LongitudMaximaMotivoAnulacion);
 
             modelBuilder.Entity<ComprobanteAdjunto>(comprobante =>
             {
-                // Etiqueta corta que digita el custodio por archivo adjunto (no es una
-                // regla de negocio externa como NCF/RNC, es propia del sistema).
+                /* Etiqueta corta que digita el custodio por archivo adjunto (no es una
+                   regla de negocio externa como NCF/RNC, es propia del sistema). */
                 comprobante.Property(c => c.Descripcion).HasMaxLength(200);
 
-                // 255 es el tope de nombre de archivo de NTFS y de la mayoria de los
-                // sistemas de archivos, asi que un nombre mas largo que esto no pudo
-                // haber llegado desde el disco de nadie.
+                /* 255 es el tope de nombre de archivo de NTFS y de la mayoría de los
+                   sistemas de archivos, así que un nombre mas largo que esto no pudo
+                   haber llegado desde el disco de nadie. */
                 comprobante.Property(c => c.NombreOriginal).HasMaxLength(255);
                 comprobante.Property(c => c.RutaArchivo).HasMaxLength(400);
                 comprobante.Property(c => c.TipoMime).HasMaxLength(100);
@@ -383,8 +383,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             {
                 log.Property(l => l.TipoAccion).HasMaxLength(50);
 
-                // 128 es el maximo de un identificador de SQL Server, y esta columna
-                // guarda justamente un nombre de tabla.
+                /* 128 es el máximo de un identificador de SQL Server, y esta columna
+                   guarda justamente un nombre de tabla. */
                 log.Property(l => l.NombreTabla).HasMaxLength(128);
                 log.Property(l => l.RegistroId).HasMaxLength(100);
                 log.Property(l => l.UsuarioId).HasMaxLength(LongitudIdUsuario);
@@ -392,10 +392,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
             modelBuilder.Entity<Identity.SolicitudPasswordReset>()
                 .Property(s => s.TokenReseteo)
-                // Los tokens de DataProtection que emite Identity son base64 y no
-                // tienen un tope documentado, pero en la practica no pasan de unos
-                // pocos cientos de caracteres; 1000 deja margen sin dejarlo en
-                // nvarchar(max).
+                /* Los tokens de DataProtection que emite Identity son base64 y no
+                   tienen un tope documentado, pero en la práctica no pasan de unos
+                   pocos cientos de caracteres; 1000 deja margen sin dejarlo en
+                   nvarchar(max). */
                 .HasMaxLength(1000);
 
             modelBuilder.Entity<Identity.SolicitudPasswordReset>()
@@ -408,7 +408,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
         /// <summary>
         /// Longitud de las columnas que guardan el Id de un usuario de Identity.
-        /// AspNetUsers.Id es nvarchar(450) (el maximo indexable de SQL Server), asi que
+        /// AspNetUsers.Id es nvarchar(450) (el máximo indexable de SQL Server), así que
         /// cualquier columna que lo referencie tiene que aguantar lo mismo.
         /// </summary>
         private const int LongitudIdUsuario = 450;
@@ -437,9 +437,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 solicitud.Property(s => s.ResueltaPorUsuarioId).HasMaxLength(LongitudIdUsuario);
             });
 
-            // CreadoPorId / ModificadoPorId estan en AuditableEntity, asi que en vez de
-            // repetirlos entidad por entidad se recorre el modelo: cualquier entidad
-            // auditable que se agregue despues los hereda ya configurados.
+            /* CreadoPorId / ModificadoPorId están en AuditableEntity, así que en vez de
+               repetirlos entidad por entidad se recorre el modelo: cualquier entidad
+               auditable que se agregue después los hereda ya configurados. */
             var tiposAuditables = modelBuilder.Model
                 .GetEntityTypes()
                 .Where(tipo => typeof(AuditableEntity).IsAssignableFrom(tipo.ClrType));
@@ -454,11 +454,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         /// <summary>
         /// Fija decimal(18,4) para todos los montos.
         ///
-        /// No es cosmetico: sin esto EF usa decimal(18,2) por convencion y SQL Server
+        /// No es cosmético: sin esto EF usa decimal(18,2) por convención y SQL Server
         /// trunca en silencio. Como la firma HMAC se calcula en memoria sobre el valor
         /// original (normalizado a 4 decimales por ConstructorFirma), al releer la fila
-        /// el valor truncado ya no produciria el mismo hash y el sistema reportaria una
-        /// manipulacion que nunca ocurrio. La escala de la columna y la del hash tienen
+        /// el valor truncado ya no produciría el mismo hash y el sistema reportaría una
+        /// manipulación que nunca ocurrió. La escala de la columna y la del hash tienen
         /// que ser la misma.
         /// </summary>
         private static void AplicarPrecisionDeMontos(ModelBuilder modelBuilder)
@@ -475,10 +475,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             }
         }
 
-        /// <summary>
-        /// Un HMAC-SHA256 en hexadecimal siempre mide 64 caracteres, asi que no hay
-        /// razon para dejar estas columnas como nvarchar(max).
-        /// </summary>
+        /* Un HMAC-SHA256 en hexadecimal siempre mide 64 caracteres, así que no hay
+           razón para dejar estas columnas como nvarchar(max). */
         private static void AplicarLongitudDeFirmas(ModelBuilder modelBuilder)
         {
             var tiposFirmados = modelBuilder.Model

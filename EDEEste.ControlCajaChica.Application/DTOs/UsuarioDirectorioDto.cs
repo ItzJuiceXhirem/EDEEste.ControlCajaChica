@@ -7,11 +7,11 @@ namespace EDEEste.ControlCajaChica.Application.DTOs
     /// el APICommon en /api/ActiveDirectory/GetUserByUserName.
     ///
     /// Los nombres calcan el contrato del API (que viene en camelCase); la
-    /// deserializacion se configura como insensible a mayusculas en Infrastructure,
-    /// para no ensuciar este DTO con atributos de serializacion.
+    /// deserialización se configura como insensible a mayúsculas en Infrastructure,
+    /// para no ensuciar este DTO con atributos de serialización.
     ///
     /// Todo es nullable salvo el usuario: no controlamos ese API y una ficha
-    /// incompleta (sin telefono, sin supervisor) es perfectamente normal.
+    /// incompleta (sin teléfono, sin supervisor) es perfectamente normal.
     /// </summary>
     public sealed record UsuarioDirectorioDto
     {
@@ -28,10 +28,8 @@ namespace EDEEste.ControlCajaChica.Application.DTOs
         public string? Telefono { get; init; }
         public string? Supervisor { get; init; }
 
-        /// <summary>
-        /// Nombre para mostrar, cayendo a "Nombre Apellido" y por ultimo al usuario.
-        /// El APICommon no garantiza que displayName venga siempre.
-        /// </summary>
+      /* Nombre para mostrar, cayendo a "Nombre Apellido" y por último al usuario.
+         El APICommon no garantiza que displayName venga siempre. */
         public string NombreParaMostrar =>
             !string.IsNullOrWhiteSpace(DisplayName) ? DisplayName!
             : !string.IsNullOrWhiteSpace($"{Nombre} {Apellido}".Trim()) ? $"{Nombre} {Apellido}".Trim()

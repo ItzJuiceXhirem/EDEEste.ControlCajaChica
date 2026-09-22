@@ -42,8 +42,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             var custodioId = comando.CustodioId?.Trim() ?? string.Empty;
             var custodioValido = custodioId.Length > 0 && await _identidad.EstaEnRolAsync(custodioId, RolesApp.Custodio);
 
-            // Se excluye este mismo fondo: no puede entrar en conflicto consigo mismo
-            // cuando el custodio no cambia.
+          /* Se excluye este mismo fondo: no puede entrar en conflicto consigo mismo
+             cuando el custodio no cambia. */
             var custodioYaTieneFondo = custodioId.Length > 0
                 && await _fondos.ExisteFondoParaCustodioAsync(custodioId, fondo.Id, cancellationToken);
 
@@ -59,14 +59,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             fondo.CustodioId = custodioId;
             fondo.Estado = comando.Estado;
 
-            // BalanceActual es token de concurrencia: este UPDATE lleva "AND
-            // BalanceActual = @original" aunque esta operacion no lo cambie. Si un
-            // gasto se registra a la vez, el Administrador recibe el error de
-            // concurrencia y reintenta -- correcto y poco frecuente.
+          /* BalanceActual es token de concurrencia: este UPDATE lleva "AND
+             BalanceActual = @original" aunque esta operación no lo cambie. Si un
+             gasto se registra a la vez, el Administrador recibe el error de
+             concurrencia y reintenta -- correcto y poco frecuente. */
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo(
-                    "Otro usuario modifico este fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+                    "Otro usuario modificó este fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
             }
 
             return ResultadoOperacion<Guid>.Ok(fondo.Id);
@@ -90,7 +90,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
 
             if (comando.LimitePorGasto < 0)
             {
-                errores.Add("El limite por gasto no puede ser negativo.");
+                errores.Add("El límite por gasto no puede ser negativo.");
             }
             else if (comando.LimitePorGasto > 0)
             {
@@ -98,7 +98,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
                 if (comando.LimitePorGasto > topeReglamentario)
                 {
                     errores.Add(
-                        $"El limite por gasto (RD$ {comando.LimitePorGasto:N2}) no puede superar el tope reglamentario " +
+                        $"El límite por gasto (RD$ {comando.LimitePorGasto:N2}) no puede superar el tope reglamentario " +
                         $"de RD$ {topeReglamentario:N2} ({comando.PorcentajeMaximoPorGasto:N1}% del monto fijo).");
                 }
             }
@@ -107,7 +107,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
                 || comando.PorcentajeAlertaReposicion > LimitesFondo.AlertaReposicionMaxima)
             {
                 errores.Add(
-                    $"El porcentaje de alerta para reposicion debe estar entre " +
+                    $"El porcentaje de alerta para reposición debe estar entre " +
                     $"{LimitesFondo.AlertaReposicionMinima:N0}% y {LimitesFondo.AlertaReposicionMaxima:N0}%.");
             }
 
@@ -128,7 +128,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
 
             if (!Enum.IsDefined(comando.Estado))
             {
-                errores.Add("El estado del fondo no es valido.");
+                errores.Add("El estado del fondo no es válido.");
             }
 
             return errores;

@@ -11,21 +11,21 @@ using PdfSharp.Pdf.IO;
 namespace EDEEste.ControlCajaChica.Infrastructure.Services
 {
     /// <summary>
-    /// Arma el expediente PDF de una solicitud de reposicion: una portada-resumen con
-    /// la tabla de gastos, seguida, por cada comprobante adjunto, de una pagina de
-    /// transcripcion (los datos del gasto + la etiqueta que digito el custodio) y
-    /// despues el archivo original.
+    /// Arma el expediente PDF de una solicitud de reposición: una portada-resumen con
+    /// la tabla de gastos, seguida, por cada comprobante adjunto, de una página de
+    /// transcripción (los datos del gasto + la etiqueta que digitó el custodio) y
+    /// después el archivo original.
     ///
-    /// Decide QUE va en el expediente y en que orden -- el COMO se dibuja cada pieza
-    /// con MigraDoc vive en <see cref="ExpedienteMaquetador"/>, separado a proposito:
-    /// un cambio de diseno visual no deberia tener que tocar esta logica de
+    /// Decide QUÉ va en el expediente y en qué orden -- el CÓMO se dibuja cada pieza
+    /// con MigraDoc vive en <see cref="ExpedienteMaquetador"/>, separado a propósito:
+    /// un cambio de diseño visual no debería tener que tocar esta lógica de
     /// ensamblaje, y viceversa.
     ///
-    /// MigraDoc genera cada pieza (paginas nuevas, texto, imagenes) pero no puede
-    /// insertar paginas de un PDF que no genero el; por eso el ensamblaje final usa
-    /// PDFsharp solo para concatenar paginas ya generadas -- el PDF original de cada
+    /// MigraDoc genera cada pieza (páginas nuevas, texto, imágenes) pero no puede
+    /// insertar páginas de un PDF que no generó él; por eso el ensamblaje final usa
+    /// PDFsharp solo para concatenar páginas ya generadas -- el PDF original de cada
     /// comprobante se copia tal cual, nunca se reabre para editarlo ni se
-    /// re-renderiza, asi que el archivo guardado en disco (y su HashSHA256) no se
+    /// re-renderiza, así que el archivo guardado en disco (y su HashSHA256) no se
     /// tocan en ningun momento.
     /// </summary>
     public class PdfConsolidadorService : IPdfConsolidadorService
@@ -58,21 +58,21 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             EstamparNumerosDePagina(documentoFinal);
 
             using var salida = new MemoryStream();
-            // closeStream: false a proposito: por defecto Save() cierra el stream que
-            // recibe, y si lo cerrara aca, salida.ToArray() de la linea siguiente
-            // fallaria con ObjectDisposedException porque el stream ya no existiria.
+            /* closeStream: false a propósito: por defecto Save() cierra el stream que
+               recibe, y si lo cerrara acá, salida.ToArray() de la línea siguiente
+               fallaría con ObjectDisposedException porque el stream ya no existiría. */
             documentoFinal.Save(salida, closeStream: false);
             return salida.ToArray();
         }
 
         /// <summary>
-        /// Numera el expediente completo al final, cuando ya se sabe cuantas paginas
+        /// Numera el expediente completo al final, cuando ya se sabe cuántas páginas
         /// tiene.
         ///
         /// No se puede hacer con un footer de MigraDoc: el documento se arma juntando
         /// varios PDF chicos independientes (y los originales de los comprobantes, que
-        /// ni siquiera generamos nosotros), asi que cada pieza numeraria desde 1 por su
-        /// cuenta. Para un expediente contable la numeracion continua importa: es lo
+        /// ni siquiera generamos nosotros), así que cada pieza numeraría desde 1 por su
+        /// cuenta. Para un expediente contable la numeración continua importa: es lo
         /// que permite afirmar que no falta ninguna hoja.
         /// </summary>
         private static void EstamparNumerosDePagina(PdfDocument documento)
@@ -84,13 +84,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             {
                 var pagina = documento.Pages[indice];
 
-                // Append dibuja encima del contenido que ya trae la pagina, sin
-                // reescribirlo: las paginas importadas de un PDF ajeno quedan intactas.
+                /* Append dibuja encima del contenido que ya trae la página, sin
+                   reescribirlo: las páginas importadas de un PDF ajeno quedan intactas. */
                 using var lienzo = XGraphics.FromPdfPage(pagina, XGraphicsPdfPageOptions.Append);
 
                 var area = new XRect(0, pagina.Height.Point - 25, pagina.Width.Point, 15);
                 lienzo.DrawString(
-                    $"Pagina {indice + 1} de {total}",
+                    $"Página {indice + 1} de {total}",
                     fuente,
                     XBrushes.Gray,
                     area,
@@ -132,16 +132,16 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 return;
             }
 
-            // Un PDF guardado pero truncado o corrupto (por ejemplo, una subida
-            // cortada por un corte de red) pasa el chequeo de magic bytes de
-            // ValidadorComprobante -- que solo mira que el archivo EMPIECE con "%PDF"
-            // -- pero PdfReader.Open no puede parsearlo despues. Sin este try/catch,
-            // CrearSolicitudReposicionHandler genera este PDF ANTES de guardar la
-            // solicitud, asi que un solo comprobante ilegible tumbaba la reposicion
-            // completa; y el custodio no tiene como resolverlo por su cuenta, porque
-            // ComprobanteAdjunto ya esta firmado con HMAC y es inmutable. Se prefiere
-            // dejar constancia visible del problema dentro del propio expediente,
-            // igual que ya se hacia para un archivo faltante.
+            /* Un PDF guardado pero truncado o corrupto (por ejemplo, una subida
+               cortada por un corte de red) pasa el chequeo de magic bytes de
+               ValidadorComprobante -- que solo mira que el archivo EMPIECE con "%PDF"
+               -- pero PdfReader.Open no puede parsearlo después. Sin este try/catch,
+               CrearSolicitudReposicionHandler genera este PDF ANTES de guardar la
+               solicitud, así que un solo comprobante ilegible tumbaba la reposición
+               completa; y el custodio no tiene cómo resolverlo por su cuenta, porque
+               ComprobanteAdjunto ya está firmado con HMAC y es inmutable. Se prefiere
+               dejar constancia visible del problema dentro del propio expediente,
+               igual que ya se hacía para un archivo faltante. */
             try
             {
                 AgregarPaginas(documentoFinal, File.ReadAllBytes(rutaFisica));

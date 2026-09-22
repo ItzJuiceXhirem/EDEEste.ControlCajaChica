@@ -13,8 +13,8 @@ namespace EDEEste.ControlCajaChica.Domain.Enums
         Anulado = 5,
 
         /// <summary>
-        /// El custodio pidio anular el gasto y falta que el gerente lo confirme. El
-        /// dinero NO vuelve al fondo todavia: si volviera aqui, un custodio podria
+        /// El custodio pidió anular el gasto y falta que el gerente lo confirme. El
+        /// dinero NO vuelve al fondo todavía: si volviera aquí, un custodio podría
         /// inflar el fondo por su cuenta sin que nadie lo apruebe.
         /// </summary>
         AnulacionPendiente = 6

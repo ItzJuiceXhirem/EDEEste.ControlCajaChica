@@ -1,20 +1,20 @@
 namespace EDEEste.ControlCajaChica.Domain.Constants
 {
     /// <summary>
-    /// Rangos permitidos para los parametros configurables de un fondo.
+    /// Rangos permitidos para los parámetros configurables de un fondo.
     ///
     /// Viven en Domain y no en cada handler porque son una regla de negocio, y
     /// porque los necesitan tres sitios a la vez: los dos handlers que validan
     /// (crear y actualizar) y la pantalla de Fondos, que dibuja estos rangos como
-    /// escalas graficas. Con las cifras sueltas en cada lugar, cambiar un limite
+    /// escalas gráficas. Con las cifras sueltas en cada lugar, cambiar un límite
     /// obligaba a acordarse de los tres.
     /// </summary>
     public static class LimitesFondo
     {
         /// <summary>
-        /// Un gasto no puede consumir mas de este porcentaje del fondo fijo. El techo
+        /// Un gasto no puede consumir más de este porcentaje del fondo fijo. El techo
         /// del 30% es deliberadamente bajo: por encima de eso, dos o tres gastos
-        /// vaciarian la caja y la reposicion dejaria de tener sentido como ciclo.
+        /// vaciarían la caja y la reposición dejaría de tener sentido como ciclo.
         /// </summary>
         public const decimal TopePorGastoMinimo = 1m;
 
@@ -29,9 +29,9 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         public const decimal TopePorGastoPorDefecto = 2.5m;
 
         /// <summary>
-        /// Con que porcentaje restante se habilita la reposicion. Por debajo del 10%
+        /// Con qué porcentaje restante se habilita la reposición. Por debajo del 10%
         /// el custodio se queda sin efectivo antes de poder pedir; por encima del 50%
-        /// estaria reponiendo una caja que aun esta medio llena.
+        /// estaria reponiendo una caja que aún está medio llena.
         /// </summary>
         public const decimal AlertaReposicionMinima = 10m;
 
@@ -41,13 +41,13 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         /// Umbral que se usa cuando un fondo no trae su propio
         /// PorcentajeAlertaReposicion configurado (o vale 0): tanto para prellenar el
         /// campo al crear un fondo nuevo, como al decidir si ya toca habilitar la
-        /// reposicion sobre un fondo existente. El README pide solicitarla cuando el
-        /// fondo restante cae en la banda 30%-20%, asi que el default coincide con el
+        /// reposición sobre un fondo existente. El README pide solicitarla cuando el
+        /// fondo restante cae en la banda 30%-20%, así que el default coincide con el
         /// borde superior de esa banda.
         ///
-        /// Coincide numericamente con <see cref="TopePorGastoMaximo"/> (30), pero son
-        /// dos reglas de negocio distintas sin relacion entre si -- una es el tope de
-        /// cuanto puede costar un solo gasto, esta es el umbral de cuanto debe quedar
+        /// Coincide numéricamente con <see cref="TopePorGastoMaximo"/> (30), pero son
+        /// dos reglas de negocio distintas sin relación entre sí -- una es el tope de
+        /// cuánto puede costar un solo gasto, esta es el umbral de cuánto debe quedar
         /// en caja. No los unifiques solo porque hoy comparten valor.
         /// </summary>
         public const decimal AlertaReposicionPorDefecto = 30m;

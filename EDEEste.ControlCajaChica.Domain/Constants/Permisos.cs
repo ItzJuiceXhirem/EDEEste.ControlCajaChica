@@ -20,20 +20,16 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         public const string VerGastos = "gastos.ver";
         public const string RegistrarGasto = "gastos.registrar";
 
-        /// <summary>Revisar el gasto e inspeccionar sus comprobantes (Gerente).</summary>
+        // Revisar el gasto e inspeccionar sus comprobantes (Gerente)
         public const string RevisarGastos = "gastos.revisar";
 
-        /// <summary>
-        /// Pedir la anulación de un gasto. No la ejecuta: lo deja pendiente de que el
-        /// Gerente la confirme (Custodio).
-        /// </summary>
+        /* Pedir la anulación de un gasto. No la ejecuta: lo deja pendiente de que el
+           Gerente la confirme (Custodio). */
         public const string SolicitarAnulacionGasto = "gastos.anular.solicitar";
 
-        /// <summary>
-        /// Anular un gasto, confirmar una anulación que pidió el Custodio, o
-        /// revertirla. Es la misma decisión sobre el mismo expediente, así que es un
-        /// solo permiso (Gerente).
-        /// </summary>
+        /* Anular un gasto, confirmar una anulación que pidió el Custodio, o
+           revertirla. Es la misma decisión sobre el mismo expediente, así que es un
+           solo permiso (Gerente). */
         public const string AnularGasto = "gastos.anular";
 
         // --- Arqueos ---
@@ -46,11 +42,11 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         public const string AprobarReposicion = "reposiciones.aprobar";
         public const string PagarReposicion = "reposiciones.pagar";
 
-        /// <summary>Descargar el expediente PDF consolidado de una reposición.</summary>
+        // Descargar el expediente PDF consolidado de una reposición
         public const string DescargarExpediente = "reposiciones.expediente";
 
         // --- Auditoría ---
-        /// <summary>Historial de reposiciones, arqueos y reportes de descuadres.</summary>
+        // Historial de reposiciones, arqueos y reportes de descuadres
         public const string ConsultarHistorial = "auditoria.historial";
 
         // --- Configuración ---
