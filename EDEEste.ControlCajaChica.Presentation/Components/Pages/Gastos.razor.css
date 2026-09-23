@@ -882,6 +882,61 @@ html[data-tema="oscuro"] .gst-btn-warn {
         border-color: #B02A37;
     }
 
+/* ── Paginación ──────────────────────────────────────────────────────────── */
+/* Va entre la tabla y el total: los números navegan las filas que tienen encima,
+   y el total sigue cerrando la tarjeta con su filete. */
+.gst-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 14px 0 2px;
+}
+
+/* Sin cursor: pointer -- el reboot de Bootstrap ya se lo da a todo <button> que
+   no esté deshabilitado, igual que a .gst-btn y .gst-icobtn. */
+.gst-pager-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-ctrl-line);
+    border-radius: 8px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--cc-ctrl-fg);
+}
+
+    .gst-pager-btn:hover:not(:disabled) {
+        filter: brightness(0.97);
+    }
+
+    /* Mismo 0.55 que .gst-btn:disabled: las flechas de los extremos pasan casi
+       todo el tiempo en este estado y deben leerse como apagadas, no como
+       ausentes. */
+    .gst-pager-btn:disabled {
+        opacity: 0.55;
+    }
+
+/* La página actual lleva el relleno del botón primario: es el único elemento
+   activo de la barra, igual que .gst-on en las cifras de §5.8. Hereda el token,
+   así que en oscuro pasa a dorado sobre tinta sin una regla aparte. */
+.gst-pager-on {
+    background: var(--cc-btn-bg);
+    border-color: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
+}
+
+.gst-pager-nav .gst-ico {
+    width: 14px;
+    height: 14px;
+}
+
 /* ── Pantallas estrechas ─────────────────────────────────────────────────── */
 /* Cortes ya multiplicados por --cc-zoom (900→990, 720→792). El de la ficha vive
    arriba, junto a la regla que oculta columnas. */

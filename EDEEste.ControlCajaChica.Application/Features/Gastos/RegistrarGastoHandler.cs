@@ -309,7 +309,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             {
                 errores.Add(
                     "El NCF no es válido. Debe empezar con 'B' seguido de 0 o 1 y 9 dígitos más " +
-                    "(11 caracteres), o con 'E' seguido de 3 o 4 y 11 digitos más (13 caracteres). " +
+                    "(11 caracteres), o con 'E' seguido de 3 o 4 y 11 dígitos más (13 caracteres). " +
                     "No se permiten espacios, guiones ni otras letras.");
             }
 
