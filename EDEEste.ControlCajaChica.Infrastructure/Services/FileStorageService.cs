@@ -103,30 +103,55 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return await File.ReadAllBytesAsync(rutaFisica);
         }
 
-        public async Task<bool> VerificarIntegridadArchivoAsync(string rutaRelativa, string hashOriginal)
+        public async Task<ArchivoVerificadoDto?> LeerArchivoVerificadoAsync(
+            string rutaRelativa,
+            string? hashEsperado,
+            CancellationToken cancellationToken = default)
         {
             var rutaFisica = ObtenerRutaFisica(rutaRelativa);
-            if (!File.Exists(rutaFisica)) return false;
+            if (!File.Exists(rutaFisica))
+            {
+                return null;
+            }
 
-            var hashActual = await CalcularHashArchivoAsync(rutaFisica);
+            var contenido = await File.ReadAllBytesAsync(rutaFisica, cancellationToken);
 
-            // Comparacion en tiempo constante: el hash decide si un comprobante se
+            return new ArchivoVerificadoDto
+            {
+                Contenido = contenido,
+                Integridad = CompararHash(contenido, hashEsperado)
+            };
+        }
+
+        private static IntegridadArchivo CompararHash(byte[] contenido, string? hashEsperado)
+        {
+            if (string.IsNullOrEmpty(hashEsperado))
+            {
+                return IntegridadArchivo.SinHashRegistrado;
+            }
+
+            // Comparacion en tiempo constante: el hash decide si el archivo se
             // considera integro, asi que se trata como un secreto mas.
-            return CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(hashActual),
-                Encoding.UTF8.GetBytes(hashOriginal ?? string.Empty));
+            var coincide = CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(CalcularHash(contenido)),
+                Encoding.UTF8.GetBytes(hashEsperado));
+
+            return coincide ? IntegridadArchivo.Integro : IntegridadArchivo.Alterado;
         }
 
         private static string ConstruirRutaRelativa(string carpeta, string nombreArchivo) =>
             Path.Combine(CarpetaRaizUploads, carpeta, nombreArchivo).Replace("\\", "/");
 
-        // Método privado para calcular el hash criptográfico del archivo físico
-        private async Task<string> CalcularHashArchivoAsync(string rutaFisica)
+        // Guardar y verificar pasan por el mismo formato de salida: si divergieran
+        // (por ejemplo, mayusculas vs minusculas), todo archivo se veria alterado.
+        private static string FormatoHash(byte[] digest) => Convert.ToHexString(digest);
+
+        private static string CalcularHash(byte[] contenido) => FormatoHash(SHA256.HashData(contenido));
+
+        private static async Task<string> CalcularHashArchivoAsync(string rutaFisica)
         {
-            using var sha256 = SHA256.Create();
-            using var stream = File.OpenRead(rutaFisica);
-            var hashBytes = await sha256.ComputeHashAsync(stream);
-            return Convert.ToHexString(hashBytes);
+            await using var stream = File.OpenRead(rutaFisica);
+            return FormatoHash(await SHA256.HashDataAsync(stream));
         }
 
         // ── Staging ──────────────────────────────────────────────────────────────

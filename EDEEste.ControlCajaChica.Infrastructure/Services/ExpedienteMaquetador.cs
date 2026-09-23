@@ -29,6 +29,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
         private static readonly Unit MargenPagina = Unit.FromCentimeter(1.5);
 
+        // Prefijo con el que MigraDoc acepta una imagen en memoria (en base64) en vez
+        // de una ruta de archivo.
+        private const string PrefijoImagenEnMemoria = "base64:";
+
         /// <summary>
         /// Identificador corto y legible de una solicitud para mostrar en el
         /// expediente (no es un codigo de negocio, solo los primeros 8 caracteres del
@@ -122,17 +126,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             parrafo.AddText(valor);
         }
 
-        public static void ComponerImagen(Section seccion, string rutaFisica)
+        /// <summary>
+        /// Recibe los bytes y no una ruta: son los que ya se verificaron contra el hash
+        /// registrado. Con una ruta, MigraDoc abriria el archivo por su cuenta y podria
+        /// dibujar uno distinto del verificado si cambiara entre medio.
+        /// </summary>
+        public static void ComponerImagen(Section seccion, byte[] contenido)
         {
-            if (!File.Exists(rutaFisica))
-            {
-                var aviso = seccion.AddParagraph("El comprobante no existe en el servidor.");
-                aviso.Format.Alignment = ParagraphAlignment.Center;
-                aviso.Format.Font.Color = RojoMedio;
-                return;
-            }
-
-            var imagen = seccion.AddImage(rutaFisica);
+            var imagen = seccion.AddImage(PrefijoImagenEnMemoria + Convert.ToBase64String(contenido));
             imagen.LockAspectRatio = true;
 
             // Equivalente al MaxHeight(700).FitArea() de QuestPDF: sin un tope, una
@@ -148,10 +149,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         }
 
         /// <summary>
-        /// Pagina de aviso centrada (vertical y horizontalmente), en rojo. Comparte
-        /// texto y estilo entre "no existe" y "no se pudo leer" -- ver el comentario en
-        /// PdfConsolidadorService.AgregarComprobante sobre por que un comprobante
-        /// ilegible no puede bloquear la reposicion completa.
+        /// Pagina de aviso centrada (vertical y horizontalmente), en rojo. Ocupa el
+        /// lugar de un comprobante que no existe, que fue modificado despues de
+        /// registrarse o que no se pudo leer -- ver PdfConsolidadorService.
+        /// AgregarComprobanteAsync sobre por que ninguno de esos casos puede bloquear la
+        /// reposicion completa.
         ///
         /// MigraDoc no tiene un AlignMiddle de pagina como QuestPDF: se aproxima con
         /// una tabla de una sola celda cuya fila ocupa toda el area de contenido

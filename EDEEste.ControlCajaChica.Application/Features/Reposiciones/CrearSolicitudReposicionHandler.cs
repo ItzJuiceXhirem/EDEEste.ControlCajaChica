@@ -124,6 +124,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                 $"reposicion-{solicitud.Id}.pdf");
 
             solicitud.RutaPdfConsolidado = archivo.RutaRelativa;
+            solicitud.HashPdfConsolidado = archivo.HashSha256;
 
             await _reposiciones.AgregarAsync(solicitud, cancellationToken);
 

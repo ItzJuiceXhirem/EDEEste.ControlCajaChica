@@ -47,7 +47,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         // cabecera "%PDF" -- pasa el chequeo de firma de mas abajo igual que un PDF
         // completo -- y quedar guardado como comprobante ilegible: se ve en la
         // pantalla, pero PdfConsolidadorService no puede abrirlo despues al generar
-        // el expediente (ver el try/catch en AgregarComprobante, que existe
+        // el expediente (ver el try/catch en AgregarComprobanteAsync, que existe
         // precisamente porque este piso no estaba antes).
         private const int TamanoMinimoValido = 512;
 

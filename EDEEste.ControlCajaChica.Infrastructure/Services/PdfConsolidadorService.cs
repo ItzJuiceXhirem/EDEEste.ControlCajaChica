@@ -3,7 +3,9 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Application.DTOs;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using Microsoft.Extensions.Logging;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
@@ -30,13 +32,23 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
     /// </summary>
     public class PdfConsolidadorService : IPdfConsolidadorService
     {
+        private const string AvisoNoExiste = "El comprobante no existe en el servidor.";
+        private const string AvisoAlterado =
+            "El comprobante fue modificado después de registrarse. No se incluye en el expediente.";
+        private const string AvisoIlegible = "El comprobante no se pudo leer (archivo dañado o incompleto).";
+
         private readonly IFileStorageService _fileStorageService;
         private readonly IIdentityService _identityService;
+        private readonly ILogger<PdfConsolidadorService> _logger;
 
-        public PdfConsolidadorService(IFileStorageService fileStorageService, IIdentityService identityService)
+        public PdfConsolidadorService(
+            IFileStorageService fileStorageService,
+            IIdentityService identityService,
+            ILogger<PdfConsolidadorService> logger)
         {
             _fileStorageService = fileStorageService;
             _identityService = identityService;
+            _logger = logger;
         }
 
         public async Task<byte[]> ConsolidarComprobantesAsync(SolicitudReposicion solicitud, CancellationToken cancellationToken = default)
@@ -51,7 +63,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 foreach (var comprobante in gasto.Comprobantes)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    AgregarComprobante(documentoFinal, gasto, comprobante);
+                    await AgregarComprobanteAsync(documentoFinal, solicitud.Id, gasto, comprobante, cancellationToken);
                 }
             }
 
@@ -109,47 +121,74 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return nombre ?? custodioId;
         }
 
-        private void AgregarComprobante(PdfDocument documentoFinal, Gasto gasto, ComprobanteAdjunto comprobante)
+        /// <summary>
+        /// Portada del comprobante y, detras, su contenido -- o una pagina de aviso en su
+        /// lugar si no existe, fue modificado despues de registrarse o no se puede leer.
+        ///
+        /// Ninguno de esos casos bloquea la reposicion completa, a proposito:
+        /// CrearSolicitudReposicionHandler genera este PDF ANTES de guardar la
+        /// solicitud, y el custodio no tiene como corregir un comprobante por su cuenta
+        /// (ComprobanteAdjunto esta firmado con HMAC y es inmutable). Se deja constancia
+        /// visible dentro del propio expediente, y el Gerente decide si rechaza.
+        /// </summary>
+        private async Task AgregarComprobanteAsync(
+            PdfDocument documentoFinal,
+            Guid solicitudId,
+            Gasto gasto,
+            ComprobanteAdjunto comprobante,
+            CancellationToken cancellationToken)
         {
-            var rutaFisica = _fileStorageService.ObtenerRutaFisica(comprobante.RutaArchivo);
-            var esImagen = comprobante.TipoMime.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
-
             var portada = ExpedienteMaquetador.NuevoDocumento();
             ExpedienteMaquetador.ComponerPortada(portada.LastSection, gasto, comprobante);
             AgregarPaginas(documentoFinal, ExpedienteMaquetador.Renderizar(portada));
 
-            if (esImagen)
+            var archivo = await _fileStorageService.LeerArchivoVerificadoAsync(
+                comprobante.RutaArchivo, comprobante.HashSHA256, cancellationToken);
+
+            if (archivo is null)
             {
-                var imagen = ExpedienteMaquetador.NuevoDocumento();
-                ExpedienteMaquetador.ComponerImagen(imagen.LastSection, rutaFisica);
-                AgregarPaginas(documentoFinal, ExpedienteMaquetador.Renderizar(imagen));
+                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoNoExiste));
                 return;
             }
 
-            if (!File.Exists(rutaFisica))
+            // Tambien la fila: sin ella, quien pudiera escribir en la BDD repuntaria a
+            // la vez la ruta y el hash, y la comparacion del archivo pasaria. Un
+            // comprobante siempre nace con hash, asi que "sin hash" tambien es anomalo.
+            if (!comprobante.IntegridadVerificada || archivo.Integridad != IntegridadArchivo.Integro)
             {
-                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso("El comprobante no existe en el servidor."));
+                _logger.LogCritical(
+                    "ALERTA DE MANIPULACION: el comprobante {ComprobanteId} del gasto {GastoId} se excluyo del " +
+                    "expediente de la solicitud {SolicitudId} (fila integra: {FilaIntegra}, archivo: {Integridad}).",
+                    comprobante.Id, gasto.Id, solicitudId, comprobante.IntegridadVerificada, archivo.Integridad);
+
+                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoAlterado));
                 return;
             }
 
-            // Un PDF guardado pero truncado o corrupto (por ejemplo, una subida
-            // cortada por un corte de red) pasa el chequeo de magic bytes de
-            // ValidadorComprobante -- que solo mira que el archivo EMPIECE con "%PDF"
-            // -- pero PdfReader.Open no puede parsearlo despues. Sin este try/catch,
-            // CrearSolicitudReposicionHandler genera este PDF ANTES de guardar la
-            // solicitud, asi que un solo comprobante ilegible tumbaba la reposicion
-            // completa; y el custodio no tiene como resolverlo por su cuenta, porque
-            // ComprobanteAdjunto ya esta firmado con HMAC y es inmutable. Se prefiere
-            // dejar constancia visible del problema dentro del propio expediente,
-            // igual que ya se hacia para un archivo faltante.
+            // Un archivo integro todavia puede estar truncado o corrupto desde que se
+            // subio (por ejemplo, una subida cortada por la red): pasa el chequeo de
+            // magic bytes de ValidadorComprobante, que solo mira como EMPIEZA, pero
+            // PdfReader o MigraDoc no pueden abrirlo despues.
             try
             {
-                AgregarPaginas(documentoFinal, File.ReadAllBytes(rutaFisica));
+                AgregarPaginas(documentoFinal, EsImagen(comprobante)
+                    ? RenderizarImagen(archivo.Contenido)
+                    : archivo.Contenido);
             }
             catch (Exception)
             {
-                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso("El comprobante no se pudo leer (archivo dañado o incompleto)."));
+                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoIlegible));
             }
+        }
+
+        private static bool EsImagen(ComprobanteAdjunto comprobante) =>
+            comprobante.TipoMime.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+
+        private static byte[] RenderizarImagen(byte[] contenido)
+        {
+            var documento = ExpedienteMaquetador.NuevoDocumento();
+            ExpedienteMaquetador.ComponerImagen(documento.LastSection, contenido);
+            return ExpedienteMaquetador.Renderizar(documento);
         }
 
         private static void AgregarPaginas(PdfDocument destino, byte[] pdfBytes)

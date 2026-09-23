@@ -11,7 +11,16 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
     public interface IFileStorageService
     {
         Task EliminarArchivoAsync(string rutaRelativa);
-        Task<bool> VerificarIntegridadArchivoAsync(string rutaRelativa, string hashOriginal);
+
+        /// <summary>
+        /// Lee el archivo y compara su SHA-256 con el registrado al guardarlo, sobre
+        /// los mismos bytes que devuelve. Null si el archivo no existe. No decide que
+        /// hacer con un archivo alterado: eso es politica de quien llama.
+        /// </summary>
+        Task<ArchivoVerificadoDto?> LeerArchivoVerificadoAsync(
+            string rutaRelativa,
+            string? hashEsperado,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Guarda el expediente PDF ya generado de una reposicion. Va en una carpeta

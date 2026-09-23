@@ -31,6 +31,11 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public DateTime? FechaPago { get; set; }
         public string? ReferenciaPago { get; set;}
         public string? RutaPdfConsolidado { get; set; }
+
+        // SHA-256 del expediente al generarse, para detectar si el archivo en disco se
+        // reemplaza despues. Null en las solicitudes creadas antes de que existiera.
+        public string? HashPdfConsolidado { get; set; }
+
         public EstadoReposicion Estado { get; set; }
 
         // Gastos que entran en esta reposición; es lo que alimenta el PDF consolidado
@@ -43,8 +48,9 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
 
         /* Se firma toda la cadena de aprobación (quien solicitó, quien aprobó, quien
            pagó y cuándo) porque es justo lo que un fraude querría reescribir */
-        public string ObtenerCadenaParaHash() =>
-            new ConstructorFirma(nameof(SolicitudReposicion))
+        public string ObtenerCadenaParaHash()
+        {
+            var firma = new ConstructorFirma(nameof(SolicitudReposicion))
                 .Agregar(Id)
                 .Agregar(FondoCajaChicaId)
                 //.Agregar(CodigoSolicitud)
@@ -58,7 +64,20 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
                 .Agregar(ReferenciaPago)
                 .Agregar(RutaPdfConsolidado)
                 .Agregar((long)Estado)
-                .Agregar(IsDeleted)
-                .ToString();
+                .Agregar(IsDeleted);
+
+            // Al final y solo si existe, a proposito: las solicitudes firmadas antes de
+            // este campo lo tienen en null y deben seguir produciendo exactamente la
+            // misma cadena, o todas se leerian como manipuladas. No es un hueco: por la
+            // codificacion longitud:valor, quitarle el hash a una solicitud nueva o
+            // inventarselo a una vieja cambia la cadena y rompe su firma igual. No
+            // volverlo incondicional.
+            if (HashPdfConsolidado is not null)
+            {
+                firma.Agregar(HashPdfConsolidado);
+            }
+
+            return firma.ToString();
+        }
     }
 }

@@ -223,8 +223,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 log.Property(l => l.Secuencia).ValueGeneratedOnAdd();
                 log.HasIndex(l => l.Secuencia).IsUnique();
 
-                log.Property(l => l.HashFirma).HasMaxLength(64);
-                log.Property(l => l.HashAnterior).HasMaxLength(64);
+                log.Property(l => l.HashFirma).HasMaxLength(LongitudHashSha256Hex);
+                log.Property(l => l.HashAnterior).HasMaxLength(LongitudHashSha256Hex);
             });
         }
 
@@ -359,8 +359,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
                 comprobante.Property(c => c.RutaArchivo).HasMaxLength(400);
                 comprobante.Property(c => c.TipoMime).HasMaxLength(100);
 
-                // SHA-256 en hexadecimal: siempre 64 caracteres.
-                comprobante.Property(c => c.HashSHA256).HasMaxLength(64);
+                comprobante.Property(c => c.HashSHA256).HasMaxLength(LongitudHashSha256Hex);
             });
 
             modelBuilder.Entity<CategoriaGasto>(categoria =>
@@ -373,6 +372,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
             {
                 reposicion.Property(r => r.ReferenciaPago).HasMaxLength(100);
                 reposicion.Property(r => r.RutaPdfConsolidado).HasMaxLength(400);
+                reposicion.Property(r => r.HashPdfConsolidado).HasMaxLength(LongitudHashSha256Hex);
             });
 
             modelBuilder.Entity<ArqueoCaja>()
@@ -400,8 +400,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
             modelBuilder.Entity<Identity.SolicitudPasswordReset>()
                 .Property(s => s.HashSecreto)
-                // SHA-256 en hexadecimal son siempre 64 caracteres.
-                .HasMaxLength(64);
+                .HasMaxLength(LongitudHashSha256Hex);
 
             AplicarLongitudDeIdsDeUsuario(modelBuilder);
         }
@@ -412,6 +411,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
         /// cualquier columna que lo referencie tiene que aguantar lo mismo.
         /// </summary>
         private const int LongitudIdUsuario = 450;
+
+        /// <summary>
+        /// Un SHA-256 (o HMAC-SHA256) en hexadecimal: 32 bytes, siempre 64 caracteres.
+        /// </summary>
+        private const int LongitudHashSha256Hex = 64;
 
         private static void AplicarLongitudDeIdsDeUsuario(ModelBuilder modelBuilder)
         {

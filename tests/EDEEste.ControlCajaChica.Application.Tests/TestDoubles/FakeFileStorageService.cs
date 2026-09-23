@@ -11,6 +11,9 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
 {
     public sealed class FakeFileStorageService : IFileStorageService
     {
+        /// <summary>El hash que devuelve todo guardado de este fake.</summary>
+        public const string HashDePrueba = "hash-de-prueba";
+
         // Mismas instancias que devolvio GuardarComprobanteEnStagingAsync: es lo que
         // permite que PromoverComprobanteAsync devuelva datos consistentes con lo que
         // el propio handler subio, igual que el DbContext compartido del resto de los
@@ -26,14 +29,20 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
 
         public Task EliminarArchivoAsync(string rutaRelativa) => Task.CompletedTask;
 
-        public Task<bool> VerificarIntegridadArchivoAsync(string rutaRelativa, string hashOriginal) =>
-            Task.FromResult(true);
+        public Task<ArchivoVerificadoDto?> LeerArchivoVerificadoAsync(
+            string rutaRelativa,
+            string? hashEsperado,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(
+                _archivosFinales.TryGetValue(rutaRelativa, out var bytes)
+                    ? new ArchivoVerificadoDto { Contenido = bytes, Integridad = IntegridadArchivo.Integro }
+                    : null);
 
         public Task<RespuestaArchivoDto> GuardarPdfConsolidadoAsync(byte[] contenido, string nombreArchivo) =>
             Task.FromResult(new RespuestaArchivoDto
             {
                 RutaRelativa = $"reposiciones/{nombreArchivo}",
-                HashSha256 = "hash-de-prueba"
+                HashSha256 = HashDePrueba
             });
 
         public Task<byte[]?> LeerArchivoAsync(string rutaRelativa) =>
@@ -87,7 +96,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
                 NombreOriginal = manifiesto.NombreOriginal,
                 TipoMime = tipoMime,
                 TamanoBytes = _archivosFinales[rutaRelativa].Length,
-                HashSha256 = "hash-de-prueba"
+                HashSha256 = HashDePrueba
             });
         }
 
@@ -140,7 +149,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
 
         // 512 bytes, no solo la firma: coincide con el piso de tamano minimo que
         // ValidadorComprobante.CoincideConFirmaEsperadaAsync exige ahora (el mismo
-        // que motivo el try/catch de PdfConsolidadorService.AgregarComprobante). Con
+        // que motivo el try/catch de PdfConsolidadorService.AgregarComprobanteAsync). Con
         // solo la firma (8 bytes para un PDF) esta prueba fallaria en la
         // reverificacion del handler por la misma razon que el bug real.
         private static byte[] FirmaDe(string tipoMime)
