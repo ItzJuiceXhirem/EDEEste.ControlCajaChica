@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.Common.Models;
 using EDEEste.ControlCajaChica.Domain.Constants;
+using EDEEste.ControlCajaChica.Domain.Enums;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Fondos
 {
@@ -47,7 +48,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             var custodioYaTieneFondo = custodioId.Length > 0
                 && await _fondos.ExisteFondoParaCustodioAsync(custodioId, fondo.Id, cancellationToken);
 
-            var errores = Validar(comando, fondo.MontoFijo, custodioValido, custodioYaTieneFondo);
+            var errores = Validar(comando, fondo.MontoFijo, fondo.Estado, custodioValido, custodioYaTieneFondo);
             if (errores.Count > 0)
             {
                 return ResultadoOperacion<Guid>.Fallo(errores);
@@ -75,6 +76,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
         private static List<string> Validar(
             ActualizarParametrosFondoCommand comando,
             decimal montoFijo,
+            EstadoFondo estadoActual,
             bool custodioValido,
             bool custodioYaTieneFondo)
         {
@@ -129,6 +131,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
             if (!Enum.IsDefined(comando.Estado))
             {
                 errores.Add("El estado del fondo no es valido.");
+            }
+            // Conservar el estado que ya tiene se permite siempre: si un fondo llegara a
+            // estar en otro estado, el Administrador debe poder guardar sus demas
+            // parametros o sacarlo a Activo/Inactivo, no quedar trabado tambien aqui.
+            else if (comando.Estado != estadoActual
+                     && !ActualizarParametrosFondoCommand.EstadosAsignables.Contains(comando.Estado))
+            {
+                errores.Add("Un fondo solo se puede poner en Activo o Inactivo desde aqui.");
             }
 
             return errores;

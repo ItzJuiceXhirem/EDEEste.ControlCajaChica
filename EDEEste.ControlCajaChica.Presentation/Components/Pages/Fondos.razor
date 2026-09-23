@@ -431,7 +431,7 @@ else if (fondoEditando is { } fondo && entradaEdicion is not null)
                     <div>
                         <label class="fnd-cap" for="fnd-estado">Estado</label>
                         <select id="fnd-estado" class="fnd-input" @bind="entradaEdicion.Estado">
-                            @foreach (var estado in Enum.GetValues<EstadoFondo>())
+                            @foreach (var estado in EstadosElegibles(fondo.Estado))
                             {
                                 <option value="@estado">@EtiquetaEstado(estado)</option>
                             }

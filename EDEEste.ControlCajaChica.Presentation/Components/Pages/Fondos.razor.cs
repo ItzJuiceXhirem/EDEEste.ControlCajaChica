@@ -536,6 +536,17 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             _ => "fnd-p-dark"
         };
 
+        /// <summary>
+        /// Solo los estados que el Administrador puede elegir a mano (ver
+        /// ActualizarParametrosFondoCommand.EstadosAsignables), mas el actual del fondo
+        /// si fuera otro: sin el, el &lt;select&gt; no tendria una opcion que mostrar
+        /// seleccionada.
+        /// </summary>
+        private static IEnumerable<EstadoFondo> EstadosElegibles(EstadoFondo actual) =>
+            ActualizarParametrosFondoCommand.EstadosAsignables.Contains(actual)
+                ? ActualizarParametrosFondoCommand.EstadosAsignables
+                : ActualizarParametrosFondoCommand.EstadosAsignables.Prepend(actual);
+
         private static string EtiquetaEstado(EstadoFondo estado) => estado switch
         {
             EstadoFondo.Activo => "Activo",

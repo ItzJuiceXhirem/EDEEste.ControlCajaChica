@@ -10,7 +10,6 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
 {
     public interface IFileStorageService
     {
-        Task<RespuestaArchivoDto> GuardarComprobanteAsync(SubirComprobanteDto comprobanteDto);
         Task EliminarArchivoAsync(string rutaRelativa);
         Task<bool> VerificarIntegridadArchivoAsync(string rutaRelativa, string hashOriginal);
 

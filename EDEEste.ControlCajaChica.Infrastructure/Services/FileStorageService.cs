@@ -76,30 +76,6 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return Task.CompletedTask;
         }
 
-        public async Task<RespuestaArchivoDto> GuardarComprobanteAsync(SubirComprobanteDto comprobanteDto)
-        {
-            // Seguridad: Generar un nombre único para evitar sobreescrituras y Path Traversal Attacks
-            var extension = Path.GetExtension(comprobanteDto.NombreOriginal);
-            var nombreArchivoSeguro = $"{Guid.NewGuid()}{extension}";
-            var rutaCompleta = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaComprobantes, nombreArchivoSeguro);
-
-            // Se usa un FileStream para escribir el archivo directamente en disco chunk por chunk
-            using (var fileStream = new FileStream(rutaCompleta, FileMode.Create))
-            {
-                await comprobanteDto.ContenidoArchivo.CopyToAsync(fileStream);
-            }
-
-            // Calcular el Hash SHA-256 físico del archivo guardado
-            var hashCalculado = await CalcularHashArchivoAsync(rutaCompleta);
-
-            return new RespuestaArchivoDto
-            {
-                // Devolvemos la ruta relativa para guardarla en BDD, ej: "uploads/comprobantes/uuid.pdf"
-                RutaRelativa = ConstruirRutaRelativa(CarpetaComprobantes, nombreArchivoSeguro),
-                HashSha256 = hashCalculado
-            };
-        }
-
         public async Task<RespuestaArchivoDto> GuardarPdfConsolidadoAsync(byte[] contenido, string nombreArchivo)
         {
             // El nombre viene armado por la aplicacion, pero se le quita cualquier

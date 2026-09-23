@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Fondos
@@ -18,5 +19,17 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
         public decimal PorcentajeAlertaReposicion { get; set; }
         public string CustodioId { get; set; } = string.Empty;
         public EstadoFondo Estado { get; set; }
+
+        /// <summary>
+        /// Los unicos estados que el Administrador puede elegir a mano. EnReposicion y
+        /// BloqueadaPorArqueo son estados que algun dia asignara el propio sistema, pero
+        /// todavia nadie los escribe ni los libera: puestos a mano, el fondo quedaba sin
+        /// poder registrar gastos, arquear ni pedir reposicion (los tres exigen Activo).
+        /// </summary>
+        public static readonly IReadOnlyList<EstadoFondo> EstadosAsignables =
+        [
+            EstadoFondo.Activo,
+            EstadoFondo.Inactivo
+        ];
     }
 }

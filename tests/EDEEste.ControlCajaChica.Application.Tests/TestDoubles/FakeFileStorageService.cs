@@ -24,13 +24,6 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
         // sin esto, RegistrarGastoHandlerTests fallaria siempre en esa verificacion.
         private readonly Dictionary<string, byte[]> _archivosFinales = new();
 
-        public Task<RespuestaArchivoDto> GuardarComprobanteAsync(SubirComprobanteDto comprobanteDto) =>
-            Task.FromResult(new RespuestaArchivoDto
-            {
-                RutaRelativa = $"uploads/{comprobanteDto.NombreOriginal}",
-                HashSha256 = "hash-de-prueba"
-            });
-
         public Task EliminarArchivoAsync(string rutaRelativa) => Task.CompletedTask;
 
         public Task<bool> VerificarIntegridadArchivoAsync(string rutaRelativa, string hashOriginal) =>
