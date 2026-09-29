@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Infrastructure.Configuration;
+using Microsoft.Extensions.Options;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
@@ -32,11 +34,20 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
     {
         private readonly IFileStorageService _fileStorageService;
         private readonly IIdentityService _identityService;
+        private readonly string _rutaLogo;
 
-        public PdfConsolidadorService(IFileStorageService fileStorageService, IIdentityService identityService)
+        public PdfConsolidadorService(
+            IFileStorageService fileStorageService,
+            IIdentityService identityService,
+            IOptions<OpcionesAlmacenamiento> opciones)
         {
             _fileStorageService = fileStorageService;
             _identityService = identityService;
+            /* OJO: App_Data está en el .gitignore, así que el logo no viaja con el
+               repositorio. Al desplegar o clonar en otra máquina hay que copiar a mano
+               App_Data/recursos/logo-edeeste.png; si falta, los PDFs salen sin logo,
+               sin error ni aviso. */
+            _rutaLogo = Path.Combine(opciones.Value.RutaRaiz, "recursos", "logo-edeeste.png");
         }
 
         public async Task<byte[]> ConsolidarComprobantesAsync(SolicitudReposicion solicitud, CancellationToken cancellationToken = default)
@@ -44,7 +55,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             using var documentoFinal = new PdfDocument();
 
             var nombreCustodio = await ResolverNombreCustodioAsync(solicitud.FondoCajaChica?.CustodioId);
-            AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarResumen(solicitud, nombreCustodio));
+            AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarResumen(solicitud, nombreCustodio, _rutaLogo));
 
             foreach (var gasto in solicitud.Gastos)
             {
@@ -114,13 +125,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var rutaFisica = _fileStorageService.ObtenerRutaFisica(comprobante.RutaArchivo);
             var esImagen = comprobante.TipoMime.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
 
-            var portada = ExpedienteMaquetador.NuevoDocumento();
+            var portada = ExpedienteMaquetador.NuevoDocumento(_rutaLogo);
             ExpedienteMaquetador.ComponerPortada(portada.LastSection, gasto, comprobante);
             AgregarPaginas(documentoFinal, ExpedienteMaquetador.Renderizar(portada));
 
             if (esImagen)
             {
-                var imagen = ExpedienteMaquetador.NuevoDocumento();
+                var imagen = ExpedienteMaquetador.NuevoDocumento(_rutaLogo);
                 ExpedienteMaquetador.ComponerImagen(imagen.LastSection, rutaFisica);
                 AgregarPaginas(documentoFinal, ExpedienteMaquetador.Renderizar(imagen));
                 return;
@@ -128,7 +139,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             if (!File.Exists(rutaFisica))
             {
-                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso("El comprobante no existe en el servidor."));
+                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso("El comprobante no existe en el servidor.", _rutaLogo));
                 return;
             }
 
@@ -148,7 +159,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             }
             catch (Exception)
             {
-                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso("El comprobante no se pudo leer (archivo dañado o incompleto)."));
+                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso("El comprobante no se pudo leer (archivo dañado o incompleto).", _rutaLogo));
             }
         }
 
