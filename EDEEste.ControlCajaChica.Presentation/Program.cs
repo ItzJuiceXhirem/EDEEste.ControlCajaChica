@@ -14,6 +14,7 @@ using EDEEste.ControlCajaChica.Application.Features.Reposiciones;
 using EDEEste.ControlCajaChica.Application.Features.Arqueos;
 using EDEEste.ControlCajaChica.Application.Features.Fondos;
 using EDEEste.ControlCajaChica.Application.Features.Categorias;
+using EDEEste.ControlCajaChica.Application.Features.Auditoria;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using System.Threading.RateLimiting;
@@ -84,6 +85,11 @@ builder.Services.AddScoped<ActualizarParametrosFondoHandler>();
 // Categorias
 builder.Services.AddScoped<CrearCategoriaGastoHandler>();
 builder.Services.AddScoped<ActualizarCategoriaGastoHandler>();
+
+// Auditoria
+builder.Services.AddScoped<VerificarCadenaBitacoraHandler>();
+builder.Services.AddScoped<ListarFirmasInvalidasHandler>();
+builder.Services.AddScoped<ListarRegistrosDesaparecidosHandler>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 

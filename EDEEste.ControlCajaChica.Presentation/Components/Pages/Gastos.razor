@@ -257,8 +257,10 @@ else
 
                             @if (TotalPaginasAnulados > 1)
                             {
-                                @RenderPaginacion("Paginación de gastos anulados", PaginaSeguraAnulados,
-                                                  TotalPaginasAnulados, PaginasAnulados, IrAPaginaAnulados)
+                                <BarraPaginacion Etiqueta="Paginación de gastos anulados"
+                                                 PaginaActual="@PaginaSeguraAnulados"
+                                                 TotalPaginas="@TotalPaginasAnulados"
+                                                 OnCambiarPagina="IrAPaginaAnulados" />
                             }
 
                             <div class="gst-tfoot">
@@ -377,8 +379,10 @@ else
 
                         @if (TotalPaginasMovimientos > 1)
                         {
-                            @RenderPaginacion("Paginación de movimientos", PaginaSeguraMovimientos,
-                                              TotalPaginasMovimientos, PaginasMovimientos, IrAPaginaMovimientos)
+                            <BarraPaginacion Etiqueta="Paginación de movimientos"
+                                             PaginaActual="@PaginaSeguraMovimientos"
+                                             TotalPaginas="@TotalPaginasMovimientos"
+                                             OnCambiarPagina="IrAPaginaMovimientos" />
                         }
 
                         @* Suma el filtro completo y no solo la página a la vista: es la
@@ -455,40 +459,6 @@ else
         <path d="M1.8 10S4.9 4.8 10 4.8 18.2 10 18.2 10 15.1 15.2 10 15.2 1.8 10 1.8 10Z" />
         <circle cx="10" cy="10" r="2.4" />
     </svg>;
-
-    @* Barra de paginación compartida por Movimientos y Anulados: las dos tablas
-       crecen sin techo y se recorren igual, así que comparten controles en vez
-       de duplicar la misma barra con otros nombres. Quien la llama decide si se
-       pinta — con una sola página los botones no llevan a ningún sitio. *@
-    private RenderFragment RenderPaginacion(
-        string etiqueta, int pagina, int totalPaginas,
-        IEnumerable<int> paginas, Action<int> irA) =>@<nav class="gst-pager" aria-label="@etiqueta">
-        <button type="button" class="gst-pager-btn gst-pager-nav"
-                disabled="@(pagina == 1)"
-                @onclick="() => irA(pagina - 1)"
-                aria-label="Página anterior">
-            <svg class="gst-ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.2 5 7.2 10l5 5" /></svg>
-        </button>
-
-        @foreach (var numero in paginas)
-        {
-            @* aria-current en null: Blazor omite el atributo entero, que es lo que
-               espera un lector de pantalla en las páginas que no son la actual. *@
-            <button type="button" @key="numero"
-                    class="gst-pager-btn @(numero == pagina ? "gst-pager-on" : "")"
-                    aria-current="@(numero == pagina ? "page" : null)"
-                    @onclick="() => irA(numero)">
-                @numero
-            </button>
-        }
-
-        <button type="button" class="gst-pager-btn gst-pager-nav"
-                disabled="@(pagina == totalPaginas)"
-                @onclick="() => irA(pagina + 1)"
-                aria-label="Página siguiente">
-            <svg class="gst-ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.8 5l5 5-5 5" /></svg>
-        </button>
-    </nav>;
 
     @* §5.9: fragmento compartido — antes vivía sólo dentro de Movimientos; ahora
        lo usan también las tablas de Anulados, para que cualquier fila clickeable

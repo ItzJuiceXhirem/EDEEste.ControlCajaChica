@@ -1,0 +1,31 @@
+@* Barra de páginas: anterior, una ventana de números centrada en la página actual,
+   y siguiente. Solo dibuja; quien la usa decide qué hay en cada página (en memoria,
+   como Gastos, o en el servidor, como Auditoría) y si vale la pena pintarla (con una
+   sola página los botones no llevan a ningún sitio). *@
+<nav class="pag" aria-label="@Etiqueta">
+    <button type="button" class="pag-btn"
+            disabled="@(PaginaActual <= 1)"
+            @onclick="() => IrAAsync(PaginaActual - 1)"
+            aria-label="Página anterior">
+        <svg class="pag-ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.2 5 7.2 10l5 5" /></svg>
+    </button>
+
+    @foreach (var numero in Ventana)
+    {
+        @* aria-current en null: Blazor omite el atributo entero, que es lo que espera
+           un lector de pantalla en las páginas que no son la actual. *@
+        <button type="button" @key="numero"
+                class="pag-btn @(numero == PaginaActual ? "pag-on" : "")"
+                aria-current="@(numero == PaginaActual ? "page" : null)"
+                @onclick="() => IrAAsync(numero)">
+            @numero
+        </button>
+    }
+
+    <button type="button" class="pag-btn"
+            disabled="@(PaginaActual >= TotalPaginas)"
+            @onclick="() => IrAAsync(PaginaActual + 1)"
+            aria-label="Página siguiente">
+        <svg class="pag-ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.8 5l5 5-5 5" /></svg>
+    </button>
+</nav>

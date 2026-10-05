@@ -411,23 +411,6 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private static int ContarPaginas(int total) =>
             Math.Max(1, (int)Math.Ceiling(total / (double)GastosPorPagina));
 
-        /// <summary>
-        /// Ventana de botones numerados, compartida por las dos tablas: con un
-        /// historial largo, pintar todos los números no cabe en una línea. Se centra
-        /// en la página actual y se pega a los extremos cuando está cerca del
-        /// principio o del final.
-        /// </summary>
-        private static IEnumerable<int> VentanaDePaginas(int pagina, int totalPaginas)
-        {
-            const int maximoBotones = 7;
-
-            var inicio = Math.Max(1, pagina - maximoBotones / 2);
-            var fin = Math.Min(totalPaginas, inicio + maximoBotones - 1);
-            inicio = Math.Max(1, fin - maximoBotones + 1);
-
-            return Enumerable.Range(inicio, fin - inicio + 1);
-        }
-
         private int TotalGastosFiltrados => GastosFiltrados.Count();
 
         private int TotalPaginasMovimientos => ContarPaginas(TotalGastosFiltrados);
@@ -442,18 +425,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private IEnumerable<Gasto> GastosDeLaPagina =>
             GastosFiltrados.Skip((PaginaSeguraMovimientos - 1) * GastosPorPagina).Take(GastosPorPagina);
 
-        private IEnumerable<int> PaginasMovimientos =>
-            VentanaDePaginas(PaginaSeguraMovimientos, TotalPaginasMovimientos);
-
         private int TotalPaginasAnulados => ContarPaginas(AnuladosFiltrados.Count());
 
         private int PaginaSeguraAnulados => Math.Clamp(paginaAnulados, 1, TotalPaginasAnulados);
 
         private IEnumerable<Gasto> AnuladosDeLaPagina =>
             AnuladosFiltrados.Skip((PaginaSeguraAnulados - 1) * GastosPorPagina).Take(GastosPorPagina);
-
-        private IEnumerable<int> PaginasAnulados =>
-            VentanaDePaginas(PaginaSeguraAnulados, TotalPaginasAnulados);
 
         /// <summary>
         /// Cambiar de página cierra la ficha: la fila que la abrió casi nunca está

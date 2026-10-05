@@ -56,6 +56,12 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         // Historial de reposiciones, arqueos y reportes de descuadres
         public const string ConsultarHistorial = "auditoria.historial";
 
+        /* Consultar la bitácora de auditoría y revisar la integridad de los datos
+           (cadena de la bitácora, firmas comprometidas, registros desaparecidos).
+           Separado de ConsultarHistorial a propósito: la bitácora cruda muestra las
+           acciones y los datos de todos los usuarios y de todos los fondos. */
+        public const string ConsultarBitacora = "auditoria.bitacora";
+
         // --- Configuración ---
         public const string ConfigurarFondos = "config.fondos";
         public const string ConfigurarCategorias = "config.categorias";
@@ -88,6 +94,7 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
             PagarReposicion,
             DescargarExpediente,
             ConsultarHistorial,
+            ConsultarBitacora,
             ConfigurarFondos,
             ConfigurarCategorias,
             AdministrarUsuarios,

@@ -39,6 +39,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             services.AddScoped<IPasswordResetService, PasswordResetService>();
             services.AddScoped<IFileStorageService, FileStorageService>();
             services.AddScoped<IPdfConsolidadorService, PdfConsolidadorService>();
+            services.AddScoped<IVerificadorIntegridadDatos, VerificadorIntegridadDatos>();
             services.AddScoped<InicializadorIdentidad>();
             services.AddHostedService<LimpiezaStagingBackgroundService>();
 
@@ -59,6 +60,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             services.AddScoped<IGastoRepository, GastoRepository>();
             services.AddScoped<IReposicionRepository, ReposicionRepository>();
             services.AddScoped<IArqueoRepository, ArqueoRepository>();
+            services.AddScoped<IBitacoraRepository, BitacoraRepository>();
         }
 
         /// <summary>

@@ -1,0 +1,416 @@
+@page "/auditoria"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permisos.ConsultarBitacora)]
+@using EDEEste.ControlCajaChica.Application.Features.Auditoria
+
+<PageTitle>Auditoría</PageTitle>
+<BotonSubirArriba />
+
+<div class="aud-rowt">
+    <div>
+        <h1 class="aud-h1">Auditoría</h1>
+        <p class="aud-sub">Quién cambió qué, y si los datos siguen siendo los que escribió la aplicación.</p>
+    </div>
+</div>
+
+<div class="aud-tabs" role="tablist" aria-label="Secciones de auditoría">
+    <button type="button" role="tab" class="aud-tab @(pestana == Pestana.Bitacora ? "on" : "")"
+            aria-selected="@(pestana == Pestana.Bitacora ? "true" : "false")"
+            @onclick="() => CambiarPestana(Pestana.Bitacora)">
+        Bitácora
+    </button>
+    <button type="button" role="tab" class="aud-tab @(pestana == Pestana.Integridad ? "on" : "")"
+            aria-selected="@(pestana == Pestana.Integridad ? "true" : "false")"
+            @onclick="() => CambiarPestana(Pestana.Integridad)">
+        Integridad
+    </button>
+</div>
+
+@if (errores.Count > 0)
+{
+    <div class="alert alert-danger aud-mt14">
+        <ul class="mb-0">
+            @foreach (var error in errores)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (pestana == Pestana.Bitacora)
+{
+    @if (opciones is null || pagina is null)
+    {
+        <p class="aud-empty aud-mt18"><em>Cargando...</em></p>
+    }
+    else
+    {
+        <div class="aud-card aud-mt18">
+            <div class="aud-filtros">
+                <div class="aud-campo">
+                    <label class="aud-lbl" for="aud-f-usuario">Usuario</label>
+                    <select id="aud-f-usuario" class="aud-select" @bind="filtroUsuario" @bind:after="AplicarFiltrosAsync">
+                        <option value="">Todos</option>
+                        @foreach (var id in opciones.UsuarioIds.OrderBy(NombreUsuario))
+                        {
+                            <option value="@id">@NombreUsuario(id)</option>
+                        }
+                    </select>
+                </div>
+                <div class="aud-campo">
+                    <label class="aud-lbl" for="aud-f-tabla">Tabla</label>
+                    <select id="aud-f-tabla" class="aud-select" @bind="filtroTabla" @bind:after="AplicarFiltrosAsync">
+                        <option value="">Todas</option>
+                        @foreach (var tabla in opciones.Tablas)
+                        {
+                            <option value="@tabla">@NombreTabla(tabla)</option>
+                        }
+                    </select>
+                </div>
+                <div class="aud-campo">
+                    <label class="aud-lbl" for="aud-f-accion">Acción</label>
+                    <select id="aud-f-accion" class="aud-select" @bind="filtroAccion" @bind:after="AplicarFiltrosAsync">
+                        <option value="">Todas</option>
+                        @foreach (var (valor, etiqueta) in EtiquetasAccion)
+                        {
+                            <option value="@valor">@etiqueta</option>
+                        }
+                    </select>
+                </div>
+                <div class="aud-campo">
+                    <label class="aud-lbl" for="aud-f-desde">Desde</label>
+                    <input id="aud-f-desde" type="date" class="aud-input" @bind="filtroDesde" @bind:after="AplicarFiltrosAsync" />
+                </div>
+                <div class="aud-campo">
+                    <label class="aud-lbl" for="aud-f-hasta">Hasta</label>
+                    <input id="aud-f-hasta" type="date" class="aud-input" @bind="filtroHasta" @bind:after="AplicarFiltrosAsync" />
+                </div>
+                <div class="aud-campo aud-campo-ancho">
+                    <label class="aud-lbl" for="aud-f-registro">Registro</label>
+                    <input id="aud-f-registro" type="search" class="aud-input" placeholder="Id o parte del Id"
+                           @bind="filtroRegistro" @bind:after="AplicarFiltrosAsync" />
+                </div>
+                @if (HayFiltros)
+                {
+                    <button type="button" class="aud-btn aud-btn-ghost aud-btn-sm aud-limpiar" @onclick="LimpiarFiltrosAsync">
+                        Limpiar filtros
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="aud-card aud-mt14">
+            <div class="aud-cb-head">
+                <div class="aud-row">
+                    <h2 class="aud-h2">Entradas de la bitácora</h2>
+                    <span class="aud-mut">@pagina.Total.ToString("N0") en total</span>
+                </div>
+            </div>
+            <div class="aud-cb-body">
+                @if (pagina.Total == 0)
+                {
+                    <p class="aud-empty">
+                        @(HayFiltros ? "Ninguna entrada coincide con los filtros." : "La bitácora todavía no tiene entradas.")
+                    </p>
+                }
+                else
+                {
+                    <div class="aud-tablewrap">
+                        <table class="aud-table">
+                            <thead>
+                                <tr>
+                                    <th class="r">N.º</th><th>Fecha</th><th>Usuario</th><th>Acción</th>
+                                    <th>Tabla</th><th>Registro</th><th class="act"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in pagina.Elementos)
+                                {
+                                    var abierta = entradaAbierta == log.Id;
+                                    <tr @key="log.Id" class="@(abierta ? "aud-abierta" : "")">
+                                        <td class="r cc-num">@log.Secuencia</td>
+                                        <td class="cc-num">@FormatoFechaHora(log.FechaEjecucion)</td>
+                                        <td>@NombreUsuario(log.UsuarioId)</td>
+                                        <td><span class="aud-pill @ClaseAccion(log.TipoAccion)">@EtiquetaAccion(log.TipoAccion)</span></td>
+                                        <td>@NombreTabla(log.NombreTabla)</td>
+                                        <td class="aud-code" title="@log.RegistroId">@CodigoCorto(log.RegistroId)</td>
+                                        <td class="act">
+                                            <button type="button" class="aud-btn aud-btn-ghost aud-btn-sm"
+                                                    aria-expanded="@(abierta ? "true" : "false")"
+                                                    @onclick="() => AlternarEntrada(log.Id)">
+                                                @(abierta ? "Ocultar cambios" : "Ver cambios")
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @if (abierta)
+                                    {
+                                        var diferencia = DiferenciaDeValores.Calcular(log.ValoresAnteriores, log.ValoresNuevos);
+                                        <tr class="aud-detalle">
+                                            <td colspan="7">
+                                                @if (!diferencia.Legible)
+                                                {
+                                                    <p class="aud-empty">Los valores de esta entrada no se pudieron leer.</p>
+                                                }
+                                                else if (diferencia.Cambios.Count == 0)
+                                                {
+                                                    <p class="aud-empty">Esta entrada no registra cambios de valores.</p>
+                                                }
+                                                else
+                                                {
+                                                    <table class="aud-diff">
+                                                        <thead>
+                                                            <tr><th>Campo</th><th>Antes</th><th>Después</th></tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var cambio in diferencia.Cambios)
+                                                            {
+                                                                <tr>
+                                                                    <td class="aud-diff-campo">@cambio.Campo</td>
+                                                                    <td class="aud-diff-antes">@(cambio.Antes ?? "—")</td>
+                                                                    <td class="aud-diff-despues">@(cambio.Despues ?? "—")</td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (pagina.TotalPaginas > 1)
+                    {
+                        <BarraPaginacion Etiqueta="Paginación de la bitácora"
+                                         PaginaActual="@pagina.NumeroPagina"
+                                         TotalPaginas="@pagina.TotalPaginas"
+                                         OnCambiarPagina="CargarPaginaAsync" />
+                    }
+                }
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="aud-card aud-mt18">
+        <div class="aud-cb">
+            <p class="aud-intro">
+                La revisión recorre la bitácora completa y las tablas de negocio: comprueba que la cadena de la
+                bitácora esté entera, que cada registro firmado coincida con su firma y que ningún registro
+                mencionado en la bitácora haya desaparecido de su tabla.
+            </p>
+            <div class="aud-revisar">
+                <div class="aud-campo aud-campo-ancho">
+                    <label class="aud-lbl" for="aud-huella">Huella anotada en la revisión anterior (opcional)</label>
+                    <input id="aud-huella" class="aud-input aud-mono" placeholder="Pegue aquí el hash que anotó"
+                           @bind="huellaAnterior" />
+                </div>
+                <button type="button" class="aud-btn aud-btn-pri" disabled="@revisando" @onclick="RevisarIntegridadAsync">
+                    @(revisando ? "Revisando..." : "Revisar integridad")
+                </button>
+            </div>
+            @if (revisadoEl is { } fecha)
+            {
+                <p class="aud-mut aud-mt10">Última revisión: @FormatoFechaHora(fecha)</p>
+            }
+        </div>
+    </div>
+
+    @if (cadena is not null)
+    {
+        var cadenaSana = cadena.CadenaIntegra && cadena.HuellaAnteriorEncontrada != false;
+        <section class="aud-card aud-res @(cadenaSana ? "ok" : "bad") aud-mt14">
+            <div class="aud-cb">
+                <div class="aud-row">
+                    <h2 class="aud-h2">Cadena de la bitácora</h2>
+                    <span class="aud-pill @(cadenaSana ? "aud-p-ok" : "aud-p-bad")">@(cadenaSana ? "Íntegra" : "Comprometida")</span>
+                </div>
+
+                <p class="aud-res-d">
+                    @if (cadena.TotalFilas == 0)
+                    {
+                        @:La bitácora está vacía: no hay nada que verificar todavía.
+                    }
+                    else if (cadena.CadenaIntegra)
+                    {
+                        @:Las @cadena.TotalFilas.ToString("N0") filas (de la n.º @cadena.PrimeraSecuencia a la n.º @cadena.UltimaSecuencia) conservan su firma y cada una apunta a la anterior.
+                    }
+                    else
+                    {
+                        @:Se encontraron @cadena.TotalRupturas.ToString("N0") rupturas en @cadena.TotalFilas.ToString("N0") filas.
+                    }
+                </p>
+
+                @if (cadena.HuellaAnteriorEncontrada == true)
+                {
+                    <div class="aud-alert aud-a-ok">La huella anotada sigue en la cadena: no se borraron filas desde esa revisión.</div>
+                }
+                else if (cadena.HuellaAnteriorEncontrada == false)
+                {
+                    <div class="aud-alert aud-a-bad">
+                        La huella anotada ya no está en la cadena: se borraron filas del final de la bitácora, o la
+                        huella se copió mal. Compruebe que la pegó completa.
+                    </div>
+                }
+
+                @if (cadena.Rupturas.Count > 0)
+                {
+                    <div class="aud-tablewrap aud-mt14">
+                        <table class="aud-table">
+                            <thead>
+                                <tr><th class="r">N.º</th><th>Fecha</th><th>Problema</th><th>Id de la entrada</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var ruptura in cadena.Rupturas)
+                                {
+                                    <tr>
+                                        <td class="r cc-num">@ruptura.Secuencia</td>
+                                        <td class="cc-num">@FormatoFechaHora(ruptura.FechaEjecucion)</td>
+                                        <td>@DescripcionRuptura(ruptura.Tipo)</td>
+                                        <td class="aud-code">@ruptura.LogId</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (cadena.RupturasRecortadas)
+                    {
+                        <p class="aud-mut aud-mt10">
+                            Se muestran las primeras @cadena.Rupturas.Count de @cadena.TotalRupturas.ToString("N0").
+                        </p>
+                    }
+                }
+
+                @if (cadena.HuellaActual is not null)
+                {
+                    <div class="aud-huella aud-mt14">
+                        <span class="aud-lbl">Huella actual: anótela fuera del sistema</span>
+                        <code class="aud-hash">@cadena.HuellaActual</code>
+                        <span class="aud-mut">
+                            @cadena.TotalFilas.ToString("N0") filas · la última del @FormatoFechaHoraOpcional(cadena.FechaUltimaFila)
+                        </span>
+                    </div>
+                    <p class="aud-limite">
+                        La cadena detecta filas editadas y filas borradas en medio, pero no que se borren las últimas:
+                        lo que queda sigue siendo una cadena válida. Por eso conviene anotar la huella y pegarla en la
+                        próxima revisión.
+                    </p>
+                }
+            </div>
+        </section>
+    }
+
+    @if (firmasInvalidas is not null)
+    {
+        <section class="aud-card aud-res @(firmasInvalidas.Count == 0 ? "ok" : "bad") aud-mt14">
+            <div class="aud-cb">
+                <div class="aud-row">
+                    <h2 class="aud-h2">Registros con la firma comprometida</h2>
+                    <span class="aud-pill @(firmasInvalidas.Count == 0 ? "aud-p-ok" : "aud-p-bad")">
+                        @(firmasInvalidas.Count == 0 ? "Ninguno" : firmasInvalidas.Count.ToString("N0"))
+                    </span>
+                </div>
+
+                @if (firmasInvalidas.Count == 0)
+                {
+                    <p class="aud-res-d">
+                        Todos los fondos, gastos, comprobantes, reposiciones y arqueos coinciden con su firma, incluidos
+                        los eliminados.
+                    </p>
+                }
+                else
+                {
+                    <p class="aud-res-d">
+                        Estos registros fueron modificados directamente en la base de datos, sin pasar por la
+                        aplicación. La aplicación se niega a operar con ellos.
+                    </p>
+                    <div class="aud-tablewrap aud-mt14">
+                        <table class="aud-table">
+                            <thead>
+                                <tr><th>Tabla</th><th>Registro</th><th>Datos</th><th>Creado</th><th>Modificado</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var registro in firmasInvalidas)
+                                {
+                                    <tr>
+                                        <td>@NombreTabla(registro.NombreTabla)</td>
+                                        <td class="aud-code" title="@registro.Id">@CodigoCorto(registro.Id.ToString())</td>
+                                        <td>@registro.Descripcion</td>
+                                        <td class="cc-num">@FormatoFechaHora(registro.FechaCreacion)</td>
+                                        <td class="cc-num">@FormatoFechaHoraOpcional(registro.FechaModificacion)</td>
+                                        <td>
+                                            @if (registro.Eliminado)
+                                            {
+                                                <span class="aud-pill aud-p-dark">Eliminado</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    @if (desaparecidos is not null)
+    {
+        <section class="aud-card aud-res @(desaparecidos.Count == 0 ? "ok" : "bad") aud-mt14">
+            <div class="aud-cb">
+                <div class="aud-row">
+                    <h2 class="aud-h2">Registros desaparecidos</h2>
+                    <span class="aud-pill @(desaparecidos.Count == 0 ? "aud-p-ok" : "aud-p-bad")">
+                        @(desaparecidos.Count == 0 ? "Ninguno" : desaparecidos.Count.ToString("N0"))
+                    </span>
+                </div>
+
+                @if (desaparecidos.Count == 0)
+                {
+                    <p class="aud-res-d">Ningún registro mencionado en la bitácora falta de su tabla.</p>
+                }
+                else
+                {
+                    <p class="aud-res-d">
+                        La bitácora registró estos registros, pero ya no existen en su tabla. En estas tablas la
+                        aplicación nunca borra: solo los marca como eliminados. Alguien los borró directamente en la
+                        base de datos.
+                    </p>
+                    <div class="aud-tablewrap aud-mt14">
+                        <table class="aud-table">
+                            <thead>
+                                <tr>
+                                    <th>Tabla</th><th>Registro</th><th>Última acción registrada</th><th>Fecha</th>
+                                    <th>Usuario</th><th class="r">N.º en bitácora</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var mencion in desaparecidos)
+                                {
+                                    <tr>
+                                        <td>@NombreTabla(mencion.NombreTabla)</td>
+                                        <td class="aud-code" title="@mencion.RegistroId">@CodigoCorto(mencion.RegistroId)</td>
+                                        <td><span class="aud-pill @ClaseAccion(mencion.TipoAccion)">@EtiquetaAccion(mencion.TipoAccion)</span></td>
+                                        <td class="cc-num">@FormatoFechaHora(mencion.FechaEjecucion)</td>
+                                        <td>@NombreUsuario(mencion.UsuarioId)</td>
+                                        <td class="r cc-num">@mencion.Secuencia</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <p class="aud-limite">
+                    Solo se revisan las tablas en las que la aplicación nunca borra (gastos, fondos, categorías,
+                    reposiciones, arqueos y su detalle, comprobantes y restablecimientos de contraseña). Lo creado
+                    antes de que la bitácora se reiniciara no tiene registro y no puede revisarse así.
+                </p>
+            </div>
+        </section>
+    }
+}
