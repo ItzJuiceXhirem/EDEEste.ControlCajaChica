@@ -29,6 +29,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
         private static readonly Unit MargenPagina = Unit.FromCentimeter(1.5);
 
+        /* El margen superior es mayor que los demás para alojar el logo del
+           encabezado (1 cm de alto a 0.8 cm del borde) sin empujar el cuerpo. */
+        private static readonly Unit MargenSuperior = Unit.FromCentimeter(2.2);
+        private static readonly Unit DistanciaEncabezado = Unit.FromCentimeter(0.8);
+        private static readonly Unit AltoLogo = Unit.FromCentimeter(1);
+
         // Prefijo con el que MigraDoc acepta una imagen en memoria (en base64) en vez
         // de una ruta de archivo.
         private const string PrefijoImagenEnMemoria = "base64:";
@@ -41,15 +47,28 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// </summary>
         private static string CodigoCorto(Guid id) => id.ToString()[..8];
 
-        public static Document NuevoDocumento()
+        /// <param name="rutaLogo">
+        /// PNG del encabezado. Si es null o el archivo no existe, la página sale sin
+        /// logo: un recurso de marca faltante no debe impedir generar el expediente.
+        /// </param>
+        public static Document NuevoDocumento(string? rutaLogo)
         {
             var documento = new Document();
             var seccion = documento.AddSection();
             seccion.PageSetup.PageFormat = PageFormat.A4;
             seccion.PageSetup.LeftMargin = MargenPagina;
             seccion.PageSetup.RightMargin = MargenPagina;
-            seccion.PageSetup.TopMargin = MargenPagina;
+            seccion.PageSetup.TopMargin = MargenSuperior;
             seccion.PageSetup.BottomMargin = MargenPagina;
+            seccion.PageSetup.HeaderDistance = DistanciaEncabezado;
+
+            if (rutaLogo is not null && File.Exists(rutaLogo))
+            {
+                var logo = seccion.Headers.Primary.AddImage(rutaLogo);
+                logo.LockAspectRatio = true;
+                logo.Height = AltoLogo;
+            }
+
             documento.Styles["Normal"]!.Font.Name = ResolutorFuentesEmbebidas.NombreFamilia;
             documento.Styles["Normal"]!.Font.Size = 10;
             return documento;
@@ -72,7 +91,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         public static (Unit Ancho, Unit Alto) ObtenerAreaDeContenido()
         {
             PageSetup.GetPageSize(PageFormat.A4, out var anchoPagina, out var altoPagina);
-            return (anchoPagina - MargenPagina - MargenPagina, altoPagina - MargenPagina - MargenPagina);
+            return (anchoPagina - MargenPagina - MargenPagina, altoPagina - MargenSuperior - MargenPagina);
         }
 
         public static byte[] Renderizar(Document documento)
@@ -160,9 +179,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// Effective* están obsoletas desde 6.x y ahora describen otra cosa --
         /// orientación, no margenes) y centra el texto verticalmente adentro.
         /// </summary>
-        public static byte[] GenerarAviso(string mensaje)
+        public static byte[] GenerarAviso(string mensaje, string? rutaLogo)
         {
-            var documento = NuevoDocumento();
+            var documento = NuevoDocumento(rutaLogo);
             var seccion = documento.LastSection;
 
             var (anchoContenido, altoContenido) = ObtenerAreaDeContenido();
@@ -183,9 +202,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return Renderizar(documento);
         }
 
-        public static byte[] GenerarResumen(SolicitudReposicion solicitud, string nombreCustodio)
+        public static byte[] GenerarResumen(SolicitudReposicion solicitud, string nombreCustodio, string? rutaLogo)
         {
-            var documento = NuevoDocumento();
+            var documento = NuevoDocumento(rutaLogo);
             var seccion = documento.LastSection;
             var (anchoContenido, _) = ObtenerAreaDeContenido();
 

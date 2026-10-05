@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
 using EDEEste.ControlCajaChica.Application.DTOs;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Infrastructure.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
@@ -40,15 +42,22 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         private readonly IFileStorageService _fileStorageService;
         private readonly IIdentityService _identityService;
         private readonly ILogger<PdfConsolidadorService> _logger;
+        private readonly string _rutaLogo;
 
         public PdfConsolidadorService(
             IFileStorageService fileStorageService,
             IIdentityService identityService,
+            IOptions<OpcionesAlmacenamiento> opciones,
             ILogger<PdfConsolidadorService> logger)
         {
             _fileStorageService = fileStorageService;
             _identityService = identityService;
             _logger = logger;
+            /* OJO: App_Data está en el .gitignore, así que el logo no viaja con el
+               repositorio. Al desplegar o clonar en otra máquina hay que copiar a mano
+               App_Data/recursos/logo-edeeste.png; si falta, los PDFs salen sin logo,
+               sin error ni aviso. */
+            _rutaLogo = Path.Combine(opciones.Value.RutaRaiz, "recursos", "logo-edeeste.png");
         }
 
         public async Task<byte[]> ConsolidarComprobantesAsync(SolicitudReposicion solicitud, CancellationToken cancellationToken = default)
@@ -56,7 +65,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             using var documentoFinal = new PdfDocument();
 
             var nombreCustodio = await ResolverNombreCustodioAsync(solicitud.FondoCajaChica?.CustodioId);
-            AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarResumen(solicitud, nombreCustodio));
+            AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarResumen(solicitud, nombreCustodio, _rutaLogo));
 
             foreach (var gasto in solicitud.Gastos)
             {
@@ -138,7 +147,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             ComprobanteAdjunto comprobante,
             CancellationToken cancellationToken)
         {
-            var portada = ExpedienteMaquetador.NuevoDocumento();
+            var portada = ExpedienteMaquetador.NuevoDocumento(_rutaLogo);
             ExpedienteMaquetador.ComponerPortada(portada.LastSection, gasto, comprobante);
             AgregarPaginas(documentoFinal, ExpedienteMaquetador.Renderizar(portada));
 
@@ -147,7 +156,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             if (archivo is null)
             {
-                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoNoExiste));
+                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoNoExiste, _rutaLogo));
                 return;
             }
 
@@ -161,7 +170,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                     "expediente de la solicitud {SolicitudId} (fila integra: {FilaIntegra}, archivo: {Integridad}).",
                     comprobante.Id, gasto.Id, solicitudId, comprobante.IntegridadVerificada, archivo.Integridad);
 
-                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoAlterado));
+                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoAlterado, _rutaLogo));
                 return;
             }
 
@@ -177,16 +186,16 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             }
             catch (Exception)
             {
-                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoIlegible));
+                AgregarPaginas(documentoFinal, ExpedienteMaquetador.GenerarAviso(AvisoIlegible, _rutaLogo));
             }
         }
 
         private static bool EsImagen(ComprobanteAdjunto comprobante) =>
             comprobante.TipoMime.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
 
-        private static byte[] RenderizarImagen(byte[] contenido)
+        private byte[] RenderizarImagen(byte[] contenido)
         {
-            var documento = ExpedienteMaquetador.NuevoDocumento();
+            var documento = ExpedienteMaquetador.NuevoDocumento(_rutaLogo);
             ExpedienteMaquetador.ComponerImagen(documento.LastSection, contenido);
             return ExpedienteMaquetador.Renderizar(documento);
         }
