@@ -168,10 +168,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         }
 
         /// <summary>
-        /// Página de aviso centrada (vertical y horizontalmente), en rojo. Comparte
-        /// texto y estilo entre "no existe" y "no se pudo leer" -- ver el comentario en
-        /// PdfConsolidadorService.AgregarComprobante sobre por qué un comprobante
-        /// ilegible no puede bloquear la reposición completa.
+        /// Página de aviso centrada (vertical y horizontalmente), en rojo. Ocupa el
+        /// lugar de un comprobante que no existe, que fue modificado después de
+        /// registrarse o que no se pudo leer -- ver PdfConsolidadorService.
+        /// AgregarComprobanteAsync sobre por qué ninguno de esos casos puede bloquear la
+        /// reposición completa.
         ///
         /// MigraDoc no tiene un AlignMiddle de página como QuestPDF: se aproxima con
         /// una tabla de una sola celda cuya fila ocupa toda el area de contenido
