@@ -12,9 +12,9 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 {
     /// <summary>
-    /// Arma la solicitud de reposicion con los gastos pendientes del fondo, genera el
+    /// Arma la solicitud de reposición con los gastos pendientes del fondo, genera el
     /// expediente PDF consolidado y deja los gastos marcados como en proceso para que
-    /// no entren en una segunda reposicion.
+    /// no entren en una segunda reposición.
     /// </summary>
     public sealed class CrearSolicitudReposicionHandler
     {
@@ -67,26 +67,26 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
-            // El Id resuelto tambien queda como SolicitoUsuarioId mas abajo -- sin
-            // poder identificarlo, esto falla cerrado en vez de dejar un registro con
-            // el campo vacio (y sin poder verificar tampoco que el fondo sea el suyo).
+          /* El Id resuelto también queda como SolicitoUsuarioId más abajo -- sin
+             poder identificarlo, esto falla cerrado en vez de dejar un registro con
+             el campo vacío (y sin poder verificar tampoco que el fondo sea el suyo). */
             if (usuario.Id is not { } usuarioIdSolicitar)
             {
                 return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
             }
 
-            // Defensa en profundidad: sin esto, un Custodio podria solicitar la
-            // reposicion del fondo de otro custodio armando la peticion contra el
-            // circuito de Blazor Server, aunque la pantalla ya solo le ofrezca el suyo.
+          /* Defensa en profundidad: sin esto, un Custodio podría solicitar la
+             reposición del fondo de otro custodio armando la petición contra el
+             circuito de Blazor Server, aunque la pantalla ya solo le ofrezca el suyo. */
             if (await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio) && fondo.CustodioId != usuarioIdSolicitar)
             {
-                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para solicitar la reposicion del fondo de otro custodio.");
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para solicitar la reposición del fondo de otro custodio.");
             }
 
             var pendientes = await _gastos.ListarPendientesDeReposicionAsync(fondo.Id, cancellationToken);
             if (pendientes.Count == 0)
             {
-                return ResultadoOperacion<Guid>.Fallo("El fondo no tiene gastos pendientes de reposicion.");
+                return ResultadoOperacion<Guid>.Fallo("El fondo no tiene gastos pendientes de reposición.");
             }
 
             var montoReclamado = pendientes.Sum(g => g.MontoTotal);
@@ -114,10 +114,10 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                 solicitud.Gastos.Add(gasto);
             }
 
-            // El PDF se genera antes de guardar para poder dejar RutaPdfConsolidado ya
-            // resuelta en el mismo INSERT. Si el guardado en BDD fallara despues, el
-            // archivo quedaria huerfano en disco, pero nunca al reves (una solicitud
-            // apuntando a un PDF que no existe).
+          /* El PDF se genera antes de guardar para poder dejar RutaPdfConsolidado ya
+             resuelta en el mismo INSERT. Si el guardado en BDD fallara después, el
+             archivo quedaría huérfano en disco, pero nunca al revés (una solicitud
+             apuntando a un PDF que no existe). */
             var pdf = await _consolidador.ConsolidarComprobantesAsync(solicitud, cancellationToken);
             var archivo = await _almacenamiento.GuardarPdfConsolidadoAsync(
                 pdf,
@@ -128,11 +128,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             await _reposiciones.AgregarAsync(solicitud, cancellationToken);
 
-            // gasto.Estado es token de concurrencia (ver ApplicationDbContext): sin
-            // IntentarGuardarCambiosAsync, un choque real (por ejemplo dos solicitudes
-            // armadas a la vez sobre los mismos gastos pendientes) lanzaba
-            // DbUpdateConcurrencyException sin traducir y dejaba el ChangeTracker
-            // sucio para el resto del circuito de Blazor Server.
+          /* gasto.Estado es token de concurrencia (ver ApplicationDbContext): sin
+             IntentarGuardarCambiosAsync, un choque real (por ejemplo dos solicitudes
+             armadas a la vez sobre los mismos gastos pendientes) lanzaba
+             DbUpdateConcurrencyException sin traducir y dejaba el ChangeTracker
+             sucio para el resto del circuito de Blazor Server. */
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo(
@@ -148,11 +148,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             if (fondo.Estado != EstadoFondo.Activo)
             {
-                errores.Add("El fondo no esta activo.");
+                errores.Add("El fondo no está activo.");
             }
 
-            // "Validar que lo que se vaya a reposicionar no sea mas que el fondo fijo
-            // inicial": si esto se dispara, hay gastos que nunca debieron aprobarse.
+          /* "Validar que lo que se vaya a reposicionar no sea más que el fondo fijo
+             inicial": si esto se dispara, hay gastos que nunca debieron aprobarse. */
             if (montoReclamado > fondo.MontoFijo)
             {
                 errores.Add(
@@ -167,7 +167,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             if (fondo.BalanceActual > umbral)
             {
                 errores.Add(
-                    $"Todavia queda RD$ {fondo.BalanceActual:N2} en el fondo. La reposicion se habilita al bajar " +
+                    $"Todavía queda RD$ {fondo.BalanceActual:N2} en el fondo. La reposición se habilita al bajar " +
                     $"de RD$ {umbral:N2} ({porcentajeAlerta:N0}% del fondo fijo).");
             }
 

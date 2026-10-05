@@ -13,18 +13,16 @@ using Microsoft.Extensions.Logging;
 namespace EDEEste.ControlCajaChica.Infrastructure.Services
 {
     /// <summary>
-    /// Consulta el directorio activo de la empresa a traves del APICommon.
+    /// Consulta el directorio activo de la empresa a través del APICommon.
     ///
-    /// Esta parte SI esta completa: el contrato de GetUserByUserName se conoce y esta
-    /// implementado. Lo que falta para la V1 es la validacion de credenciales, que
+    /// Esta parte SÍ está completa: el contrato de GetUserByUserName se conoce y está
+    /// implementado. Lo que falta para la V1 es la validación de credenciales, que
     /// vive en <see cref="AutenticacionActiveDirectory"/>.
     /// </summary>
     public sealed class DirectorioActivoApiCommon : IDirectorioActivoService
     {
-        /// <summary>
-        /// El APICommon responde en camelCase; en vez de ensuciar los DTO de
-        /// Application con atributos de serializacion se ignora el caso al leer.
-        /// </summary>
+        /* El APICommon responde en camelCase; en vez de ensuciar los DTO de
+           Application con atributos de serialización se ignora el caso al leer. */
         internal static readonly JsonSerializerOptions OpcionesJson = new()
         {
             PropertyNameCaseInsensitive = true
@@ -52,8 +50,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             var respuesta = await _http.GetAsync(ruta, cancellationToken);
 
-            // Que no exista la persona es una respuesta normal, no una falla: se
-            // distingue del resto de errores para no registrarlo como problema.
+            /* Que no exista la persona es una respuesta normal, no una falla: se
+               distingue del resto de errores para no registrarlo como problema. */
             if (respuesta.StatusCode == HttpStatusCode.NotFound)
             {
                 return null;
@@ -62,7 +60,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             if (!respuesta.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "El APICommon respondio {Codigo} al consultar el usuario {Usuario}.",
+                    "El APICommon respondió {Codigo} al consultar el usuario {Usuario}.",
                     (int)respuesta.StatusCode, userName);
                 return null;
             }
@@ -70,8 +68,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var contenido = await respuesta.Content
                 .ReadFromJsonAsync<RespuestaApiCommon<UsuarioDirectorioDto>>(OpcionesJson, cancellationToken);
 
-            // El payload util siempre viene dentro de "data"; si llega vacio se trata
-            // igual que un usuario inexistente.
+            /* El payload útil siempre viene dentro de "data"; si llega vacío se trata
+               igual que un usuario inexistente. */
             return contenido?.Data;
         }
     }

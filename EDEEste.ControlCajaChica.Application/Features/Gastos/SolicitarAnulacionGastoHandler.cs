@@ -12,12 +12,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 {
     /// <summary>
     /// El Custodio pide anular un gasto. Deja el gasto en AnulacionPendiente sin
-    /// devolver el dinero: solo el Gerente puede confirmar la anulacion
-    /// (AnularGastoHandler) y es ahi donde el efectivo vuelve al fondo.
+    /// devolver el dinero: solo el Gerente puede confirmar la anulación
+    /// (AnularGastoHandler) y es ahí donde el efectivo vuelve al fondo.
     ///
-    /// IFondoRepository entra solo de lectura, para la comprobacion de pertenencia de
+    /// IFondoRepository entra solo de lectura, para la comprobación de pertenencia de
     /// fondo (defensa en profundidad): en ninguna parte de este handler se escribe
-    /// FondoCajaChica.BalanceActual, asi que sigue siendo estructuralmente incapaz de
+    /// FondoCajaChica.BalanceActual, así que sigue siendo estructuralmente incapaz de
     /// abonar el fondo.
     /// </summary>
     public sealed class SolicitarAnulacionGastoHandler
@@ -66,8 +66,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
                 return ResultadoOperacion<Guid>.Fallo("No se pudo identificar al usuario actual.");
             }
 
-            // Defensa en profundidad: sin esto, un Custodio podria pedir la anulacion
-            // de un gasto de otro fondo con solo conocer (o adivinar) su GastoId.
+          /* Defensa en profundidad: sin esto, un Custodio podría pedir la anulación
+             de un gasto de otro fondo con solo conocer (o adivinar) su GastoId. */
             if (await _identidad.EstaEnRolAsync(usuarioIdSolicitar, RolesApp.Custodio))
             {
                 var fondo = await _fondos.ObtenerPorIdAsync(gasto.FondoCajaChicaId, cancellationToken);
@@ -89,7 +89,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo(
-                    "Otro usuario modifico este gasto mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+                    "Otro usuario modificó este gasto mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
             }
 
             return ResultadoOperacion<Guid>.Ok(gasto.Id);
@@ -102,27 +102,26 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             if (gasto.Estado != EstadoGasto.PendienteReposicion)
             {
                 errores.Add(
-                    $"Solo se puede pedir la anulacion de un gasto pendiente de reposicion. " +
-                    $"Este gasto esta en estado {gasto.Estado}.");
+                    $"Solo se puede pedir la anulación de un gasto pendiente de reposición. " +
+                    $"Este gasto está en estado {gasto.Estado}.");
             }
 
-            // Doble condicion a proposito, misma filosofia que
-            // ListarPendientesDeReposicionAsync: si alguna vez se desincronizan, se
-            // prefiere bloquear la anulacion antes que dejar anular un gasto que ya
-            // esta en un expediente.
+            /* Doble condición a propósito, misma filosofía que ListarPendientesDeReposicionAsync:
+               si alguna vez se desincronizan, se prefiere bloquear la anulación antes que dejar
+               anular un gasto que ya está en un expediente. */
             if (gasto.ReposicionId is not null)
             {
-                errores.Add("El gasto ya forma parte de una solicitud de reposicion y no se puede anular.");
+                errores.Add("El gasto ya forma parte de una solicitud de reposición y no se puede anular.");
             }
 
             var motivo = comando.Motivo?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(motivo))
             {
-                errores.Add("Debe indicar el motivo de la anulacion.");
+                errores.Add("Debe indicar el motivo de la anulación.");
             }
             else if (motivo.Length > LimitesGasto.LongitudMaximaMotivoAnulacion)
             {
-                errores.Add($"El motivo de la anulacion no puede superar {LimitesGasto.LongitudMaximaMotivoAnulacion} caracteres.");
+                errores.Add($"El motivo de la anulación no puede superar {LimitesGasto.LongitudMaximaMotivoAnulacion} caracteres.");
             }
 
             if (!gasto.IntegridadVerificada)

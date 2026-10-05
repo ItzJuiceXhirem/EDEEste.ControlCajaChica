@@ -13,30 +13,24 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
 
         Task<IReadOnlyList<Gasto>> ListarPorFondoAsync(Guid fondoId, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Gastos que todavia no entraron en ninguna reposicion. Trae los comprobantes
-        /// incluidos porque son justo lo que necesita el PDF consolidado.
-        /// </summary>
+      /* Gastos que todavía no entraron en ninguna reposición. Trae los comprobantes
+         incluidos porque son justo lo que necesita el PDF consolidado. */
         Task<IReadOnlyList<Gasto>> ListarPendientesDeReposicionAsync(Guid fondoId, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Gastos del fondo en un estado dado. Alimenta la bandeja del Gerente
-        /// (anulaciones por confirmar).
-        /// </summary>
+        // Gastos del fondo en un estado dado. Alimenta la bandeja del Gerente (anulaciones por confirmar).
         Task<IReadOnlyList<Gasto>> ListarPorEstadoAsync(Guid fondoId, EstadoGasto estado, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gastos anulados del fondo. Con <paramref name="desde"/> en null trae el
-        /// historial completo: los anulados no se purgan nunca, solo se acotan en
-        /// pantalla.
+        /// historial completo: los anulados no se purgan nunca, solo se acotan en pantalla.
         /// </summary>
         Task<IReadOnlyList<Gasto>> ListarAnuladosAsync(Guid fondoId, DateTime? desde, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Gastos que todavia no volvieron al fondo: pendientes de reposicion, en
-        /// proceso de reposicion o con anulacion pendiente. Se enumeran en positivo y
-        /// no por exclusion de Repuesto/Anulado, porque Rechazado hoy no lo escribe
-        /// nadie y una lista negativa lo arrastraria dentro sin que nadie lo haya
+        /// Gastos que todavía no volvieron al fondo: pendientes de reposición, en
+        /// proceso de reposición o con anulación pendiente. Se enumeran en positivo y
+        /// no por exclusión de Repuesto/Anulado, porque Rechazado hoy no lo escribe
+        /// nadie y una lista negativa lo arrastraría dentro sin que nadie lo haya
         /// decidido. Alimenta el arqueo: BalanceActual + Σ(estos) debe cuadrar con
         /// MontoFijo.
         /// </summary>
@@ -44,11 +38,9 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
 
         Task AgregarAsync(Gasto gasto, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Un comprobante suelto, para el endpoint de descarga/visualización. No hace
-        /// falta cargar el Gasto completo: la ruta física y el tipo MIME bastan para
-        /// servir el archivo.
-        /// </summary>
+      /* Un comprobante suelto, para el endpoint de descarga/visualización. No hace
+         falta cargar el Gasto completo: la ruta física y el tipo MIME bastan para
+         servir el archivo. */
         Task<ComprobanteAdjunto?> ObtenerComprobanteAsync(Guid comprobanteId, CancellationToken cancellationToken = default);
 
         /// <summary>

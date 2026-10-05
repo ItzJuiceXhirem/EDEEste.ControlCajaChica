@@ -36,11 +36,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
         public async Task<ResultadoIdentidad> CrearUsuarioAsync(string usuario, string password, string nombre, string rol)
         {
-            // Se acepta unicamente un rol del catalogo: asi un typo no termina creando
-            // un rol nuevo y vacio al que despues nadie le aplica permisos.
+            /* Se acepta únicamente un rol del catálogo: así un typo no termina creando
+               un rol nuevo y vacío al que después nadie le aplica permisos. */
             if (!RolesApp.Todos.Contains(rol))
             {
-                return ResultadoIdentidad.Fallo($"El rol '{rol}' no existe en el catalogo de roles del sistema.");
+                return ResultadoIdentidad.Fallo($"El rol '{rol}' no existe en el catálogo de roles del sistema.");
             }
 
             var creado = await CrearAsync(usuario, password, nombre, EstadoAccesoUsuario.Aprobado);
@@ -54,8 +54,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var resultadoRol = await _userManager.AddToRoleAsync(entidad!, rol);
             if (!resultadoRol.Succeeded)
             {
-                // Sin rol la cuenta no sirve para nada y ademas queda invisible en el
-                // control de accesos, asi que se revierte en vez de dejarla a medias.
+                /* Sin rol la cuenta no sirve para nada y además queda invisible en el
+                   control de accesos, así que se revierte en vez de dejarla a medias. */
                 await _userManager.DeleteAsync(entidad!);
                 return ResultadoIdentidad.Fallo(resultadoRol.Errors.Select(e => e.Description));
             }
@@ -93,7 +93,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         {
             if (!RolesApp.Todos.Contains(rol))
             {
-                return ResultadoIdentidad.Fallo($"El rol '{rol}' no existe en el catalogo de roles del sistema.");
+                return ResultadoIdentidad.Fallo($"El rol '{rol}' no existe en el catálogo de roles del sistema.");
             }
 
             var usuario = await _userManager.FindByIdAsync(usuarioId);
@@ -120,8 +120,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 return ResultadoIdentidad.Fallo("El usuario indicado no existe.");
             }
 
-            // El rol se conserva: si mas adelante se le devuelve el acceso, el
-            // Administrador ve que rol tenia antes en vez de tener que adivinarlo.
+            /* El rol se conserva: si más adelante se le devuelve el acceso, el
+               Administrador ve que rol tenía antes en vez de tener que adivinarlo. */
             usuario.EstadoAcceso = EstadoAccesoUsuario.Denegado;
             return await GuardarYRefrescarSelloAsync(usuario);
         }
@@ -130,7 +130,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         {
             if (!RolesApp.Todos.Contains(nuevoRol))
             {
-                return ResultadoIdentidad.Fallo($"El rol '{nuevoRol}' no existe en el catalogo de roles del sistema.");
+                return ResultadoIdentidad.Fallo($"El rol '{nuevoRol}' no existe en el catálogo de roles del sistema.");
             }
 
             var usuario = await _userManager.FindByIdAsync(usuarioId);
@@ -167,8 +167,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
         /// <summary>
         /// Guarda y renueva el sello de seguridad. Sin renovarlo, alguien a quien
-        /// acaban de denegarle el acceso seguiria navegando con la cookie que ya
-        /// tenia: el proveedor de estado revalida ese sello, y solo cambiandolo se
+        /// acaban de denegarle el acceso seguiría navegando con la cookie que ya
+        /// tenía: el proveedor de estado revalida ese sello, y solo cambiándolo se
         /// invalidan las sesiones abiertas de ese usuario.
         /// </summary>
         private async Task<ResultadoIdentidad> GuardarYRefrescarSelloAsync(Usuario usuario)
@@ -193,9 +193,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             var usuarios = await consulta.OrderBy(u => u.UserName).ToListAsync();
 
-            // Una consulta de roles por usuario. Es N+1, pero la plantilla de una caja
-            // chica son decenas de cuentas, no miles, y aplanarlo con un join manual
-            // contra AspNetUserRoles ataria esta clase al esquema de Identity.
+            /* Una consulta de roles por usuario. Es N+1, pero la plantilla de una caja
+               chica son decenas de cuentas, no miles, y aplanarlo con un join manual
+               contra AspNetUserRoles ataría esta clase al esquema de Identity. */
             var resumen = new List<UsuarioResumenDto>(usuarios.Count);
             foreach (var usuario in usuarios)
             {
@@ -247,20 +247,20 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
         public async Task<DateTime?> RegistrarAccesoAsync(string usuarioId)
         {
-            // Proyeccion, no ObtenerPorIdAsync: no hace falta materializar (ni
-            // rastrear) la entidad completa solo para leer una columna.
+            /* Proyección, no ObtenerPorIdAsync: no hace falta materializar (ni
+               rastrear) la entidad completa solo para leer una columna. */
             var anterior = await _userManager.Users
                 .Where(u => u.Id == usuarioId)
                 .Select(u => u.UltimoAccesoUtc)
                 .FirstOrDefaultAsync();
 
-            // ExecuteUpdateAsync arma un UPDATE dirigido a esta columna y lo manda
-            // directo a SQL Server -- nunca pasa por SaveChanges, por lo tanto nunca
-            // por el ChangeTracker ni por AuditoriaInterceptor. Es una garantia
-            // estructural (no una lista negra que alguien tiene que recordar
-            // mantener) de que este toque a AspNetUsers, que ocurre en CADA login del
-            // sistema, jamas puede terminar copiando PasswordHash/SecurityStamp a
-            // LogsAuditoria.
+            /* ExecuteUpdateAsync arma un UPDATE dirigido a esta columna y lo manda
+               directo a SQL Server -- nunca pasa por SaveChanges, por lo tanto nunca
+               por el ChangeTracker ni por AuditoriaInterceptor. Es una garantía
+               estructural (no una lista negra que alguien tiene que recordar
+               mantener) de que este toque a AspNetUsers, que ocurre en CADA login del
+               sistema, jamás puede terminar copiando PasswordHash/SecurityStamp a
+               LogsAuditoria. */
             await _userManager.Users
                 .Where(u => u.Id == usuarioId)
                 .ExecuteUpdateAsync(cambios => cambios.SetProperty(u => u.UltimoAccesoUtc, DateTime.UtcNow));
@@ -274,10 +274,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 .Select(u => u.RutaFotoPerfil)
                 .FirstOrDefaultAsync();
 
-        // Mismo razonamiento que RegistrarAccesoAsync: UPDATE dirigido a una sola
-        // columna, sin ChangeTracker ni AuditoriaInterceptor de por medio. Cambiar la
-        // foto de perfil no tiene por que arrastrar el resto de la fila del usuario
-        // (PasswordHash incluido) ni generar una entrada de bitacora.
+        /* Mismo razonamiento que RegistrarAccesoAsync: UPDATE dirigido a una sola
+           columna, sin ChangeTracker ni AuditoriaInterceptor de por medio. Cambiar la
+           foto de perfil no tiene por que arrastrar el resto de la fila del usuario
+           (PasswordHash incluido) ni generar una entrada de bitácora. */
         public Task ActualizarFotoPerfilAsync(string usuarioId, string? rutaRelativa) =>
             _userManager.Users
                 .Where(u => u.Id == usuarioId)

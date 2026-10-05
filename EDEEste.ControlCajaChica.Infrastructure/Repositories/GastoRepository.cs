@@ -32,10 +32,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
         public async Task<IReadOnlyList<Gasto>> ListarPendientesDeReposicionAsync(Guid fondoId, CancellationToken cancellationToken = default) =>
             await _context.Gastos
                 .Include(g => g.Comprobantes)
-                // Se piden las dos condiciones (sin reposicion asignada Y en estado
-                // pendiente) en vez de confiar en una sola: son dos formas distintas de
-                // decir lo mismo y si alguna vez se desincronizan, preferimos dejar el
-                // gasto fuera del expediente antes que cobrarlo dos veces.
+                /* Se piden las dos condiciones (sin reposición asignada Y en estado
+                   pendiente) en vez de confiar en una sola: son dos formas distintas de
+                   decir lo mismo y si alguna vez se desincronizan, preferimos dejar el
+                   gasto fuera del expediente antes que cobrarlo dos veces. */
                 .Where(g => g.FondoCajaChicaId == fondoId
                             && g.ReposicionId == null
                             && g.Estado == EstadoGasto.PendienteReposicion)
@@ -49,12 +49,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
                 .OrderBy(g => g.FechaGasto)
                 .ToListAsync(cancellationToken);
 
-        // Se filtra por FechaModificacion porque es cuando el interceptor sella la
-        // anulacion. No hay columna FechaAnulacion a proposito: seria una segunda
-        // columna nueva y nada vuelve a tocar un gasto ya anulado, asi que la fecha de
-        // modificacion ES la de la anulacion. FechaModificacion no entra en la firma
-        // HMAC (esta en AuditableEntity), asi que filtrar por ella no tiene efecto
-        // sobre el sello.
+        /* Se filtra por FechaModificacion porque es cuando el interceptor sella la
+           anulación. No hay columna FechaAnulacion a propósito: sería una segunda
+           columna nueva y nada vuelve a tocar un gasto ya anulado, así que la fecha de
+           modificación ES la de la anulación. FechaModificacion no entra en la firma
+           HMAC (está en AuditableEntity), así que filtrar por ella no tiene efecto
+           sobre el sello. */
         public async Task<IReadOnlyList<Gasto>> ListarAnuladosAsync(Guid fondoId, DateTime? desde, CancellationToken cancellationToken = default) =>
             await _context.Gastos
                 .Include(g => g.CategoriaGasto)

@@ -16,11 +16,11 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
 
         public string NombreOriginal { get; set; } = string.Empty;
 
-        // Transcripcion corta que digita el custodio al adjuntar el archivo (ej.
-        // "Factura" vs. "Autorizacion por correo - Juan Perez"): un mismo gasto puede
-        // traer varios adjuntos con roles distintos, y el PDF consolidado la muestra
-        // en una portada antes de cada uno para no depender de que la imagen/PDF se
-        // vea nitido.
+        /* Transcripción corta que digita el custodio al adjuntar el archivo (ej.
+           "Factura" vs. "Autorización por correo - Juan Perez"): un mismo gasto puede
+           traer varios adjuntos con roles distintos, y el PDF consolidado la muestra
+           en una portada antes de cada uno para no depender de que la imagen/PDF se
+           vea nítido. */
         public string Descripcion { get; set; } = string.Empty;
 
         public string RutaArchivo { get; set; } = string.Empty;
@@ -35,9 +35,9 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         [NotMapped]
         public bool IntegridadVerificada { get; set; } = true;
 
-        // El HashSHA256 protege el archivo fisico; esta firma protege la fila que
-        // apunta a el, para que nadie pueda repuntar el comprobante a otro gasto
-        // ni a otro archivo.
+        /* El HashSHA256 protege el archivo físico; esta firma protege la fila que
+           apunta a él, para que nadie pueda repuntar el comprobante a otro gasto
+           ni a otro archivo */
         public string ObtenerCadenaParaHash() =>
             new ConstructorFirma(nameof(ComprobanteAdjunto))
                 .Agregar(Id)

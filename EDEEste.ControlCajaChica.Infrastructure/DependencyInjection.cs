@@ -15,10 +15,8 @@ using Microsoft.Extensions.Options;
 
 namespace EDEEste.ControlCajaChica.Infrastructure
 {
-    /// <summary>
-    /// Registro unico de la capa de infraestructura. Program.cs solo llama
-    /// AddInfrastructure y no necesita conocer las implementaciones concretas.
-    /// </summary>
+    /* Registro único de la capa de infraestructura. Program.cs solo llama
+       AddInfrastructure y no necesita conocer las implementaciones concretas. */
     public static class DependencyInjection
     {
         public static IServiceCollection AddInfrastructure(
@@ -32,9 +30,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             AgregarAutenticacion(services, configuration);
             AgregarConfiguracionInicial(services, configuration);
 
-            // Una sola vez por proceso, no por peticion: GlobalFontSettings.FontResolver
-            // es estatico y PDFsharp lanza si se reasigna despues del primer uso. Ver
-            // ResolutorFuentesEmbebidas.Registrar().
+            /* Una sola vez por proceso, no por petición: GlobalFontSettings.FontResolver
+               es estático y PDFsharp lanza si se reasigna después del primer uso. Ver
+               ResolutorFuentesEmbebidas.Registrar(). */
             ResolutorFuentesEmbebidas.Registrar();
 
             services.AddScoped<IIdentityService, IdentityService>();
@@ -51,8 +49,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure
 
         /// <summary>
         /// Los repositorios comparten el mismo ApplicationDbContext con scope que usan
-        /// los casos de uso, asi que lo que marcan queda pendiente en el mismo
-        /// ChangeTracker y se confirma con un unico SaveChangesAsync.
+        /// los casos de uso, así que lo que marcan queda pendiente en el mismo
+        /// ChangeTracker y se confirma con un único SaveChangesAsync.
         /// </summary>
         private static void AgregarRepositorios(IServiceCollection services)
         {
@@ -64,11 +62,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure
         }
 
         /// <summary>
-        /// Elige de donde salen las contraseñas segun <c>Autenticacion:Modo</c>.
+        /// Elige de dónde salen las contraseñas según <c>Autenticacion:Modo</c>.
         ///
         /// El cliente del APICommon se registra SIEMPRE, incluso en modo Local:
-        /// consultar la ficha de alguien en el directorio es util por si solo y no
-        /// depende de que las contrasenas se validen alli.
+        /// consultar la ficha de alguien en el directorio es útil por sí solo y no
+        /// depende de que las contraseñas se validen allí.
         /// </summary>
         private static void AgregarAutenticacion(IServiceCollection services, IConfiguration configuration)
         {
@@ -79,7 +77,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             if (!string.IsNullOrWhiteSpace(modoTexto) && !Enum.TryParse(modoTexto, ignoreCase: true, out modo))
             {
                 throw new InvalidOperationException(
-                    $"El valor '{modoTexto}' de '{OpcionesAutenticacion.Seccion}:Modo' no es valido. " +
+                    $"El valor '{modoTexto}' de '{OpcionesAutenticacion.Seccion}:Modo' no es válido. " +
                     $"Use '{nameof(ModoAutenticacion.Local)}' o '{nameof(ModoAutenticacion.ActiveDirectory)}'.");
             }
 
@@ -89,16 +87,16 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             var urlBase = apiCommon["UrlBase"];
             var apiKey = apiCommon["ApiKey"];
 
-            // Solo se exige la configuracion del APICommon si de verdad se va a
-            // depender de el para entrar. En modo Local, que falte la API Key es lo
-            // normal (todavia no la tenemos) y no debe impedir arrancar.
+            /* Solo se exige la configuración del APICommon si de verdad se va a
+               depender de él para entrar. En modo Local, que falte la API Key es lo
+               normal (todavía no la tenemos) y no debe impedir arrancar. */
             if (modo == ModoAutenticacion.ActiveDirectory)
             {
                 if (string.IsNullOrWhiteSpace(urlBase))
                 {
                     throw new InvalidOperationException(
                         $"Falta '{OpcionesApiCommon.Seccion}:UrlBase' y '{OpcionesAutenticacion.Seccion}:Modo' " +
-                        $"esta en {nameof(ModoAutenticacion.ActiveDirectory)}. Configurela, por ejemplo en appsettings.json:\r\n" +
+                        $"está en {nameof(ModoAutenticacion.ActiveDirectory)}. Configúrela, por ejemplo en appsettings.json:\r\n" +
                         "  \"ApiCommon\": { \"UrlBase\": \"http://inapprueba/apicommon\" }");
                 }
 
@@ -106,7 +104,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
                 {
                     throw new InvalidOperationException(
                         $"Falta la clave '{OpcionesApiCommon.Seccion}:ApiKey' y '{OpcionesAutenticacion.Seccion}:Modo' " +
-                        $"esta en {nameof(ModoAutenticacion.ActiveDirectory)}. Guardela fuera del control de versiones:\r\n" +
+                        $"está en {nameof(ModoAutenticacion.ActiveDirectory)}. Guárdela fuera del control de versiones:\r\n" +
                         "  dotnet user-secrets set \"ApiCommon:ApiKey\" \"<clave>\" --project EDEEste.ControlCajaChica.Presentation\r\n" +
                         $"Mientras no la tenga, deje '{OpcionesAutenticacion.Seccion}:Modo' en {nameof(ModoAutenticacion.Local)}.");
                 }
@@ -144,8 +142,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure
 
                 if (!string.IsNullOrWhiteSpace(opciones.UrlBase))
                 {
-                    // La barra final importa: sin ella, Uri descarta el ultimo
-                    // segmento de la ruta base al combinarla con la relativa.
+                    /* La barra final importa: sin ella, Uri descarta el último
+                       segmento de la ruta base al combinarla con la relativa. */
                     http.BaseAddress = new Uri(opciones.UrlBase.TrimEnd('/') + "/");
                 }
 
@@ -157,10 +155,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure
 
         /// <summary>
         /// A diferencia de la clave HMAC, NO se falla el arranque si falta el token:
-        /// solo importa mientras el sistema no tenga ningun Administrador, y exigirlo
+        /// solo importa mientras el sistema no tenga ningún Administrador, y exigirlo
         /// siempre rompería cualquier despliegue ya configurado que nunca lo
-        /// necesito. La pantalla misma (ConfiguracionInicial.razor.cs) es quien se
-        /// niega a mostrar el formulario si esta vacio.
+        /// necesitó. La pantalla misma (ConfiguracionInicial.razor.cs) es quien se
+        /// niega a mostrar el formulario si está vacío.
         /// </summary>
         private static void AgregarConfiguracionInicial(IServiceCollection services, IConfiguration configuration) =>
             services.Configure<OpcionesConfiguracionInicial>(
@@ -179,13 +177,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure
         {
             var claveHmac = configuration.GetSection(OpcionesCriptografia.Seccion)["ClaveHmac"];
 
-            // Se falla en el arranque, no en el primer guardado: una app corriendo sin
-            // clave firmaria con basura o reventaria a mitad de una operacion contable.
+            /* Se falla en el arranque, no en el primer guardado: una app corriendo sin
+               clave firmaría con basura o reventaría a mitad de una operación contable. */
             if (string.IsNullOrWhiteSpace(claveHmac))
             {
                 throw new InvalidOperationException(
                     $"Falta la clave HMAC '{OpcionesCriptografia.Seccion}:ClaveHmac'. " +
-                    "Generela y guardela fuera del control de versiones, por ejemplo:\r\n" +
+                    "Genérela y guárdela fuera del control de versiones, por ejemplo:\r\n" +
                     "  dotnet user-secrets set \"Criptografia:ClaveHmac\" \"<clave-base64-de-32-bytes>\"");
             }
 
@@ -197,7 +195,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             catch (FormatException ex)
             {
                 throw new InvalidOperationException(
-                    $"La clave '{OpcionesCriptografia.Seccion}:ClaveHmac' no es Base64 valido.", ex);
+                    $"La clave '{OpcionesCriptografia.Seccion}:ClaveHmac' no es Base64 válido.", ex);
             }
 
             if (claveBytes.Length < OpcionesCriptografia.BytesMinimosClave)
@@ -210,11 +208,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure
 
             services.Configure<OpcionesCriptografia>(opciones => opciones.ClaveHmac = claveHmac);
 
-            // Singleton a proposito: solo envuelve la clave HMAC ya leida de
-            // configuracion (inmutable durante la vida de la app) y no tiene ningun
-            // estado por peticion. Los interceptores de EF (AuditoriaInterceptor,
-            // IntegridadInterceptor) dependen de que este servicio sea Singleton para
-            // poder serlo ellos tambien -- ver el comentario en AgregarPersistencia.
+            /* Singleton a propósito: solo envuelve la clave HMAC ya leída de
+               configuracion (inmutable durante la vida de la app) y no tiene ningún
+               estado por petición. Los interceptores de EF (AuditoriaInterceptor,
+               IntegridadInterceptor) dependen de que este servicio sea Singleton para
+               poder serlo ellos también -- ver el comentario en AgregarPersistencia. */
             services.AddSingleton<ICriptografiaService, CriptografiaService>();
         }
 
@@ -223,13 +221,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure
             var connectionString = configuration.GetSection("ConnectionStrings")["DefaultConnection"]
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-            // Los interceptores son Singleton -- EF los guarda como parte de la clave
-            // de cache de su proveedor de servicios interno, asi que necesitan ser
-            // SIEMPRE la misma instancia o revienta con ManyServiceProvidersCreated
-            // Warning pasadas ~20 peticiones (se probo con instancias Scoped, por dos
-            // caminos distintos, y las dos lo dispararon). AuditoriaInterceptor no
-            // puede entonces recibir ICurrentUserService (Scoped) por constructor; se lo
-            // pide al ApplicationDbContext que guarda (ver ObtenerUsuarioAuditoriaAsync).
+            /* Los interceptores son Singleton -- EF los guarda como parte de la clave
+               de cache de su proveedor de servicios interno, así que necesitan ser
+               SIEMPRE la misma instancia o revienta con ManyServiceProvidersCreated
+               Warning pasadas ~20 peticiones (se probó con instancias Scoped, por dos
+               caminos distintos, y las dos lo dispararon). AuditoriaInterceptor no
+               puede entonces recibir ICurrentUserService (Scoped) por constructor; se lo
+               pide al ApplicationDbContext que guarda (ver ObtenerUsuarioAuditoriaAsync). */
             services.AddSingleton<IInterceptor, AuditoriaInterceptor>();
             services.AddSingleton<IInterceptor, IntegridadInterceptor>();
 

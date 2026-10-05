@@ -5,11 +5,10 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Fondos
 {
     /// <summary>
-    /// Actualiza los parametros operativos de un fondo ya creado. MontoFijo y
-    /// BalanceActual no aparecen aqui, y es deliberado: el fondo fijo es inmutable
-    /// tras la creacion, y el balance solo lo mueven los casos de uso operativos. Al
-    /// no existir la propiedad, la regla no depende de que alguien se acuerde de
-    /// validarla.
+    /// Actualiza los parámetros operativos de un fondo ya creado. MontoFijo y
+    /// BalanceActual no aparecen aquí, y es deliberado: el fondo fijo es inmutable
+    /// tras la creación, y el balance solo lo mueven los casos de uso operativos. Al
+    /// no existir la propiedad, la regla no depende de que alguien se acuerde de validarla
     /// </summary>
     public sealed class ActualizarParametrosFondoCommand
     {

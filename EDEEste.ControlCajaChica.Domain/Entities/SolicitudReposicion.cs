@@ -15,13 +15,6 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public Guid FondoCajaChicaId { get; set; }
         public FondoCajaChica? FondoCajaChica { get; set; }
 
-        // Código interno de la solicitud (no es un identificador de la DGII, es
-        // correlativo propio del sistema). Aún no se ha confirmado el formato ni la
-        // longitud con negocio, así que por ahora no se le fija MaxLength en
-        // ApplicationDbContext -- se deja en nvarchar(max) a propósito para no
-        // truncar en producción antes de tener la regla real.
-
-        //public string CodigoSolicitud { get; set; } = string.Empty;
         public decimal MontoReclamado { get; set; }
         public DateTime FechaSolicitud { get; set; }
         public string SolicitoUsuarioId { get; set; } = string.Empty; //FK hacia Usuario (Identity)
@@ -53,7 +46,6 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
             var firma = new ConstructorFirma(nameof(SolicitudReposicion))
                 .Agregar(Id)
                 .Agregar(FondoCajaChicaId)
-                //.Agregar(CodigoSolicitud)
                 .Agregar(MontoReclamado)
                 .Agregar(FechaSolicitud)
                 .Agregar(SolicitoUsuarioId)

@@ -12,11 +12,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
     /// con el que trae la fila.
     ///
     /// Si un DBA cambia un monto directamente en la BDD, no puede recalcular la
-    /// firma (no tiene la clave), asi que el hash guardado deja de corresponder y
-    /// la entidad llega a la aplicacion marcada como comprometida.
+    /// firma (no tiene la clave), así que el hash guardado deja de corresponder y
+    /// la entidad llega a la aplicación marcada como comprometida.
     ///
-    /// Aqui no se lanza excepcion a proposito: se marca y se registra. Reventar en
-    /// plena lectura dejaria al auditor sin poder ni siquiera listar los registros
+    /// Aquí no se lanza excepción a proposito: se marca y se registra. Reventar en
+    /// plena lectura dejaría al auditor sin poder ni siquiera listar los registros
     /// alterados, que es justo lo que necesita ver. El bloqueo real ocurre al
     /// intentar guardar, en <see cref="AuditoriaInterceptor"/>.
     /// </summary>
@@ -42,8 +42,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
 
             if (string.IsNullOrEmpty(entidad.HashFirma))
             {
-                // Fila anterior a la implementacion del sello, o insertada por fuera
-                // de la aplicacion. No se puede afirmar que sea integra.
+                /* Fila anterior a la implementacion del sello, o insertada por fuera
+                   de la aplicacion. No se puede afirmar que sea integra. */
                 entidad.IntegridadVerificada = false;
                 _logger.LogWarning(
                     "El registro de {Entidad} no tiene firma de integridad almacenada.",
@@ -56,8 +56,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             if (!entidad.IntegridadVerificada)
             {
                 _logger.LogCritical(
-                    "ALERTA DE MANIPULACION: el registro de {Entidad} fue alterado directamente " +
-                    "en la base de datos sin autorizacion del programa.",
+                    "ALERTA DE MANIPULACIÓN: el registro de {Entidad} fue alterado directamente " +
+                    "en la base de datos sin autorización del programa.",
                     instance.GetType().Name);
             }
 

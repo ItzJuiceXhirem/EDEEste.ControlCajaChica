@@ -16,20 +16,15 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public required decimal MontoFijo { get; set; }
         public decimal LimitePorGasto { get; set; }
 
-        /// <summary>
-        /// Tope por gasto expresado como porcentaje del monto fijo. El README fija
-        /// 2.5% como punto de partida, pero el Administrador lo ajusta por fondo: un
-        /// fondo de operaciones y uno de caja menuda no se rigen por el mismo numero.
-        /// Se guarda como porcentaje (2.5), no como fraccion, igual que
-        /// PorcentajeAlertaReposicion.
-        /// </summary>
+      /* Tope por gasto expresado como porcentaje del monto fijo. Se fija un 2.5%
+         como punto de partida, pero el Administrador lo ajusta por fondo: un fondo
+         de operaciones y uno de caja menuda no se rigen por el mismo número.
+         Se guarda como porcentaje igual que PorcentajeAlertaReposicion. */
         public decimal PorcentajeMaximoPorGasto { get; set; } = LimitesFondo.TopePorGastoPorDefecto;
 
         public decimal PorcentajeAlertaReposicion { get; set; }
         public string CustodioId { get; set; } = string.Empty; //FK hacia Usuario (Identity)
 
-        // Antes era string libre teniendo el enum EstadoFondo ya definido y sin usar:
-        // con texto suelto nada impedía guardar "activo", "ACTIVO" o un valor inválido.
         public EstadoFondo Estado { get; set; } = EstadoFondo.Activo;
 
         // Navegación

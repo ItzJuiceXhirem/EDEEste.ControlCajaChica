@@ -3,10 +3,8 @@ using System.Collections.Generic;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
 {
-    /// <summary>
-    /// Registra el conteo fisico de un fondo por denominacion, para compararlo contra
-    /// el saldo teorico (BalanceActual).
-    /// </summary>
+  /* Registra el conteo físico de un fondo por denominación, para compararlo contra
+     el saldo teórico (BalanceActual) */
     public sealed class RegistrarArqueoMensualCommand
     {
         public Guid FondoCajaChicaId { get; set; }

@@ -5,9 +5,9 @@ using EDEEste.ControlCajaChica.Domain.Entities;
 namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
 {
     /// <summary>
-    /// Genera el expediente PDF consolidado de una solicitud de reposicion: un
+    /// Genera el expediente PDF consolidado de una solicitud de reposición: un
     /// resumen de los gastos incluidos, seguido de cada comprobante adjunto con una
-    /// portada de transcripcion antes de su contenido.
+    /// portada de transcripción antes de su contenido.
     ///
     /// Trabaja sobre las entidades de Domain directo, no sobre DTOs. Quien llame debe
     /// haber cargado solicitud.Gastos y cada gasto.Comprobantes de antemano

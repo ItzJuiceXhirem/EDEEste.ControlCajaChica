@@ -57,11 +57,16 @@
     }
     <script src="@Assets["js/interop.js"]"></script>
     <script src="@Assets["js/tema.js"]"></script>
+    <script src="@Assets["js/subir-arriba.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     @* Blazor reemplaza el DOM al navegar y al hidratar: los botones del
-       interruptor llegan nuevos y sin su aria-pressed. *@
+       interruptor llegan nuevos y sin su aria-pressed, y la navegacion mejorada
+       sincroniza tambien los atributos de <html>, borrando data-cc-desplazado. *@
     <script>
-        Blazor.addEventListener('enhancedload', () => window.ccTema.sincronizar());
+        Blazor.addEventListener('enhancedload', () => {
+            window.ccTema.sincronizar();
+            window.ccSubirArriba.actualizar();
+        });
     </script>
 </body>
 

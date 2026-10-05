@@ -1,0 +1,11 @@
+@* Botón flotante "volver arriba" para las pantallas con listas o historiales que
+   pueden crecer. No lleva @onclick ni estado de C# a propósito: mostrarlo depende
+   de cada evento de scroll, y pasar eso por el circuito sería un mensaje a
+   SignalR por cada tramo desplazado. Todo lo resuelve wwwroot/js/subir-arriba.js,
+   que marca <html data-cc-desplazado> y atiende el clic por delegación -- por eso
+   este componente puede ser solo marcado. *@
+<div class="cc-subir-capa">
+    <button type="button" class="cc-subir" data-cc-subir aria-label="Volver arriba" title="Volver arriba">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 15.4V5M5.5 9.5 10 5l4.5 4.5" /></svg>
+    </button>
+</div>

@@ -12,8 +12,8 @@
     color: var(--cc-text-soft);
 }
 
-/* Un fondo: tarjeta ancha + panel de arqueos. align-items:stretch hace que el
-   panel iguale la altura de la tarjeta sin medir nada a mano. */
+/* Una fila por fondo: tarjeta ancha + su panel de arqueos. align-items:stretch
+   hace que el panel iguale la altura de la tarjeta sin medir nada a mano. */
 .cc-split {
     display: grid;
     grid-template-columns: 1.7fr 1fr;
@@ -21,10 +21,12 @@
     align-items: stretch;
 }
 
+/* Las filas se separan más que las dos tarjetas de una misma fila, para que se
+   lea cada par fondo + arqueos como un bloque. */
 .cc-fcards {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 22px;
 }
 
 .cc-fcard {
@@ -281,9 +283,17 @@
 
 /* Cortes ya multiplicados por --cc-zoom (1100→1210, 641→705): la media query se
    evalúa contra el viewport real, pero el contenido dispone de un 10% menos. */
+/* Apilado en una columna, el panel de arqueos queda debajo de su fondo y encima
+   del fondo siguiente: se pega a su tarjeta y se aleja de la próxima fila, o no
+   se sabría a cuál de los dos pertenece. */
 @media (max-width: 1210px) {
     .cc-split {
         grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .cc-fcards {
+        gap: 30px;
     }
 }
 

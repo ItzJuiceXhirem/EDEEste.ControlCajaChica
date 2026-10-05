@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -40,22 +41,20 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         private IReadOnlyList<FondoCajaChica>? fondos;
 
-        private IReadOnlyList<ArqueoCaja>? ultimosArqueos;
+        /// <summary>
+        /// Los últimos arqueos de cada fondo, por separado: cada panel de arqueos
+        /// acompaña a un solo fondo, y mezclar en un mismo anillo arqueos de cajas
+        /// distintas no diría nada (no se comparan entre sí).
+        /// </summary>
+        private Dictionary<Guid, IReadOnlyList<ArqueoCaja>> ultimosArqueosPorFondo = new();
 
         // CustodioId guarda el Id de Identity (un GUID), no un nombre: sin este mapa,
         // la tarjeta de cada fondo mostraria el GUID crudo en vez del nombre de usuario.
         private Dictionary<string, string> nombresDeCustodio = new();
 
-        /// <summary>
-        /// El anillo de arqueos solo acompaña a un fondo único. Con varios fondos
-        /// mezclaría en un mismo anillo arqueos de cajas distintas, que no se comparan
-        /// entre sí.
-        /// </summary>
-        private bool EsPanelDeUnFondo => fondos is { Count: 1 };
-
-        private string Lede => EsPanelDeUnFondo
+        private string Lede => fondos is { Count: 1 }
             ? "Su fondo y el resultado de sus últimos arqueos."
-            : "Fondos bajo su supervisión.";
+            : "Fondos bajo su supervisión y el resultado de sus últimos arqueos.";
 
         protected override async Task OnInitializedAsync()
         {
@@ -71,27 +70,38 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 visibles = visibles.Where(f => f.CustodioId == usuarioId);
             }
 
-            fondos = visibles.ToList();
-            await ResolverNombresDeCustodioAsync();
+            var lista = visibles.ToList();
+            await ResolverNombresDeCustodioAsync(lista);
 
-            if (EsPanelDeUnFondo)
+            // Uno por uno y no con Task.WhenAll: todos los repositorios comparten el
+            // DbContext del circuito, que no admite dos consultas a la vez.
+            var porFondo = new Dictionary<Guid, IReadOnlyList<ArqueoCaja>>();
+            foreach (var fondo in lista)
             {
-                var arqueos = await Arqueos.ListarPorFondoAsync(fondos![0].Id);
-                ultimosArqueos = arqueos
+                var arqueos = await Arqueos.ListarPorFondoAsync(fondo.Id);
+                porFondo[fondo.Id] = arqueos
                     .OrderByDescending(a => a.FechaArqueo)
                     .Take(ArqueosEnElAnillo)
                     .ToList();
             }
+
+            ultimosArqueosPorFondo = porFondo;
+
+            // Se asigna al final: Blazor pinta en cada await de este método, y con
+            // `fondos` ya asignado antes de tener los arqueos, cada panel mostraría
+            // un instante "todavía no tiene arqueos" aunque sí los tenga.
+            fondos = lista;
         }
 
         /// <summary>
         /// A diferencia de ResolverNombresAsync (Arqueos/Gastos/Reposiciones), este no es
-        /// incremental: reconstruye el mapa completo desde <c>fondos</c> en cada llamada, sin
-        /// reusar lo ya resuelto. Nombre distinto a proposito -- es una operacion distinta.
+        /// incremental: reconstruye el mapa completo desde la lista de fondos en cada
+        /// llamada, sin reusar lo ya resuelto. Nombre distinto a proposito -- es una
+        /// operacion distinta.
         /// </summary>
-        private async Task ResolverNombresDeCustodioAsync()
+        private async Task ResolverNombresDeCustodioAsync(IReadOnlyList<FondoCajaChica> lista)
         {
-            var ids = fondos!.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+            var ids = lista.Select(f => f.CustodioId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
             var resueltos = await Identidad.ObtenerNombresUsuarioAsync(ids);
 
             var mapa = new Dictionary<string, string>();
@@ -102,6 +112,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
             nombresDeCustodio = mapa;
         }
+
+        private IReadOnlyList<ArqueoCaja> UltimosArqueos(FondoCajaChica fondo) =>
+            ultimosArqueosPorFondo.GetValueOrDefault(fondo.Id) ?? Array.Empty<ArqueoCaja>();
 
         private string NombreCustodio(string custodioId) =>
             string.IsNullOrWhiteSpace(custodioId) ? "(sin asignar)" : nombresDeCustodio.GetValueOrDefault(custodioId, custodioId);
@@ -148,9 +161,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         /// segmentos para que dos resultados iguales seguidos no se lean como uno solo.
         /// Con un único arqueo no hay rendija: no habría nada que separar.
         /// </summary>
-        private string GradienteArqueos()
+        private static string GradienteArqueos(IReadOnlyList<ArqueoCaja> arqueos)
         {
-            var arqueos = ultimosArqueos!;
             var porcion = 360d / arqueos.Count;
             var separacion = arqueos.Count > 1 ? SeparacionSegmentos : 0d;
 

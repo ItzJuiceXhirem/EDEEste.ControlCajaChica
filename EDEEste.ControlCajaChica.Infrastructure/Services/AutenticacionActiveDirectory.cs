@@ -9,27 +9,27 @@ using EDEEste.ControlCajaChica.Infrastructure.Configuration;
 namespace EDEEste.ControlCajaChica.Infrastructure.Services
 {
     /// <summary>
-    /// V1: las credenciales las valida el Active Directory de la empresa a traves del
-    /// APICommon. <b>Incompleta a proposito.</b>
+    /// V1: las credenciales las valida el Active Directory de la empresa a través del
+    /// APICommon. <b>Incompleta a propósito.</b>
     ///
-    /// Se deja como codigo real (compila, se revisa, se registra en DI) en vez de
-    /// como comentarios, porque el codigo comentado no compila, nadie lo revisa y se
-    /// pudre. Solo no esta seleccionada: <c>Autenticacion:Modo</c> vale Local por
+    /// Se deja como código real (compila, se revisa, se registra en DI) en vez de
+    /// como comentarios, porque el código comentado no compila, nadie lo revisa y se
+    /// pudre. Solo no está seleccionada: <c>Autenticacion:Modo</c> vale Local por
     /// defecto, y ponerla en ActiveDirectory sin API Key impide arrancar la
-    /// aplicacion (ver DependencyInjection.AgregarAutenticacion).
+    /// aplicación (ver DependencyInjection.AgregarAutenticacion).
     ///
-    /// Lo que falta es unicamente <see cref="ValidarAsync"/>. Cuando se tenga la API
+    /// Lo que falta es únicamente <see cref="ValidarAsync"/>. Cuando se tenga la API
     /// Key y el contrato de <c>ValidateCredentials</c>, el trabajo pendiente es:
     ///
     /// 1. Hacer POST a <see cref="OpcionesApiCommon.RutaValidarCredenciales"/> con el
     ///    cuerpo que ese endpoint espere (probablemente { userName, password }).
     /// 2. Traducir su respuesta a Ok/Fallo.
-    /// 3. En caso de exito, traer la ficha con <see cref="IDirectorioActivoService"/>
+    /// 3. En caso de éxito, traer la ficha con <see cref="IDirectorioActivoService"/>
     ///    y devolverla en el resultado, para que el login pueda crear o refrescar el
     ///    registro local del usuario con su nombre y departamento reales.
     ///
-    /// Queda pendiente ademas una decision de producto que no es tecnica: que hacer
-    /// cuando alguien valida bien contra el AD pero todavia no tiene cuenta local.
+    /// Queda pendiente además una decisión de producto que no es técnica: que hacer
+    /// cuando alguien valida bien contra el AD pero todavía no tiene cuenta local.
     /// Lo coherente con el modelo actual es crearla en estado Pendiente para que un
     /// Administrador le asigne rol, pero hay que confirmarlo.
     /// </summary>
@@ -49,8 +49,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             string password,
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException(
-                "La autenticacion contra Active Directory todavia no esta implementada. " +
-                $"Se conoce la ruta ({OpcionesApiCommon.RutaValidarCredenciales}) pero no que " +
+                "La autenticación contra Active Directory todavía no está implementada. " +
+                $"Se conoce la ruta ({OpcionesApiCommon.RutaValidarCredenciales}) pero no qué " +
                 "recibe ni que devuelve ese endpoint, y falta la API Key del APICommon. " +
                 "Mientras tanto use Autenticacion:Modo = Local.");
     }

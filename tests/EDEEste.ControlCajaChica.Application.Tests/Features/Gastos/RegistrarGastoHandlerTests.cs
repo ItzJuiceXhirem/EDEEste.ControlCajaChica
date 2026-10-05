@@ -90,7 +90,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
             var resultado = await handler.EjecutarAsync(comando);
 
             Assert.False(resultado.Exitoso);
-            Assert.Contains(resultado.Errores, e => e.Contains("solo puede contener numeros"));
+            Assert.Contains(resultado.Errores, e => e.Contains("solo puede contener números"));
             Assert.Equal(0, contexto.VecesGuardado);
         }
 
@@ -132,7 +132,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
             var resultado = await handler.EjecutarAsync(comando);
 
             Assert.False(resultado.Exitoso);
-            Assert.Contains(resultado.Errores, e => e.Contains("El NCF no es valido"));
+            Assert.Contains(resultado.Errores, e => e.Contains("El NCF no es válido"));
             Assert.Equal(0, contexto.VecesGuardado);
         }
 
@@ -260,7 +260,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
             var resultado = await handler.EjecutarAsync(comando);
 
             Assert.False(resultado.Exitoso);
-            Assert.Contains(resultado.Errores, e => e.Contains("No se pueden adjuntar mas de 20"));
+            Assert.Contains(resultado.Errores, e => e.Contains("No se pueden adjuntar más de 20"));
             Assert.Equal(0, contexto.VecesGuardado);
         }
 

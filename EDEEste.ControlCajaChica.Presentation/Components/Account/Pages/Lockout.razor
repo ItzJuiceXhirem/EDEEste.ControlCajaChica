@@ -16,9 +16,9 @@
     </div>
 </div>
 
-<p class="cc-kicker cc-center">SEGURIDAD DE LA CUENTA</p>
-<h1 class="cc-center">Cuenta bloqueada temporalmente</h1>
-<p class="cc-note cc-center" role="alert">Tu cuenta ha sido bloqueada por demasiados intentos fallidos de inicio de sesión.</p>
+<p class="cc-kicker cc-center">SEGURIDAD DE CUENTAS</p>
+<h1 class="cc-center">Acceso bloqueado temporalmente</h1>
+<p class="cc-note cc-center" role="alert">Tu acceso ha sido bloqueado por demasiados intentos fallidos de inicio de sesión.</p>
 
 <div class="cc-next @(Terminado ? "cc-next-terminado" : "")" style="--mc:#FF9AA3;--mc-bg2:rgba(255,154,163,.09)">
     <p class="cc-next-lb @(Terminado ? "cc-next-lb-terminado" : "")">@(Terminado ? "Listo" : "Qué hacer")</p>
@@ -29,7 +29,7 @@
         }
         else
         {
-            @:Por seguridad, el bloqueo se levanta solo por tiempo — no hace falta contactar a nadie.
+            @:Por seguridad, el bloqueo se levanta por su cuenta en un tiempo — no hace falta contactar a nadie.
             @if (!TieneCuentaRegresiva)
             {
                 @: Intenta de nuevo en unos minutos.
@@ -39,7 +39,7 @@
     @if (TieneCuentaRegresiva && !Terminado)
     {
         <div class="cc-next-time">
-            <span class="cc-next-time-lb">Podrás intentarlo en</span>
+            <span class="cc-next-time-lb">Podrás intentarlo de nuevo en:</span>
             <span class="cc-next-time-val">@TiempoFormateado</span>
         </div>
     }

@@ -14,10 +14,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
     ///
     /// El mecanismo real es el barrido oportunista que corre en cada subida (ver
     /// GastoEndpoints.MapPost "/gastos/comprobantes/staging"): bajo IIS el app pool
-    /// se duerme (20 minutos por defecto), y en una app interna de bajo trafico este
+    /// se duerme (20 minutos por defecto), y en una app interna de bajo tráfico este
     /// servicio de fondo puede simplemente no llegar a ejecutarse nunca. Este es el
     /// respaldo para la persona que sube un comprobante, abandona el formulario, y
-    /// no vuelve a subir nada mas que dispare el barrido oportunista.
+    /// no vuelve a subir nada más que dispare el barrido oportunista.
     /// </summary>
     public sealed class LimpiezaStagingBackgroundService : BackgroundService
     {
@@ -40,17 +40,17 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             while (await temporizador.WaitForNextTickAsync(stoppingToken))
             {
-                // Todo el cuerpo en try/catch a proposito: desde .NET 6, una
-                // excepcion sin capturar en un BackgroundService detiene el HOST
-                // ENTERO (BackgroundServiceExceptionBehavior.StopHost es el default).
-                // Un solo archivo bloqueado por el antivirus de red -- el mismo que
-                // motivo sacar la subida del circuito -- no debe poder tumbar toda
-                // la aplicacion.
+                /* Todo el cuerpo en try/catch a propósito: desde .NET 6, una
+                   excepción sin capturar en un BackgroundService detiene el HOST
+                   ENTERO (BackgroundServiceExceptionBehavior.StopHost es el default).
+                   Un solo archivo bloqueado por el antivirus de red -- el mismo que
+                   motivo sacar la subida del circuito -- no debe poder tumbar toda
+                   la aplicación. */
                 try
                 {
-                    // IFileStorageService es Scoped; este servicio es Singleton (como
-                    // todo IHostedService), asi que cada pasada abre su propio scope
-                    // en vez de recibirlo por constructor.
+                    /* IFileStorageService es Scoped; este servicio es Singleton (como
+                       todo IHostedService), así que cada pasada abre su propio scope
+                       en vez de recibirlo por constructor. */
                     using var alcance = _scopeFactory.CreateScope();
                     var almacenamiento = alcance.ServiceProvider.GetRequiredService<IFileStorageService>();
 
@@ -65,11 +65,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
-                    // Apagado normal de la aplicacion, no un fallo del barrido.
+                    // Apagado normal de la aplicación, no un fallo del barrido.
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Fallo el barrido de staging abandonado; se reintenta en la proxima pasada.");
+                    _logger.LogError(ex, "Falló el barrido de staging abandonado; se reintenta en la proxima pasada.");
                 }
             }
         }

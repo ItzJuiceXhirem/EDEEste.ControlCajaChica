@@ -12,10 +12,8 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
 
         Task<IReadOnlyList<ArqueoCaja>> ListarPorFondoAsync(Guid fondoId, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// El arqueo mas reciente del fondo, si existe. Alimenta el aviso -- no
-        /// bloqueo -- de que ya se conto este fondo en el mes en curso.
-        /// </summary>
+      /* El arqueo más reciente del fondo, si existe. Alimenta el aviso -- no
+         bloqueo -- de que ya se contó este fondo en el mes en curso. */
         Task<ArqueoCaja?> ObtenerUltimoDelFondoAsync(Guid fondoId, CancellationToken cancellationToken = default);
 
         Task AgregarAsync(ArqueoCaja arqueo, CancellationToken cancellationToken = default);

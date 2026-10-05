@@ -34,7 +34,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             var categoria = await _categorias.ObtenerPorIdAsync(comando.CategoriaGastoId, cancellationToken);
             if (categoria is null)
             {
-                return ResultadoOperacion<Guid>.Fallo("La categoria indicada no existe.");
+                return ResultadoOperacion<Guid>.Fallo("La categoría indicada no existe.");
             }
 
             var nombre = comando.Nombre?.Trim() ?? string.Empty;
@@ -52,11 +52,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             categoria.RequiereNCF = comando.RequiereNCF;
             categoria.Activo = comando.Activo;
 
-            // SaveChangesAsync liso y no IntentarGuardarCambiosAsync: a diferencia de
-            // FondoCajaChica.BalanceActual/Gasto.Estado/SolicitudReposicion.Estado,
-            // ninguna propiedad de CategoriaGasto esta marcada IsConcurrencyToken() en
-            // ApplicationDbContext, asi que su UPDATE nunca lleva una clausula de
-            // concurrencia -- DbUpdateConcurrencyException no puede ocurrir aca.
+          /* SaveChangesAsync liso y no IntentarGuardarCambiosAsync: a diferencia de
+             FondoCajaChica.BalanceActual/Gasto.Estado/SolicitudReposicion.Estado,
+             ninguna propiedad de CategoriaGasto está marcada IsConcurrencyToken() en
+             ApplicationDbContext, así que su UPDATE nunca lleva una cláusula de
+             concurrencia -- DbUpdateConcurrencyException no puede ocurrir acá. */
             await _contexto.SaveChangesAsync(cancellationToken);
 
             return ResultadoOperacion<Guid>.Ok(categoria.Id);
@@ -76,7 +76,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Categorias
             }
             else if (nombreDuplicado)
             {
-                errores.Add($"Ya existe una categoria llamada '{nombre}'.");
+                errores.Add($"Ya existe una categoría llamada '{nombre}'.");
             }
 
             var cuentaContable = comando.CuentaContable?.Trim() ?? string.Empty;

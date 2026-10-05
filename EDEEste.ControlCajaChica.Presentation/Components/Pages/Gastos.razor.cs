@@ -19,6 +19,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
     {
         private const int LongitudMotivoEnTabla = 60;
 
+        // Mismo tamaño de página en Movimientos y en Anulados: las dos tablas
+        // crecen sin techo con el tiempo, y que una pagine de 10 en 10 y la otra
+        // no obligaría a leer dos ritmos distintos en la misma pantalla.
+        private const int GastosPorPagina = 10;
+
         [Inject]
         private IFondoRepository Fondos { get; set; } = default!;
 
@@ -82,9 +87,16 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         private string busquedaMovimientos = string.Empty;
 
+        // Pagina mostrada en cada tabla (base 1). No se normalizan al asignarlas:
+        // de eso se encargan PaginaSeguraMovimientos y PaginaSeguraAnulados, porque
+        // el total de paginas encoge sin que nadie toque estos controles -- basta
+        // con teclear en el buscador o con que una anulacion saque la ultima fila.
+        private int paginaMovimientos = 1;
+
         // null = todo el historial.
         private int? diasAnulados = 90;
         private string busquedaAnulados = string.Empty;
+        private int paginaAnulados = 1;
 
         // Ventana de días en Movimientos: visible tanto en "Todos" (sin cifra
         // seleccionada) como en "Repuesto" -- las otras dos cifras son colas activas
@@ -210,6 +222,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 errores.Clear();
                 exito = null;
                 fondoSeleccionado = id;
+                paginaMovimientos = 1;
+                paginaAnulados = 1;
                 CerrarFicha();
                 await CargarTodoAsync(id);
             }
@@ -238,6 +252,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             var valor = e.Value?.ToString();
             diasAnulados = string.IsNullOrEmpty(valor) ? null : int.Parse(valor, CultureInfo.InvariantCulture);
+            paginaAnulados = 1;
             await CargarAnuladosAsync(fondoSeleccionado);
         }
 
@@ -247,6 +262,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             var valor = e.Value?.ToString();
             diasMovimientos = string.IsNullOrEmpty(valor) ? null : int.Parse(valor, CultureInfo.InvariantCulture);
+            paginaMovimientos = 1;
         }
 
         // ── Cifras de resumen (§5.8) ─────────────────────────────────────────────
@@ -278,6 +294,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             vistaAnulados = false;
             filtroEstado = filtroEstado == estado ? null : estado;
+            paginaMovimientos = 1;
             CerrarFicha();
         }
 
@@ -285,6 +302,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             vistaAnulados = !vistaAnulados;
             filtroEstado = null;
+            paginaMovimientos = 1;
+            paginaAnulados = 1;
             CerrarFicha();
         }
 
@@ -380,6 +399,95 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 : string.IsNullOrWhiteSpace(busquedaAnulados)
                     ? anulados
                     : anulados.Where(g => Coincide(g, busquedaAnulados.Trim()));
+
+        // ── Paginación ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Se pagina encima de los filtros y no en su lugar: cada cifra de §5.8, la
+        /// ventana de días y el buscador siguen acotando la lista completa, y la
+        /// paginación solo recorta lo que se pinta de ese resultado. Así "página 1"
+        /// significa lo mismo con filtro y sin él.
+        /// </summary>
+        private static int ContarPaginas(int total) =>
+            Math.Max(1, (int)Math.Ceiling(total / (double)GastosPorPagina));
+
+        /// <summary>
+        /// Ventana de botones numerados, compartida por las dos tablas: con un
+        /// historial largo, pintar todos los números no cabe en una línea. Se centra
+        /// en la página actual y se pega a los extremos cuando está cerca del
+        /// principio o del final.
+        /// </summary>
+        private static IEnumerable<int> VentanaDePaginas(int pagina, int totalPaginas)
+        {
+            const int maximoBotones = 7;
+
+            var inicio = Math.Max(1, pagina - maximoBotones / 2);
+            var fin = Math.Min(totalPaginas, inicio + maximoBotones - 1);
+            inicio = Math.Max(1, fin - maximoBotones + 1);
+
+            return Enumerable.Range(inicio, fin - inicio + 1);
+        }
+
+        private int TotalGastosFiltrados => GastosFiltrados.Count();
+
+        private int TotalPaginasMovimientos => ContarPaginas(TotalGastosFiltrados);
+
+        /// <summary>
+        /// La página que de verdad se pinta. Se acota aquí y no al asignar
+        /// paginaMovimientos porque el total puede encogerse solo: un filtro más
+        /// estrecho o una anulación bastan para que la página 7 deje de existir.
+        /// </summary>
+        private int PaginaSeguraMovimientos => Math.Clamp(paginaMovimientos, 1, TotalPaginasMovimientos);
+
+        private IEnumerable<Gasto> GastosDeLaPagina =>
+            GastosFiltrados.Skip((PaginaSeguraMovimientos - 1) * GastosPorPagina).Take(GastosPorPagina);
+
+        private IEnumerable<int> PaginasMovimientos =>
+            VentanaDePaginas(PaginaSeguraMovimientos, TotalPaginasMovimientos);
+
+        private int TotalPaginasAnulados => ContarPaginas(AnuladosFiltrados.Count());
+
+        private int PaginaSeguraAnulados => Math.Clamp(paginaAnulados, 1, TotalPaginasAnulados);
+
+        private IEnumerable<Gasto> AnuladosDeLaPagina =>
+            AnuladosFiltrados.Skip((PaginaSeguraAnulados - 1) * GastosPorPagina).Take(GastosPorPagina);
+
+        private IEnumerable<int> PaginasAnulados =>
+            VentanaDePaginas(PaginaSeguraAnulados, TotalPaginasAnulados);
+
+        /// <summary>
+        /// Cambiar de página cierra la ficha: la fila que la abrió casi nunca está
+        /// en la página nueva, y dejarla abierta mostraría un gasto que ya no se ve
+        /// en la tabla (mismo criterio que FiltrarPor y AbrirAnulados).
+        /// </summary>
+        private void IrAPaginaMovimientos(int pagina)
+        {
+            paginaMovimientos = Math.Clamp(pagina, 1, TotalPaginasMovimientos);
+            CerrarFicha();
+        }
+
+        private void IrAPaginaAnulados(int pagina)
+        {
+            paginaAnulados = Math.Clamp(pagina, 1, TotalPaginasAnulados);
+            CerrarFicha();
+        }
+
+        /// <summary>
+        /// Los dos buscadores vuelven a la página 1. Sin esto, buscar desde la
+        /// página 5 deja al usuario en la página 5 de los resultados nuevos, que casi
+        /// nunca es lo que quiere ver.
+        /// </summary>
+        private void CambiarBusquedaMovimientos(string valor)
+        {
+            busquedaMovimientos = valor;
+            paginaMovimientos = 1;
+        }
+
+        private void CambiarBusquedaAnulados(string valor)
+        {
+            busquedaAnulados = valor;
+            paginaAnulados = 1;
+        }
 
         private static bool Coincide(Gasto gasto, string busqueda)
         {

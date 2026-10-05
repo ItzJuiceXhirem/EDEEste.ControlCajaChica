@@ -8,19 +8,19 @@ using MigraDoc.Rendering;
 namespace EDEEste.ControlCajaChica.Infrastructure.Services
 {
     /// <summary>
-    /// Dibuja cada pieza del expediente de reposicion con MigraDoc: portadas,
-    /// paginas de aviso, y el resumen con la tabla de gastos. No sabe nada de
-    /// PDFsharp ni de como se ensamblan las piezas en el documento final -- eso
-    /// es trabajo de <see cref="PdfConsolidadorService"/>, que decide que pieza
-    /// va donde. Separar el "que va en el expediente" del "como se dibuja cada
-    /// pieza" hace que un cambio de diseno visual no tenga que tocar la logica
+    /// Dibuja cada pieza del expediente de reposición con MigraDoc: portadas,
+    /// páginas de aviso, y el resumen con la tabla de gastos. No sabe nada de
+    /// PDFsharp ni de cómo se ensamblan las piezas en el documento final -- eso
+    /// es trabajo de <see cref="PdfConsolidadorService"/>, que decide qué pieza
+    /// va dónde. Separar el "qué va en el expediente" del "cómo se dibuja cada
+    /// pieza" hace que un cambio de diseño visual no tenga que tocar la lógica
     /// de ensamblaje, y viceversa.
     /// </summary>
     public static class ExpedienteMaquetador
     {
-        // Aproximan la paleta Material Design que usaba QuestPDF.Helpers.Colors, para
-        // que el expediente cambie de motor de PDF sin cambiar de aspecto:
-        // Blue.Darken3, Grey.Lighten3, Grey.Lighten2, Grey.Darken1 y Red.Medium.
+        /* Aproximan la paleta Material Design que usaba QuestPDF.Helpers.Colors, para
+           que el expediente cambie de motor de PDF sin cambiar de aspecto:
+           Blue.Darken3, Grey.Lighten3, Grey.Lighten2, Grey.Darken1 y Red.Medium. */
         private static readonly Color AzulOscuro = new(0x15, 0x65, 0xC0);
         private static readonly Color GrisClaro = new(0xEE, 0xEE, 0xEE);
         private static readonly Color GrisClaro2 = new(0xE0, 0xE0, 0xE0);
@@ -35,9 +35,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
         /// <summary>
         /// Identificador corto y legible de una solicitud para mostrar en el
-        /// expediente (no es un codigo de negocio, solo los primeros 8 caracteres del
+        /// expediente (no es un código de negocio, solo los primeros 8 caracteres del
         /// Guid). Mismo nombre y forma que Reposiciones.razor.cs, aunque viven en
-        /// ensamblados distintos y no comparten codigo.
+        /// ensamblados distintos y no comparten código.
         /// </summary>
         private static string CodigoCorto(Guid id) => id.ToString()[..8];
 
@@ -56,8 +56,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         }
 
         /// <summary>
-        /// Ancho y alto del area de contenido (formato de pagina menos margenes),
-        /// para dimensionar tablas e imagenes.
+        /// Ancho y alto del área de contenido (formato de página menos márgenes),
+        /// para dimensionar tablas e imágenes.
         ///
         /// OJO: no se puede leer seccion.PageSetup.PageWidth/PageHeight para esto --
         /// esas propiedades devuelven CERO si se consultan antes de renderizar el
@@ -65,9 +65,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// PageFormat). Usar ese cero produjo anchos de columna negativos y un
         /// colapso visible de todas las tablas del expediente -- detectado
         /// rasterizando el PDF a imagen y comparando contra el resultado esperado,
-        /// no fue evidente sin verlo. PageSetup.GetPageSize es el metodo estatico
-        /// que da las dimensiones reales de un formato de pagina sin depender del
-        /// estado de render de ningun documento.
+        /// no fue evidente sin verlo. PageSetup.GetPageSize es el método estático
+        /// que da las dimensiones reales de un formato de página sin depender del
+        /// estado de render de ningún documento.
         /// </summary>
         public static (Unit Ancho, Unit Alto) ObtenerAreaDeContenido()
         {
@@ -103,7 +103,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             datos.Format.LeftIndent = Unit.FromPoint(10);
             AgregarEtiquetaValor(datos, "Proveedor: ", gasto.Proveedor);
             datos.AddLineBreak();
-            AgregarEtiquetaValor(datos, "RNC/Cedula: ", gasto.RNCProveedor);
+            AgregarEtiquetaValor(datos, "RNC/Cédula: ", gasto.RNCProveedor);
             datos.AddLineBreak();
             AgregarEtiquetaValor(datos, "NCF: ", gasto.NCF);
             datos.AddLineBreak();
@@ -113,7 +113,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             datos.AddLineBreak();
             AgregarEtiquetaValor(datos, "Monto total: ", $"RD$ {gasto.MontoTotal:N2}");
 
-            var nota = seccion.AddParagraph("Archivo original a continuacion:");
+            var nota = seccion.AddParagraph("Archivo original a continuación:");
             nota.Format.Font.Size = 9;
             nota.Format.Font.Italic = true;
             nota.Format.Font.Color = GrisOscuro;
@@ -136,9 +136,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var imagen = seccion.AddImage(PrefijoImagenEnMemoria + Convert.ToBase64String(contenido));
             imagen.LockAspectRatio = true;
 
-            // Equivalente al MaxHeight(700).FitArea() de QuestPDF: sin un tope, una
-            // imagen de camara moderna (varios miles de px de alto) desborda la
-            // pagina. 700 puntos ~= 24.7 cm, el mismo limite que se usaba antes.
+            /* Equivalente al MaxHeight(700).FitArea() de QuestPDF: sin un tope, una
+               imagen de cámara moderna (varios miles de px de alto) desborda la
+               página. 700 puntos ~= 24.7 cm, el mismo límite que se usaba antes. */
             var altoMaximo = Unit.FromPoint(700);
             var (anchoContenido, _) = ObtenerAreaDeContenido();
             imagen.Height = altoMaximo;
@@ -149,17 +149,16 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         }
 
         /// <summary>
-        /// Pagina de aviso centrada (vertical y horizontalmente), en rojo. Ocupa el
-        /// lugar de un comprobante que no existe, que fue modificado despues de
-        /// registrarse o que no se pudo leer -- ver PdfConsolidadorService.
-        /// AgregarComprobanteAsync sobre por que ninguno de esos casos puede bloquear la
-        /// reposicion completa.
+        /// Página de aviso centrada (vertical y horizontalmente), en rojo. Comparte
+        /// texto y estilo entre "no existe" y "no se pudo leer" -- ver el comentario en
+        /// PdfConsolidadorService.AgregarComprobante sobre por qué un comprobante
+        /// ilegible no puede bloquear la reposición completa.
         ///
-        /// MigraDoc no tiene un AlignMiddle de pagina como QuestPDF: se aproxima con
+        /// MigraDoc no tiene un AlignMiddle de página como QuestPDF: se aproxima con
         /// una tabla de una sola celda cuya fila ocupa toda el area de contenido
-        /// (PageWidth/Height menos margenes, calculado a mano porque las propiedades
-        /// Effective* estan obsoletas desde 6.x y ahora describen otra cosa --
-        /// orientacion, no margenes) y centra el texto verticalmente adentro.
+        /// (PageWidth/Height menos márgenes, calculado a mano porque las propiedades
+        /// Effective* están obsoletas desde 6.x y ahora describen otra cosa --
+        /// orientación, no margenes) y centra el texto verticalmente adentro.
         /// </summary>
         public static byte[] GenerarAviso(string mensaje)
         {
@@ -190,9 +189,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var seccion = documento.LastSection;
             var (anchoContenido, _) = ObtenerAreaDeContenido();
 
-            // Fila de encabezado: titulo+subtitulo a la izquierda, fecha+id a la
-            // derecha, igual que el Row(row => row.RelativeItem()/.ConstantItem(150))
-            // de QuestPDF.
+            /* Fila de encabezado: título+subtítulo a la izquierda, fecha+id a la
+               derecha, igual que el Row(row => row.RelativeItem()/.ConstantItem(150))
+               de QuestPDF. */
             const int anchoColumnaFecha = 150;
             var tablaEncabezado = seccion.AddTable();
             tablaEncabezado.Borders.Width = 0;
@@ -205,7 +204,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             pTitulo.AddFormattedText("CONTROL DE CAJA CHICA", TextFormat.Bold);
             pTitulo.Format.Font.Size = 18;
             pTitulo.Format.Font.Color = AzulOscuro;
-            var pSubtitulo = filaEncabezado.Cells[0].AddParagraph("Expediente Consolidado de Reposicion");
+            var pSubtitulo = filaEncabezado.Cells[0].AddParagraph("Expediente Consolidado de Reposición");
             pSubtitulo.Format.Font.Size = 12;
             pSubtitulo.Format.Font.Color = GrisOscuro;
 
@@ -226,8 +225,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             tituloDetalle.Format.Font.Size = 12;
             tituloDetalle.Format.SpaceBefore = Unit.FromPoint(15);
 
-            // Mismas proporciones que QuestPDF: Fecha y NCF fijas, Proveedor:Concepto
-            // en razon 2:3, Monto fija.
+            /* Mismas proporciones que QuestPDF: Fecha y NCF fijas, Proveedor:Concepto
+               en razón 2:3, Monto fija. */
             const int anchoFecha = 75;
             const int anchoNcf = 90;
             const int anchoMonto = 90;
