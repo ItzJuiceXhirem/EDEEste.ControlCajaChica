@@ -72,6 +72,8 @@ builder.Services.AddScoped<AnularGastoHandler>();
 builder.Services.AddScoped<RevertirAnulacionGastoHandler>();
 builder.Services.AddScoped<CrearSolicitudReposicionHandler>();
 builder.Services.AddScoped<AprobarReposicionHandler>();
+builder.Services.AddScoped<RechazarReposicionHandler>();
+builder.Services.AddScoped<DevolverReposicionHandler>();
 builder.Services.AddScoped<ProcesarPagoReposicionHandler>();
 builder.Services.AddScoped<RegistrarArqueoMensualHandler>();
 

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Features.Gastos;
 using EDEEste.ControlCajaChica.Application.Tests.TestDoubles;
 using EDEEste.ControlCajaChica.Domain.Entities;
+using EDEEste.ControlCajaChica.Domain.Enums;
 using Xunit;
 
 namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
@@ -120,6 +121,34 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Gastos
 
             Assert.True(resultado.Exitoso, string.Join("; ", resultado.Errores));
             Assert.Equal(1, contexto.VecesGuardado);
+        }
+
+        [Fact]
+        public async Task FondoEnReposicion_SigueAdmitiendoGastos()
+        {
+            // Que haya una reposicion en camino no frena la operacion del Custodio.
+            var (fondo, categoria, contexto, almacenamiento, handler) = CrearEscenario();
+            fondo.Estado = EstadoFondo.EnReposicion;
+            var comando = await ComandoBaseAsync(fondo, categoria, almacenamiento);
+
+            var resultado = await handler.EjecutarAsync(comando);
+
+            Assert.True(resultado.Exitoso, string.Join("; ", resultado.Errores));
+            Assert.Equal(1, contexto.VecesGuardado);
+        }
+
+        [Fact]
+        public async Task FondoInactivo_NoAdmiteGastos()
+        {
+            var (fondo, categoria, contexto, almacenamiento, handler) = CrearEscenario();
+            fondo.Estado = EstadoFondo.Inactivo;
+            var comando = await ComandoBaseAsync(fondo, categoria, almacenamiento);
+
+            var resultado = await handler.EjecutarAsync(comando);
+
+            Assert.False(resultado.Exitoso);
+            Assert.Contains(resultado.Errores, e => e.Contains("inactivo"));
+            Assert.Equal(0, contexto.VecesGuardado);
         }
 
         [Fact]

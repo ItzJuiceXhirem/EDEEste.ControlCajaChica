@@ -23,8 +23,6 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
     /// </summary>
     public sealed class ProcesarPagoReposicionHandler
     {
-        private const int LongitudMaximaReferencia = 100;
-
         private readonly IReposicionRepository _reposiciones;
         private readonly ICurrentUserService _usuarioActual;
         private readonly IAutorizacionService _autorizacion;
@@ -80,6 +78,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             // ÚNICO punto de todo el sistema donde el efectivo vuelve a la caja.
             fondo.BalanceActual += solicitud.MontoReclamado;
 
+            // Con el pago termina la reposición en camino: el fondo vuelve a Activo.
+            if (fondo.Estado == EstadoFondo.EnReposicion)
+            {
+                fondo.Estado = EstadoFondo.Activo;
+            }
+
             foreach (var gasto in solicitud.Gastos)
             {
                 gasto.Estado = EstadoGasto.Repuesto;
@@ -112,9 +116,10 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             {
                 errores.Add("Debe indicar la referencia del pago.");
             }
-            else if (referencia.Length > LongitudMaximaReferencia)
+            else if (referencia.Length > LimitesReposicion.LongitudMaximaReferenciaPago)
             {
-                errores.Add($"La referencia del pago no puede superar {LongitudMaximaReferencia} caracteres.");
+                errores.Add(
+                    $"La referencia del pago no puede superar {LimitesReposicion.LongitudMaximaReferenciaPago} caracteres.");
             }
 
             if (solicitud.MontoReclamado <= 0)
@@ -133,12 +138,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             }
 
             ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);
-
-            if (!fondo.IntegridadVerificada)
-            {
-                errores.Add("El fondo tiene la firma de integridad comprometida.");
-            }
-
+            ValidadorSolicitudReposicion.ValidarIntegridadFondo(errores, fondo);
             ValidadorSolicitudReposicion.ValidarGastosEnProceso(errores, solicitud);
 
             return errores;

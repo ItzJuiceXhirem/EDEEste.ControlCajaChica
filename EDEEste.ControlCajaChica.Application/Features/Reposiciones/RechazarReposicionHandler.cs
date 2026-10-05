@@ -11,26 +11,24 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 {
     /// <summary>
-    /// Aprueba una solicitud de reposición: la pendiente de aprobación (primera
-    /// aprobación) o la que Finanzas devolvió (aprobar de nuevo, con motivo).
+    /// Rechaza una solicitud de reposición, siempre con un motivo que el Custodio puede
+    /// leer para corregir y volver a solicitar:
+    ///  - pendiente de aprobación: el Gerente escribe el motivo;
+    ///  - devuelta por Finanzas: el motivo es el que Finanzas ya dio, así el Gerente no
+    ///    inventa uno distinto al que originó la devolución.
     ///
-    /// Al aprobar, el fondo pasa a EnReposicion si estaba Activo: desde ahí hasta que
-    /// Finanzas pague o el Gerente rechace, el fondo tiene una reposición en camino.
-    ///
-    /// No inyecta IFondoRepository a propósito: aprobar no mueve dinero, y no tener el
-    /// repositorio disponible lo hace evidente en la firma del constructor. El estado
-    /// del fondo se cambia a través de solicitud.FondoCajaChica (mismo razonamiento que
-    /// ProcesarPagoReposicionHandler). El efectivo solo vuelve al fondo cuando Finanzas
-    /// paga.
+    /// Si el fondo estaba EnReposicion (solo ocurre cuando la solicitud venía devuelta)
+    /// vuelve a Activo. Rechazar no mueve dinero (el efectivo nunca salió del fondo),
+    /// por eso comparte permiso con aprobar y tampoco inyecta IFondoRepository.
     /// </summary>
-    public sealed class AprobarReposicionHandler
+    public sealed class RechazarReposicionHandler
     {
         private readonly IReposicionRepository _reposiciones;
         private readonly ICurrentUserService _usuarioActual;
         private readonly IAutorizacionService _autorizacion;
         private readonly IApplicationDbContext _contexto;
 
-        public AprobarReposicionHandler(
+        public RechazarReposicionHandler(
             IReposicionRepository reposiciones,
             ICurrentUserService usuarioActual,
             IAutorizacionService autorizacion,
@@ -43,12 +41,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
         }
 
         public async Task<ResultadoOperacion<Guid>> EjecutarAsync(
-            AprobarReposicionCommand comando,
+            RechazarReposicionCommand comando,
             CancellationToken cancellationToken = default)
         {
             if (!await _autorizacion.TienePermisoAsync(Permisos.AprobarReposicion, cancellationToken))
             {
-                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para aprobar una reposición.");
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para rechazar una reposición.");
             }
 
             var solicitud = await _reposiciones.ObtenerConDetalleAsync(comando.ReposicionId, cancellationToken);
@@ -64,7 +62,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             var fondo = solicitud.FondoCajaChica;
 
-            var errores = Validar(comando, solicitud, fondo);
+            var motivo = solicitud.Estado == EstadoReposicion.DevueltaPorFinanzas
+                ? solicitud.MotivoDevolucion
+                : comando.Motivo;
+
+            var errores = Validar(solicitud, fondo, motivo);
             if (errores.Count > 0)
             {
                 return ResultadoOperacion<Guid>.Fallo(errores);
@@ -72,19 +74,13 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
-            if (solicitud.Estado == EstadoReposicion.DevueltaPorFinanzas)
-            {
-                solicitud.MotivoReaprobacion = comando.Motivo!.Trim();
-            }
-
             solicitud.GerenteUsuarioId = usuario.Id ?? string.Empty;
             solicitud.FechaAprobacion = DateTime.UtcNow;
-            solicitud.Estado = EstadoReposicion.Aprobada;
+            RechazoDeReposicion.Aplicar(solicitud, motivo!.Trim());
 
-            // Si venía devuelta, el fondo ya está EnReposicion y no hay nada que cambiar.
-            if (fondo.Estado == EstadoFondo.Activo)
+            if (fondo.Estado == EstadoFondo.EnReposicion)
             {
-                fondo.Estado = EstadoFondo.EnReposicion;
+                fondo.Estado = EstadoFondo.Activo;
             }
 
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
@@ -96,25 +92,18 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             return ResultadoOperacion<Guid>.Ok(solicitud.Id);
         }
 
-        private static List<string> Validar(
-            AprobarReposicionCommand comando,
-            SolicitudReposicion solicitud,
-            FondoCajaChica fondo)
+        private static List<string> Validar(SolicitudReposicion solicitud, FondoCajaChica fondo, string? motivo)
         {
             var errores = new List<string>();
 
             if (solicitud.Estado is not (EstadoReposicion.PendienteAprobacion or EstadoReposicion.DevueltaPorFinanzas))
             {
                 errores.Add(
-                    $"Solo se puede aprobar una solicitud pendiente de aprobación o devuelta por Finanzas. " +
+                    $"Solo se puede rechazar una solicitud pendiente de aprobación o devuelta por Finanzas. " +
                     $"Esta solicitud está en estado {solicitud.Estado}.");
             }
 
-            if (solicitud.Estado == EstadoReposicion.DevueltaPorFinanzas)
-            {
-                ValidadorSolicitudReposicion.ValidarMotivo(errores, comando.Motivo, "para aprobarla de nuevo");
-            }
-
+            ValidadorSolicitudReposicion.ValidarMotivo(errores, motivo, "del rechazo");
             ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);
             ValidadorSolicitudReposicion.ValidarIntegridadFondo(errores, fondo);
             ValidadorSolicitudReposicion.ValidarGastosEnProceso(errores, solicitud);

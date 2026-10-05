@@ -44,6 +44,47 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Reposiciones
             Assert.Equal(FakeFileStorageService.HashDePrueba, solicitud.HashPdfConsolidado);
         }
 
+        [Theory]
+        [InlineData(EstadoReposicion.PendienteAprobacion)]
+        [InlineData(EstadoReposicion.Aprobada)]
+        [InlineData(EstadoReposicion.DevueltaPorFinanzas)]
+        public async Task ConOtraSolicitudEnCurso_Falla(EstadoReposicion estadoDeLaEnCurso)
+        {
+            var escenario = new Escenario();
+            escenario.AgregarSolicitudExistente(estadoDeLaEnCurso);
+
+            var resultado = await escenario.EjecutarAsync();
+
+            Assert.False(resultado.Exitoso);
+            Assert.Contains(resultado.Errores, e => e.Contains("en curso"));
+            Assert.Equal(0, escenario.Contexto.VecesGuardado);
+        }
+
+        [Theory]
+        [InlineData(EstadoReposicion.Pagada)]
+        [InlineData(EstadoReposicion.Rechazada)]
+        public async Task ConSolicitudesYaTerminadas_NoImpideSolicitarOtra(EstadoReposicion estadoTerminado)
+        {
+            var escenario = new Escenario();
+            escenario.AgregarSolicitudExistente(estadoTerminado);
+
+            var resultado = await escenario.EjecutarAsync();
+
+            Assert.True(resultado.Exitoso, string.Join("; ", resultado.Errores));
+        }
+
+        [Fact]
+        public async Task ConElFondoInactivo_Falla()
+        {
+            var escenario = new Escenario();
+            escenario.Fondo.Estado = EstadoFondo.Inactivo;
+
+            var resultado = await escenario.EjecutarAsync();
+
+            Assert.False(resultado.Exitoso);
+            Assert.Equal(0, escenario.Contexto.VecesGuardado);
+        }
+
         /// <summary>Un fondo con un gasto pendiente, listo para pedir su reposicion.</summary>
         private sealed class Escenario
         {
@@ -51,8 +92,18 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Reposiciones
             private readonly FakeFondoRepository _fondos = new();
             private readonly FakeGastoRepository _gastos = new();
 
+            public FondoCajaChica Fondo => _fondo;
             public FakeReposicionRepository Reposiciones { get; } = new();
             public FakeApplicationDbContext Contexto { get; } = new();
+
+            /// <summary>Otra solicitud del mismo fondo, ya existente, en el estado dado.</summary>
+            public void AgregarSolicitudExistente(EstadoReposicion estado) =>
+                Reposiciones.Agregar(new SolicitudReposicion
+                {
+                    FondoCajaChicaId = _fondo.Id,
+                    FondoCajaChica = _fondo,
+                    Estado = estado
+                });
 
             public Escenario()
             {

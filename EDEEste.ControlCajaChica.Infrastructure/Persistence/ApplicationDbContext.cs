@@ -370,9 +370,12 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence
 
             modelBuilder.Entity<SolicitudReposicion>(reposicion =>
             {
-                reposicion.Property(r => r.ReferenciaPago).HasMaxLength(100);
+                reposicion.Property(r => r.ReferenciaPago).HasMaxLength(LimitesReposicion.LongitudMaximaReferenciaPago);
                 reposicion.Property(r => r.RutaPdfConsolidado).HasMaxLength(400);
                 reposicion.Property(r => r.HashPdfConsolidado).HasMaxLength(LongitudHashSha256Hex);
+                reposicion.Property(r => r.MotivoDevolucion).HasMaxLength(LimitesReposicion.LongitudMaximaMotivo);
+                reposicion.Property(r => r.MotivoReaprobacion).HasMaxLength(LimitesReposicion.LongitudMaximaMotivo);
+                reposicion.Property(r => r.MotivoRechazo).HasMaxLength(LimitesReposicion.LongitudMaximaMotivo);
             });
 
             modelBuilder.Entity<ArqueoCaja>()

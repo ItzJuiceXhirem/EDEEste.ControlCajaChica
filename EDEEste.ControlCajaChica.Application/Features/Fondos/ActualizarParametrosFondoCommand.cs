@@ -19,16 +19,33 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
         public string CustodioId { get; set; } = string.Empty;
         public EstadoFondo Estado { get; set; }
 
-        /// <summary>
-        /// Los unicos estados que el Administrador puede elegir a mano. EnReposicion y
-        /// BloqueadaPorArqueo son estados que algun dia asignara el propio sistema, pero
-        /// todavia nadie los escribe ni los libera: puestos a mano, el fondo quedaba sin
-        /// poder registrar gastos, arquear ni pedir reposicion (los tres exigen Activo).
-        /// </summary>
-        public static readonly IReadOnlyList<EstadoFondo> EstadosAsignables =
+        private static readonly IReadOnlyList<EstadoFondo> DesdeEnReposicion =
+        [
+            EstadoFondo.EnReposicion,
+            EstadoFondo.Inactivo
+        ];
+
+        private static readonly IReadOnlyList<EstadoFondo> DesdeActivoOInactivo =
         [
             EstadoFondo.Activo,
             EstadoFondo.Inactivo
         ];
+
+        /// <summary>
+        /// Los estados que el Administrador puede elegir a mano, según el estado en que
+        /// está el fondo. EnReposicion lo pone y lo libera el propio sistema (al aprobar,
+        /// pagar o rechazar una reposición), así que nunca se elige: puesto a mano, el
+        /// estado dejaría de corresponder a una solicitud real.
+        ///
+        /// Desde EnReposicion solo se puede mantener o cerrar el fondo. Ponerlo Activo a
+        /// mano lo dejaría con una reposición en camino y el estado equivocado. Cerrarlo
+        /// sí se permite siempre: no tiene sentido reponer un fondo que se va a cerrar, y
+        /// la solicitud en curso se rechaza sola (ver ActualizarParametrosFondoHandler).
+        ///
+        /// Vive aquí y no en la pantalla para que la lista que se ofrece y la regla que
+        /// se valida sean la misma.
+        /// </summary>
+        public static IReadOnlyList<EstadoFondo> EstadosAsignablesDesde(EstadoFondo estadoActual) =>
+            estadoActual == EstadoFondo.EnReposicion ? DesdeEnReposicion : DesdeActivoOInactivo;
     }
 }

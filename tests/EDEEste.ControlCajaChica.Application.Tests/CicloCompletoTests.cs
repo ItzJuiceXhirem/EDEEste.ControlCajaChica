@@ -100,14 +100,16 @@ namespace EDEEste.ControlCajaChica.Application.Tests
             var solicitudId = resultadoSolicitud.Valor;
 
             // 3. Aprobarla.
+            Assert.Equal(EstadoFondo.Activo, fondo.Estado); // pendiente de aprobacion: aun no hay reposicion en camino
+
             var resultadoAprobacion = await aprobar.EjecutarAsync(new AprobarReposicionCommand
             {
-                ReposicionId = solicitudId,
-                Aprobar = true
+                ReposicionId = solicitudId
             });
 
             Assert.True(resultadoAprobacion.Exitoso, string.Join("; ", resultadoAprobacion.Errores));
             Assert.Equal(2500m, fondo.BalanceActual); // aprobar tampoco mueve dinero
+            Assert.Equal(EstadoFondo.EnReposicion, fondo.Estado);
 
             // 4. Pagarla: aqui es donde el efectivo vuelve al fondo.
             var resultadoPago = await pagar.EjecutarAsync(new ProcesarPagoReposicionCommand
@@ -121,6 +123,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests
             // La invariante del README: al cerrar el ciclo sin gastos pendientes, el
             // balance vuelve exactamente al fondo fijo.
             Assert.Equal(fondo.MontoFijo, fondo.BalanceActual);
+            Assert.Equal(EstadoFondo.Activo, fondo.Estado); // con el pago termina la reposicion en camino
         }
     }
 }

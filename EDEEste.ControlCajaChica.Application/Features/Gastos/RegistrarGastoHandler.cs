@@ -234,9 +234,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         {
             var errores = new List<string>();
 
-            if (fondo.Estado != EstadoFondo.Activo)
+            // Un fondo EnReposicion sigue admitiendo gastos: que haya una reposición en
+            // camino no frena la operación del Custodio.
+            if (!ReglasEstado.FondoAdmiteOperacion(fondo.Estado))
             {
-                errores.Add("El fondo no está activo, no admite gastos nuevos.");
+                errores.Add("El fondo está inactivo, no admite gastos nuevos.");
             }
 
             if (comando.MontoTotal <= 0)

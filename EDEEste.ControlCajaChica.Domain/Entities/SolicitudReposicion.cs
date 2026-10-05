@@ -31,6 +31,19 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
 
         public EstadoReposicion Estado { get; set; }
 
+        /* Cada motivo guarda la ÚLTIMA vez que ocurrió esa acción: una solicitud puede
+           devolverse y aprobarse de nuevo varias veces, y la bitácora conserva todas las
+           rondas. Cada uno lo lee quien tiene que actuar después. */
+
+        // Por qué Finanzas la devolvió al Gerente. Lo lee el Gerente.
+        public string? MotivoDevolucion { get; set; }
+
+        // Por qué el Gerente la aprobó de nuevo tras una devolución. Lo lee Finanzas.
+        public string? MotivoReaprobacion { get; set; }
+
+        // Por qué se rechazó. Lo lee el Custodio, para corregir y volver a solicitar.
+        public string? MotivoRechazo { get; set; }
+
         // Gastos que entran en esta reposición; es lo que alimenta el PDF consolidado
         public ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();
 
@@ -43,7 +56,7 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
            pagó y cuándo) porque es justo lo que un fraude querría reescribir */
         public string ObtenerCadenaParaHash()
         {
-            var firma = new ConstructorFirma(nameof(SolicitudReposicion))
+            return new ConstructorFirma(nameof(SolicitudReposicion))
                 .Agregar(Id)
                 .Agregar(FondoCajaChicaId)
                 .Agregar(MontoReclamado)
@@ -56,20 +69,13 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
                 .Agregar(ReferenciaPago)
                 .Agregar(RutaPdfConsolidado)
                 .Agregar((long)Estado)
-                .Agregar(IsDeleted);
-
-            // Al final y solo si existe, a proposito: las solicitudes firmadas antes de
-            // este campo lo tienen en null y deben seguir produciendo exactamente la
-            // misma cadena, o todas se leerian como manipuladas. No es un hueco: por la
-            // codificacion longitud:valor, quitarle el hash a una solicitud nueva o
-            // inventarselo a una vieja cambia la cadena y rompe su firma igual. No
-            // volverlo incondicional.
-            if (HashPdfConsolidado is not null)
-            {
-                firma.Agregar(HashPdfConsolidado);
-            }
-
-            return firma.ToString();
+                .Agregar(IsDeleted)
+                // Campos agregados despues de que ya habia solicitudes firmadas: las que
+                // no los usan deben seguir produciendo exactamente la misma cadena, o
+                // todas se leerian como manipuladas. Los nuevos van siempre al final de
+                // esta lista, nunca en medio; ver ConstructorFirma.AgregarOpcionalesAlFinal.
+                .AgregarOpcionalesAlFinal(HashPdfConsolidado, MotivoDevolucion, MotivoReaprobacion, MotivoRechazo)
+                .ToString();
         }
     }
 }

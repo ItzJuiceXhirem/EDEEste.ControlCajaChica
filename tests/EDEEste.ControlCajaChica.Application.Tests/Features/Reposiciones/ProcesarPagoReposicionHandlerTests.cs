@@ -63,6 +63,43 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Reposiciones
         }
 
         [Fact]
+        public async Task Pagar_ConElFondoEnReposicion_LoDevuelveAActivo()
+        {
+            var (fondo, solicitud, _, _, _, handler) = CrearEscenario();
+            fondo.Estado = EstadoFondo.EnReposicion;
+
+            var resultado = await handler.EjecutarAsync(new ProcesarPagoReposicionCommand
+            {
+                ReposicionId = solicitud.Id,
+                ReferenciaPago = "TRF-0001"
+            });
+
+            Assert.True(resultado.Exitoso, string.Join("; ", resultado.Errores));
+            Assert.Equal(EstadoFondo.Activo, fondo.Estado);
+        }
+
+        [Fact]
+        public async Task Pagar_DesdeDevueltaPorFinanzas_Falla()
+        {
+            // Una devuelta vuelve al Gerente: hasta que la apruebe de nuevo no se puede pagar.
+            var (fondo, solicitud, _, _, contexto, handler) = CrearEscenario();
+            fondo.Estado = EstadoFondo.EnReposicion;
+            solicitud.Estado = EstadoReposicion.DevueltaPorFinanzas;
+            var balanceOriginal = fondo.BalanceActual;
+
+            var resultado = await handler.EjecutarAsync(new ProcesarPagoReposicionCommand
+            {
+                ReposicionId = solicitud.Id,
+                ReferenciaPago = "TRF-0001"
+            });
+
+            Assert.False(resultado.Exitoso);
+            Assert.Equal(balanceOriginal, fondo.BalanceActual);
+            Assert.Equal(EstadoFondo.EnReposicion, fondo.Estado);
+            Assert.Equal(0, contexto.VecesGuardado);
+        }
+
+        [Fact]
         public async Task Pagar_DesdeEstadoQueNoEsAprobada_Falla()
         {
             var (fondo, solicitud, _, _, contexto, handler) = CrearEscenario();

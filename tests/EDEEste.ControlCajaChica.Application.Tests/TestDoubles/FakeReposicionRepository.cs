@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 
@@ -34,6 +35,16 @@ namespace EDEEste.ControlCajaChica.Application.Tests.TestDoubles
         public Task<IReadOnlyList<SolicitudReposicion>> ListarPorEstadoAsync(EstadoReposicion estado, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<SolicitudReposicion>>(
                 _solicitudes.Values.Where(s => s.Estado == estado).ToList());
+
+        public Task<bool> ExisteSolicitudEnCursoAsync(Guid fondoId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(EnCurso(fondoId).Any());
+
+        public Task<IReadOnlyList<SolicitudReposicion>> ListarEnCursoPorFondoAsync(Guid fondoId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SolicitudReposicion>>(EnCurso(fondoId).ToList());
+
+        private IEnumerable<SolicitudReposicion> EnCurso(Guid fondoId) =>
+            _solicitudes.Values.Where(s =>
+                s.FondoCajaChicaId == fondoId && ReglasEstado.ReposicionEnCurso.Contains(s.Estado));
 
         public Task AgregarAsync(SolicitudReposicion solicitud, CancellationToken cancellationToken = default)
         {

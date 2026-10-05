@@ -80,6 +80,36 @@ namespace EDEEste.ControlCajaChica.Domain.Common
             return Agregar(valor.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture));
         }
 
+        /// <summary>
+        /// Agrega campos opcionales que se añadieron a una entidad DESPUÉS de que ya
+        /// hubiera filas firmadas, sin invalidar esas firmas.
+        ///
+        /// Escribe los valores en orden hasta el último que tenga valor, y los nulos que
+        /// quedan en medio llevan su marca de nulo. Los nulos del final no se escriben:
+        /// una fila que no usa ninguno produce exactamente la misma cadena que antes de
+        /// que existieran los campos.
+        ///
+        /// Por qué no basta con agregar cada campo solo si no es null: "hash=X,
+        /// motivo=null" y "hash=null, motivo=X" darían la misma cadena, y alguien con
+        /// acceso a la base podría mover un valor de un campo a otro sin romper la firma
+        /// (por ejemplo, para apagar la verificación de un archivo). Escribiendo los
+        /// huecos, la posición de cada valor forma parte de lo que se firma.
+        ///
+        /// Los campos nuevos solo pueden agregarse AL FINAL de la lista de una misma
+        /// llamada, nunca en medio ni en otra posición.
+        /// </summary>
+        public ConstructorFirma AgregarOpcionalesAlFinal(params string?[] valores)
+        {
+            var ultimoConValor = Array.FindLastIndex(valores, valor => valor is not null);
+
+            for (var i = 0; i <= ultimoConValor; i++)
+            {
+                Agregar(valores[i]);
+            }
+
+            return this;
+        }
+
         public override string ToString() => _cadena.ToString();
     }
 }

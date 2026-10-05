@@ -28,6 +28,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private IFondoRepository RepositorioFondos { get; set; } = default!;
 
         [Inject]
+        private IReposicionRepository RepositorioReposiciones { get; set; } = default!;
+
+        [Inject]
         private IIdentityService Identidad { get; set; } = default!;
 
         [Inject]
@@ -61,6 +64,10 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         // guarda aparte de entradaEdicion.CustodioId para que el cambio no quede
         // aplicado hasta que el Administrador acepte el modal.
         private string? custodioPropuesto;
+
+        // Si el fondo que se edita tiene una solicitud de reposición viva. Se consulta al
+        // abrir la edición para avisar, antes de guardar, que cerrar el fondo la rechaza.
+        private bool fondoEditandoTieneReposicionEnCurso;
 
         private bool guardando;
         private readonly List<string> errores = new();
@@ -266,6 +273,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             fondoEditando = null;
             entradaEdicion = null;
             custodioPropuesto = null;
+            fondoEditandoTieneReposicionEnCurso = false;
             errores.Clear();
         }
 
@@ -284,10 +292,11 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             vista = Vista.Nuevo;
         }
 
-        private void AbrirEdicion(FondoCajaChica fondo)
+        private async Task AbrirEdicionAsync(FondoCajaChica fondo)
         {
             errores.Clear();
             exito = null;
+            fondoEditandoTieneReposicionEnCurso = await RepositorioReposiciones.ExisteSolicitudEnCursoAsync(fondo.Id);
             fondoEditando = fondo;
             entradaEdicion = new EntradaEdicionFondo
             {
@@ -532,26 +541,22 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         {
             EstadoFondo.Activo => "fnd-p-ok",
             EstadoFondo.EnReposicion => "fnd-p-info",
-            EstadoFondo.BloqueadaPorArqueo => "fnd-p-warn",
             _ => "fnd-p-dark"
         };
 
         /// <summary>
-        /// Solo los estados que el Administrador puede elegir a mano (ver
-        /// ActualizarParametrosFondoCommand.EstadosAsignables), mas el actual del fondo
-        /// si fuera otro: sin el, el &lt;select&gt; no tendria una opcion que mostrar
-        /// seleccionada.
+        /// Los estados que el Administrador puede elegir a mano desde el estado actual del
+        /// fondo. La regla vive en el comando, para que lo que se ofrece aqui y lo que el
+        /// handler valida sea lo mismo; siempre incluye el estado actual, asi que el
+        /// &lt;select&gt; siempre tiene una opcion que mostrar seleccionada.
         /// </summary>
-        private static IEnumerable<EstadoFondo> EstadosElegibles(EstadoFondo actual) =>
-            ActualizarParametrosFondoCommand.EstadosAsignables.Contains(actual)
-                ? ActualizarParametrosFondoCommand.EstadosAsignables
-                : ActualizarParametrosFondoCommand.EstadosAsignables.Prepend(actual);
+        private static IReadOnlyList<EstadoFondo> EstadosElegibles(EstadoFondo actual) =>
+            ActualizarParametrosFondoCommand.EstadosAsignablesDesde(actual);
 
         private static string EtiquetaEstado(EstadoFondo estado) => estado switch
         {
             EstadoFondo.Activo => "Activo",
             EstadoFondo.EnReposicion => "En reposición",
-            EstadoFondo.BloqueadaPorArqueo => "Bloqueado por arqueo",
             EstadoFondo.Inactivo => "Inactivo",
             _ => estado.ToString()
         };
@@ -563,9 +568,8 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         /// </summary>
         private static string? NotaEstado(FondoCajaChica fondo) => fondo.Estado switch
         {
-            EstadoFondo.EnReposicion => "Está en proceso de reposición de fondos.",
-            EstadoFondo.BloqueadaPorArqueo =>
-                "Un arqueo dejó el fondo detenido: no admite gastos nuevos hasta completar el arqueo.",
+            EstadoFondo.EnReposicion =>
+                "Reposición aprobada, a la espera del pago de Finanzas. Sigue admitiendo gastos y arqueos.",
             EstadoFondo.Inactivo => "Retirado de circulación. Su histórico se conserva.",
             _ when PorcentajeUso(fondo) <= UmbralPorcentaje(fondo) =>
                 "Bajo el umbral: el custodio ya puede pedir reposición.",

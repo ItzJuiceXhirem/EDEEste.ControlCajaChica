@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using EDEEste.ControlCajaChica.Infrastructure.Persistence;
@@ -42,6 +44,21 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
                 .Include(r => r.Gastos)
                 .Where(r => r.Estado == estado)
                 .OrderBy(r => r.FechaSolicitud)
+                .ToListAsync(cancellationToken);
+
+        /* Arreglo local y no la lista de ReglasEstado directamente: Contains sobre un
+           arreglo es lo que EF Core traduce a SQL sin ambiguedad. */
+        private static readonly EstadoReposicion[] EstadosEnCurso = ReglasEstado.ReposicionEnCurso.ToArray();
+
+        public Task<bool> ExisteSolicitudEnCursoAsync(Guid fondoId, CancellationToken cancellationToken = default) =>
+            _context.Reposiciones.AnyAsync(
+                r => r.FondoCajaChicaId == fondoId && EstadosEnCurso.Contains(r.Estado),
+                cancellationToken);
+
+        public async Task<IReadOnlyList<SolicitudReposicion>> ListarEnCursoPorFondoAsync(Guid fondoId, CancellationToken cancellationToken = default) =>
+            await _context.Reposiciones
+                .Include(r => r.Gastos)
+                .Where(r => r.FondoCajaChicaId == fondoId && EstadosEnCurso.Contains(r.Estado))
                 .ToListAsync(cancellationToken);
 
         public async Task AgregarAsync(SolicitudReposicion solicitud, CancellationToken cancellationToken = default) =>

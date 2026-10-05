@@ -100,6 +100,41 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Arqueos
         }
 
         [Fact]
+        public async Task FondoEnReposicion_SigueAdmitiendoArqueos()
+        {
+            // El conteo mide lo que hay en la caja: no depende de que haya una reposicion en camino.
+            var (fondo, _, arqueos, contexto, handler) = CrearEscenario(balanceActual: 5000m);
+            fondo.Estado = EstadoFondo.EnReposicion;
+
+            var resultado = await handler.EjecutarAsync(new RegistrarArqueoMensualCommand
+            {
+                FondoCajaChicaId = fondo.Id,
+                Denominaciones = Conteo((2000m, 2), (1000m, 1))
+            });
+
+            Assert.True(resultado.Exitoso, string.Join("; ", resultado.Errores));
+            Assert.Equal(1, contexto.VecesGuardado);
+            Assert.Single(await arqueos.ListarPorFondoAsync(fondo.Id));
+        }
+
+        [Fact]
+        public async Task FondoInactivo_NoAdmiteArqueos()
+        {
+            var (fondo, _, arqueos, contexto, handler) = CrearEscenario(balanceActual: 5000m);
+            fondo.Estado = EstadoFondo.Inactivo;
+
+            var resultado = await handler.EjecutarAsync(new RegistrarArqueoMensualCommand
+            {
+                FondoCajaChicaId = fondo.Id,
+                Denominaciones = Conteo((2000m, 2), (1000m, 1))
+            });
+
+            Assert.False(resultado.Exitoso);
+            Assert.Equal(0, contexto.VecesGuardado);
+            Assert.Empty(await arqueos.ListarPorFondoAsync(fondo.Id));
+        }
+
+        [Fact]
         public async Task DenominacionInexistente_Falla()
         {
             var (fondo, _, _, contexto, handler) = CrearEscenario();

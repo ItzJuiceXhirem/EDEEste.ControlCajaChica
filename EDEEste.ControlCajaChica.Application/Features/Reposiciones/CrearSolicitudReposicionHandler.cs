@@ -91,7 +91,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             var montoReclamado = pendientes.Sum(g => g.MontoTotal);
 
-            var errores = Validar(fondo, montoReclamado);
+            var hayReposicionEnCurso = await _reposiciones.ExisteSolicitudEnCursoAsync(fondo.Id, cancellationToken);
+
+            var errores = Validar(fondo, montoReclamado, hayReposicionEnCurso);
             if (errores.Count > 0)
             {
                 return ResultadoOperacion<Guid>.Fallo(errores);
@@ -142,13 +144,21 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             return ResultadoOperacion<Guid>.Ok(solicitud.Id);
         }
 
-        private static List<string> Validar(FondoCajaChica fondo, decimal montoReclamado)
+        private static List<string> Validar(FondoCajaChica fondo, decimal montoReclamado, bool hayReposicionEnCurso)
         {
             var errores = new List<string>();
 
-            if (fondo.Estado != EstadoFondo.Activo)
+            if (fondo.Estado == EstadoFondo.Inactivo)
             {
-                errores.Add("El fondo no está activo.");
+                errores.Add("El fondo está inactivo.");
+            }
+
+          /* Una sola solicitud viva por fondo: es lo que garantiza que su estado (Activo
+             o EnReposicion) siempre es el correcto. Un fondo EnReposicion ya tiene una
+             aprobada o devuelta; uno Activo puede tener una pendiente de aprobación. */
+            if (hayReposicionEnCurso)
+            {
+                errores.Add("Ya hay una solicitud de reposición en curso para este fondo.");
             }
 
           /* "Validar que lo que se vaya a reposicionar no sea más que el fondo fijo

@@ -39,7 +39,14 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         // --- Reposiciones ---
         public const string VerReposiciones = "reposiciones.ver";
         public const string SolicitarReposicion = "reposiciones.solicitar";
+
+        /* Aprobar una solicitud, aprobarla de nuevo si Finanzas la devolvió, o
+           rechazarla (Gerente). Ninguna de las tres mueve dinero. */
         public const string AprobarReposicion = "reposiciones.aprobar";
+
+        /* Registrar el pago de una solicitud aprobada, o devolverla al Gerente con un
+           motivo (Finanzas). Pagar o devolver es la misma decisión sobre el mismo
+           expediente, así que es un solo permiso, igual que AnularGasto. */
         public const string PagarReposicion = "reposiciones.pagar";
 
         // Descargar el expediente PDF consolidado de una reposición

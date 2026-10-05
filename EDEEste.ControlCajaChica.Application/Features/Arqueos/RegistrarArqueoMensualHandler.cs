@@ -138,9 +138,11 @@ namespace EDEEste.ControlCajaChica.Application.Features.Arqueos
         {
             var errores = new List<string>();
 
-            if (fondo.Estado != EstadoFondo.Activo)
+            // Un fondo EnReposicion sigue admitiendo arqueos: el conteo mide lo que hay
+            // en la caja, y eso no depende de si hay una reposición en camino.
+            if (!ReglasEstado.FondoAdmiteOperacion(fondo.Estado))
             {
-                errores.Add("El fondo no está activo, no admite arqueos.");
+                errores.Add("El fondo está inactivo, no admite arqueos.");
             }
 
             if (comando.FechaArqueo.Date > DateTime.Today)

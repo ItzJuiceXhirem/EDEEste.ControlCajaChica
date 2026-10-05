@@ -1,0 +1,212 @@
+/* Diálogo de confirmación. Mismo diseño que el modal de Gastos (.gst-modal): si ese
+   cambia de aspecto, este debe acompañarlo. */
+
+/* Contrapeso de --cc-zoom: el velo es `fixed` dentro del árbol escalado y con
+   inset:0 acabaría sobresaliendo un 10%. Se le devuelve la escala a 1 (los zoom
+   anidados se multiplican) y se le reaplica al modal, que sí debe crecer. */
+/* El velo y la sombra del modal se quedan fijos en los dos temas a proposito:
+   oscurecen lo que hay detras, y ese efecto funciona igual sin importar el tema
+   de la pagina -- no son una superficie de la app que deba camuflarse. */
+.dlg-scrim {
+    position: fixed;
+    inset: 0;
+    zoom: calc(1 / var(--cc-zoom));
+    z-index: 1050;
+    background: rgba(0, 8, 20, 0.58);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+}
+
+.dlg-modal {
+    zoom: var(--cc-zoom);
+    width: 560px;
+    max-width: 100%;
+    background: var(--cc-surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px -16px rgba(0, 8, 20, 0.6);
+}
+
+/* Degradado de marca fijo, igual que .gst-modal-grad: no cambia de tema. */
+.dlg-grad {
+    background: linear-gradient(to bottom right, var(--cc-navy) 0%, var(--cc-prussian) 50%, var(--cc-ink) 100%);
+}
+
+.dlg-h {
+    padding: 16px 22px 18px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+    .dlg-h h3 {
+        font-family: var(--cc-ff-head);
+        font-weight: 600;
+        font-size: 16px;
+        margin: 0;
+        color: var(--cc-ivory);
+    }
+
+/* Ivory a proposito y no un token: este boton vive sobre el degradado de marca
+   fijo, que tampoco cambia de tema. */
+.dlg-x {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 253, 245, 0.14);
+    border: none;
+    flex: none;
+    padding: 0;
+}
+
+    .dlg-x:hover:not(:disabled) {
+        background: rgba(255, 253, 245, 0.26);
+    }
+
+    .dlg-x:disabled {
+        opacity: 0.55;
+    }
+
+    .dlg-x svg {
+        width: 14px;
+        height: 14px;
+        stroke: var(--cc-ivory);
+        fill: none;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+    }
+
+.dlg-divider {
+    height: 3px;
+    background: radial-gradient(ellipse at center, var(--cc-ivory) 0%, var(--cc-gold-lt) 34%, var(--cc-gold) 100%);
+}
+
+.dlg-b {
+    padding: 22px;
+    background: var(--cc-surface);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dlg-txt {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--cc-text-emphasis);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.dlg-cap {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cc-text-label);
+    margin-bottom: 6px;
+}
+
+/* El motivo que ya se dio, citado: se distingue del texto de la acción. */
+.dlg-fijo {
+    padding: 11px 15px;
+    border-left: 3px solid var(--cc-gold);
+    background: var(--cc-alert-info-bg);
+    border-radius: 0 8px 8px 0;
+}
+
+    .dlg-fijo .dlg-txt {
+        font-size: 13.5px;
+    }
+
+.dlg-ta {
+    width: 100%;
+    border: 1px solid var(--cc-ctrl-line);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    color: var(--cc-ctrl-fg);
+    background: var(--cc-surface);
+    resize: vertical;
+}
+
+    .dlg-ta:focus {
+        outline: none;
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
+    }
+
+.dlg-contador {
+    text-align: right;
+    font-size: 11.5px;
+    color: var(--cc-text-label);
+    margin-top: 4px;
+}
+
+/* El pie vuelve al degradado de marca fijo, y por eso sus botones tienen colores
+   fijos tambien: siempre estan sobre este mismo fondo oscuro, sin importar el tema,
+   asi que no tiene sentido que se aclaren en modo oscuro -- perderian contraste
+   contra un fondo que nunca cambia. */
+.dlg-f {
+    background: linear-gradient(to bottom right, var(--cc-navy) 0%, var(--cc-prussian) 50%, var(--cc-ink) 100%);
+    padding: 13px 22px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.dlg-btn {
+    font-family: var(--cc-ff-text);
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+}
+
+    .dlg-btn:disabled {
+        opacity: 0.5;
+    }
+
+.dlg-btn-cancelar {
+    background: transparent;
+    color: var(--cc-ivory);
+    border-color: rgba(255, 253, 245, 0.4);
+}
+
+    .dlg-btn-cancelar:hover:not(:disabled) {
+        background: rgba(255, 253, 245, 0.12);
+    }
+
+/* Dorado de marca para la acción normal; rojo para la destructiva (mismo rojo que
+   el boton de cierre del modal de Gastos). */
+.dlg-btn-normal {
+    background: var(--cc-gold);
+    color: var(--cc-ink);
+    border-color: var(--cc-gold);
+}
+
+    .dlg-btn-normal:hover:not(:disabled) {
+        background: var(--cc-gold-lt);
+        border-color: var(--cc-gold-lt);
+    }
+
+.dlg-btn-peligro {
+    background: #DC3545;
+    color: #FFFFFF;
+    border-color: #DC3545;
+}
+
+    .dlg-btn-peligro:hover:not(:disabled) {
+        background: #B02A37;
+        border-color: #B02A37;
+    }
