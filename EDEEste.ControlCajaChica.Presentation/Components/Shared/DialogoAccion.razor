@@ -1,0 +1,59 @@
+@* Diálogo de confirmación de una acción: la confirma con un clic, o la confirma
+   pidiendo antes un motivo (obligatorio) y/o mostrando un motivo ya dado que se
+   reutilizará. Mismo diseño de marca que el modal de Gastos (velo, cabecera con
+   degradado, divisor dorado, cuerpo y pie).
+
+   Lo crea y lo destruye quien lo usa (`@if (...) { <DialogoAccion .../> }`), así que
+   el motivo escrito nunca sobrevive de una acción a otra. *@
+<div class="dlg-scrim" @onclick="CancelarAsync">
+    <div class="dlg-modal" @onclick:stopPropagation="true" role="dialog" aria-modal="true" aria-labelledby="dlg-titulo">
+        <div class="dlg-grad">
+            <div class="dlg-h">
+                <h3 id="dlg-titulo">@Titulo</h3>
+                <button type="button" class="dlg-x" aria-label="Cerrar" disabled="@Procesando" @onclick="CancelarAsync">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5 14.5 14.5M14.5 5.5 5.5 14.5" /></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="dlg-divider"></div>
+
+        <div class="dlg-b">
+            @if (!string.IsNullOrWhiteSpace(Texto))
+            {
+                <p class="dlg-txt">@Texto</p>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(MotivoFijo))
+            {
+                <div class="dlg-fijo">
+                    @if (!string.IsNullOrWhiteSpace(EtiquetaMotivoFijo))
+                    {
+                        <div class="dlg-cap">@EtiquetaMotivoFijo</div>
+                    }
+                    <p class="dlg-txt">@MotivoFijo</p>
+                </div>
+            }
+
+            @if (RequiereMotivo)
+            {
+                <div class="dlg-campo">
+                    <label class="dlg-cap" for="dlg-motivo">@EtiquetaMotivo</label>
+                    <textarea id="dlg-motivo" @ref="campoMotivo" class="dlg-ta" rows="4"
+                              maxlength="@LongitudMaximaMotivo" placeholder="@MarcadorMotivo"
+                              disabled="@Procesando"
+                              @bind="motivo" @bind:event="oninput"></textarea>
+                    <div class="dlg-contador cc-num">@motivo.Length / @LongitudMaximaMotivo</div>
+                </div>
+            }
+        </div>
+
+        <div class="dlg-f">
+            <button type="button" class="dlg-btn dlg-btn-cancelar" disabled="@Procesando" @onclick="CancelarAsync">Cancelar</button>
+            <button type="button" class="dlg-btn @(Estilo == EstiloDialogo.Peligro ? "dlg-btn-peligro" : "dlg-btn-normal")"
+                    disabled="@(!PuedeConfirmar)" @onclick="ConfirmarAsync">
+                @TextoConfirmar
+            </button>
+        </div>
+    </div>
+</div>

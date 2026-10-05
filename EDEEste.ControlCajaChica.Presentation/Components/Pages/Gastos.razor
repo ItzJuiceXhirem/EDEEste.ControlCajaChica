@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = Permisos.VerGastos)]
 
 <PageTitle>Gastos</PageTitle>
+<BotonSubirArriba />
 
 <div class="gst-pagebar">
     <div>
@@ -199,7 +200,7 @@ else
                                     <option value="">Todo el historial</option>
                                 </select>
                                 @RenderBuscador("Buscar proveedor, NCF, motivo…", busquedaAnulados,
-                                                valor => busquedaAnulados = valor)
+                                                CambiarBusquedaAnulados)
                             </div>
                         </div>
                     </div>
@@ -228,7 +229,7 @@ else
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach (var gasto in AnuladosFiltrados)
+                                        @foreach (var gasto in AnuladosDeLaPagina)
                                         {
                                             <tr @key="gasto.Id"
                                                 class="@(gastoSeleccionado == gasto.Id ? "gst-sel" : "")"
@@ -253,6 +254,15 @@ else
                                     </tbody>
                                 </table>
                             </div>
+
+                            @if (TotalPaginasAnulados > 1)
+                            {
+                                <BarraPaginacion Etiqueta="Paginación de gastos anulados"
+                                                 PaginaActual="@PaginaSeguraAnulados"
+                                                 TotalPaginas="@TotalPaginasAnulados"
+                                                 OnCambiarPagina="IrAPaginaAnulados" />
+                            }
+
                             <div class="gst-tfoot">
                                 <span>Total anulado en la ventana</span>
                                 <span class="v cc-num">RD$ @AnuladosFiltrados.Sum(g => g.MontoTotal).ToString("N2")</span>
@@ -282,7 +292,7 @@ else
                     <div class="gst-row">
                         <h2 class="gst-h2">
                             Movimientos
-                            <span class="gst-mut gst-count">· @GastosFiltrados.Count() gastos</span>
+                            <span class="gst-mut gst-count">· @TotalGastosFiltrados gastos</span>
                         </h2>
                         <div class="gst-filters">
                             @* Sólo tiene sentido acotar por fecha en "Todos" y en "Repuesto": las
@@ -299,7 +309,7 @@ else
                                 </select>
                             }
                             @RenderBuscador("Buscar proveedor, NCF, concepto…", busquedaMovimientos,
-                                            valor => busquedaMovimientos = valor)
+                                            CambiarBusquedaMovimientos)
                         </div>
                     </div>
                 </div>
@@ -325,7 +335,7 @@ else
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var gasto in GastosFiltrados)
+                                    @foreach (var gasto in GastosDeLaPagina)
                                     {
                                         <tr @key="gasto.Id" @ref="filaRefs[gasto.Id]"
                                             class="@(gastoSeleccionado == gasto.Id ? "gst-sel" : "")"
@@ -367,8 +377,20 @@ else
                             </table>
                         </div>
 
+                        @if (TotalPaginasMovimientos > 1)
+                        {
+                            <BarraPaginacion Etiqueta="Paginación de movimientos"
+                                             PaginaActual="@PaginaSeguraMovimientos"
+                                             TotalPaginas="@TotalPaginasMovimientos"
+                                             OnCambiarPagina="IrAPaginaMovimientos" />
+                        }
+
+                        @* Suma el filtro completo y no solo la página a la vista: es la
+                           cifra contable del filtro, y recortarla a 10 filas daría un
+                           total que no significa nada. Por eso la etiqueta dice
+                           "filtrado" y ya no "visible". *@
                         <div class="gst-tfoot">
-                            <span>Total visible</span>
+                            <span>Total filtrado</span>
                             <span class="v cc-num">RD$ @GastosFiltrados.Sum(g => g.MontoTotal).ToString("N2")</span>
                         </div>
                     }

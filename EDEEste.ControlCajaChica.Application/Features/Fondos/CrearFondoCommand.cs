@@ -3,7 +3,7 @@ using EDEEste.ControlCajaChica.Domain.Constants;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Fondos
 {
-    /// <summary>Crea un fondo de caja chica nuevo, con el efectivo completo asignado.</summary>
+    // Crea un fondo de caja chica nuevo, con el efectivo completo asignado
     public sealed class CrearFondoCommand
     {
         public decimal MontoFijo { get; set; }

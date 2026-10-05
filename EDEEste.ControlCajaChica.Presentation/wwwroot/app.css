@@ -74,7 +74,7 @@
     --cc-btn-border: var(--cc-navy);
     --cc-btn-bg-hover: var(--cc-prussian);
 
-    /* Cifras. `total` es el acento de los totales (Total visible, Total
+    /* Cifras. `total` es el acento de los totales (Total filtrado, Total
        contado) y del filete solido que llevan encima. */
     --cc-money: #16202E;
     /* El acento con el que se destaca una cifra o un icono sobre el resto.

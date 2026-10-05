@@ -1,0 +1,428 @@
+/* Auditoría — mismas proporciones y tokens que Reposiciones (tarjetas, tablas,
+   píldoras), para que la pantalla del Auditor no se sienta de otra aplicación. */
+
+.aud-rowt {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.aud-h1 {
+    font-family: var(--cc-ff-head);
+    font-weight: 700;
+    font-size: 29px;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    color: var(--cc-text-strong);
+}
+
+.aud-sub {
+    color: var(--cc-text-soft);
+    font-size: 13px;
+    margin: 0;
+}
+
+.aud-h2 {
+    font-family: var(--cc-ff-head);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 0;
+    color: var(--cc-text-strong);
+}
+
+.aud-lbl {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--cc-text-dim);
+    margin-bottom: 4px;
+}
+
+.aud-mut {
+    color: var(--cc-text-soft);
+    font-size: 12px;
+}
+
+.aud-empty {
+    margin: 0;
+    font-size: 13px;
+    color: var(--cc-text-soft);
+}
+
+.aud-mt10 { margin-top: 10px; margin-bottom: 0; }
+.aud-mt14 { margin-top: 14px; }
+.aud-mt18 { margin-top: 18px; }
+
+.aud-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* ── Pestañas ────────────────────────────────────────────────────────────── */
+/* Control segmentado: las dos secciones siempre a la vista, la activa con el
+   relleno del botón primario (en oscuro, dorado sobre tinta, por el token). */
+.aud-tabs {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(var(--cc-ink-tint), 0.05);
+    border: 1px solid var(--cc-line-card);
+    border-radius: 10px;
+}
+
+.aud-tab {
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 18px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--cc-text-soft);
+}
+
+    .aud-tab:hover:not(.on) {
+        color: var(--cc-text-strong);
+    }
+
+    .aud-tab.on {
+        background: var(--cc-btn-bg);
+        color: var(--cc-btn-fg);
+    }
+
+/* ── Tarjetas ────────────────────────────────────────────────────────────── */
+.aud-card {
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-line-card);
+    border-radius: 12px;
+}
+
+.aud-cb {
+    padding: 18px 20px;
+}
+
+.aud-cb-head {
+    padding: 14px 18px;
+}
+
+.aud-cb-body {
+    padding: 0 18px 18px;
+}
+
+/* Resultado de una revisión: el borde izquierdo dice el veredicto antes de leer. */
+.aud-res {
+    border-left: 4px solid var(--cc-line-card);
+}
+
+    .aud-res.ok {
+        border-left-color: var(--cc-ok);
+    }
+
+    .aud-res.bad {
+        border-left-color: var(--cc-bad);
+    }
+
+.aud-res-d {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: var(--cc-text-emphasis);
+    line-height: 1.55;
+}
+
+.aud-intro {
+    margin: 0 0 14px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--cc-text-emphasis);
+    max-width: 75ch;
+}
+
+/* Límite de lo que la revisión puede garantizar: se dice siempre, en voz baja. */
+.aud-limite {
+    margin: 12px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--cc-text-label);
+    max-width: 85ch;
+}
+
+/* ── Filtros y controles ─────────────────────────────────────────────────── */
+.aud-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    padding: 14px 18px;
+}
+
+.aud-campo {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+
+.aud-campo-ancho {
+    flex: 1 1 240px;
+}
+
+.aud-select,
+.aud-input {
+    height: 34px;
+    padding: 0 11px;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-ctrl-line);
+    border-radius: 8px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    color: var(--cc-ctrl-fg);
+}
+
+    .aud-select:focus,
+    .aud-input:focus {
+        outline: none;
+        border-color: var(--cc-accent);
+        box-shadow: 0 0 0 3px rgba(var(--cc-ink-tint), 0.12);
+    }
+
+.aud-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.aud-revisar {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.aud-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--cc-ff-text);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 17px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.aud-btn-pri {
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
+    height: 34px;
+}
+
+    .aud-btn-pri:hover:not(:disabled) {
+        background: var(--cc-btn-bg-hover);
+    }
+
+.aud-btn-ghost {
+    background: var(--cc-surface);
+    color: var(--cc-accent);
+    border-color: var(--cc-line-bold);
+}
+
+    .aud-btn-ghost:hover:not(:disabled) {
+        filter: brightness(0.97);
+    }
+
+.aud-btn:disabled {
+    opacity: 0.55;
+}
+
+.aud-btn-sm {
+    font-size: 11.5px;
+    padding: 5px 9px;
+    border-radius: 7px;
+}
+
+.aud-limpiar {
+    height: 34px;
+}
+
+/* ── Tablas ──────────────────────────────────────────────────────────────── */
+.aud-tablewrap {
+    overflow-x: auto;
+}
+
+.aud-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+    .aud-table thead th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--cc-text-label);
+        padding: 0 9px 12px;
+        border-bottom: 1px solid var(--cc-line-strong);
+        white-space: nowrap;
+    }
+
+    .aud-table tbody tr {
+        border-bottom: 1px solid var(--cc-line-soft);
+    }
+
+        .aud-table tbody tr:last-child {
+            border-bottom: 0;
+        }
+
+    .aud-table td {
+        padding: 11px 9px;
+        vertical-align: middle;
+    }
+
+    .aud-table .r {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .aud-table .act {
+        white-space: nowrap;
+        text-align: right;
+    }
+
+.aud-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    color: var(--cc-text-mute);
+}
+
+/* La fila abierta y su detalle se leen como un solo bloque. */
+.aud-table tbody tr.aud-abierta {
+    border-bottom: 0;
+    background: rgba(var(--cc-ink-tint), 0.03);
+}
+
+.aud-table tbody tr.aud-detalle {
+    background: rgba(var(--cc-ink-tint), 0.03);
+}
+
+    .aud-table tbody tr.aud-detalle > td {
+        padding: 4px 18px 16px;
+    }
+
+/* ── Detalle de cambios ──────────────────────────────────────────────────── */
+.aud-diff {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-line-card);
+    border-radius: 8px;
+}
+
+    .aud-diff th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--cc-text-label);
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--cc-line-strong);
+    }
+
+    .aud-diff td {
+        padding: 7px 12px;
+        border-bottom: 1px solid var(--cc-line-soft);
+        vertical-align: top;
+        overflow-wrap: anywhere;
+    }
+
+    .aud-diff tr:last-child td {
+        border-bottom: 0;
+    }
+
+.aud-diff-campo {
+    font-weight: 600;
+    color: var(--cc-text-emphasis);
+    white-space: nowrap;
+    width: 1%;
+}
+
+.aud-diff-antes {
+    color: var(--cc-bad);
+}
+
+.aud-diff-despues {
+    color: var(--cc-ok);
+}
+
+/* ── Huella ──────────────────────────────────────────────────────────────── */
+.aud-huella {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px dashed var(--cc-ctrl-line);
+    border-radius: 8px;
+}
+
+/* Seleccionable de un clic: es lo que el Auditor tiene que copiar. */
+.aud-hash {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--cc-text-strong);
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+/* ── Píldoras y avisos ───────────────────────────────────────────────────── */
+.aud-pill {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.aud-p-ok { background: var(--cc-ok-bg); color: var(--cc-ok); }
+.aud-p-bad { background: var(--cc-bad-bg); color: var(--cc-bad); }
+.aud-p-info { background: var(--cc-info-bg); color: var(--cc-alert-info-fg); }
+.aud-p-dark { background: var(--cc-dark-bg); color: var(--cc-dark-fg); }
+
+.aud-alert {
+    margin-top: 12px;
+    border-radius: 10px;
+    padding: 11px 15px;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.aud-a-ok {
+    background: var(--cc-ok-bg);
+    color: var(--cc-ok);
+}
+
+.aud-a-bad {
+    background: var(--cc-alert-bad-bg);
+    color: var(--cc-alert-bad-fg);
+}
+
+/* ── Pantallas estrechas ─────────────────────────────────────────────────── */
+@media (max-width: 792px) {
+    .aud-campo {
+        min-width: 100%;
+    }
+
+    .aud-revisar .aud-btn {
+        width: 100%;
+    }
+}

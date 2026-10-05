@@ -24,10 +24,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Repositories
                 .OrderBy(f => f.FechaCreacion)
                 .ToListAsync(cancellationToken);
 
-        // Un fondo Inactivo no cuenta para la regla "un custodio, un fondo": si se
-        // desactiva el fondo de un custodio, debe poder asignarsele uno nuevo sin
-        // toparse con el que ya quedo fuera de servicio. EnReposicion/BloqueadaPorArqueo
-        // si cuentan -- son estados de trabajo, el fondo sigue siendo el suyo.
+        /* Un fondo Inactivo no cuenta para la regla "un custodio, un fondo": si se
+           desactiva el fondo de un custodio, debe poder asignársele uno nuevo sin
+           toparse con el que ya quedó fuera de servicio. EnReposicion sí cuenta -- es un
+           estado de trabajo, el fondo sigue siendo el suyo. */
         public Task<bool> ExisteFondoParaCustodioAsync(
             string custodioId,
             Guid? excluirFondoId = null,

@@ -15,11 +15,6 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public Guid FondoCajaChicaId { get; set; }
         public FondoCajaChica? FondoCajaChica { get; set; }
 
-        // Mismo caso que SolicitudReposicion.CodigoSolicitud: codigo interno propio,
-        // formato/longitud aun no confirmados con negocio. Sin MaxLength a proposito
-        // hasta tener la regla real.
-
-        //public string CodigoArqueo { get; set; } = string.Empty;
         public DateTime FechaArqueo { get; set; }
         public decimal MontoEfectivoContado { get; set; }
         public decimal MontoComprobantesPendientes { get; set; }
@@ -41,7 +36,6 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
             new ConstructorFirma(nameof(ArqueoCaja))
                 .Agregar(Id)
                 .Agregar(FondoCajaChicaId)
-                //.Agregar(CodigoArqueo)
                 .Agregar(FechaArqueo)
                 .Agregar(MontoEfectivoContado)
                 .Agregar(MontoComprobantesPendientes)

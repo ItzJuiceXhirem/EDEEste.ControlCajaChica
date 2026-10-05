@@ -10,10 +10,7 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Fondos
 {
-    /// <summary>
-    /// Crea un fondo de caja chica. No inyecta ICurrentUserService: CreadoPorId lo
-    /// pone AuditoriaInterceptor solo.
-    /// </summary>
+    // Crea un fondo de caja chica. No inyecta ICurrentUserService: CreadoPorId lo pone AuditoriaInterceptor solo
     public sealed class CrearFondoHandler
     {
         private readonly IFondoRepository _fondos;
@@ -39,14 +36,13 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
                 return ResultadoOperacion<Guid>.Fallo("No tiene permiso para configurar fondos.");
             }
 
-            // La comprobacion de rol es asincrona y no puede vivir dentro de Validar
-            // (estatico); se resuelve antes y entra como parametro, para no romper la
-            // regla de acumular todos los errores en una sola pasada.
+            /* La comprobación de rol es asíncrona y no puede vivir dentro de Validar
+             (estático); se resuelve antes y entra como parámetro, para no romper la
+             regla de acumular todos los errores en una sola pasada. */
             var custodioId = comando.CustodioId?.Trim() ?? string.Empty;
             var custodioValido = custodioId.Length > 0 && await _identidad.EstaEnRolAsync(custodioId, RolesApp.Custodio);
 
-            // Un custodio, un fondo: se consulta aqui por lo mismo que el rol, porque
-            // es asincrono y Validar es estatico.
+            // Un custodio, un fondo: se consulta aquí por lo mismo que el rol, porque es asíncrono y Validar es estático
             var custodioYaTieneFondo = custodioId.Length > 0
                 && await _fondos.ExisteFondoParaCustodioAsync(custodioId, null, cancellationToken);
 
@@ -96,7 +92,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
 
             if (comando.LimitePorGasto < 0)
             {
-                errores.Add("El limite por gasto no puede ser negativo.");
+                errores.Add("El límite por gasto no puede ser negativo.");
             }
             else if (comando.LimitePorGasto > 0)
             {
@@ -104,7 +100,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
                 if (comando.LimitePorGasto > topeReglamentario)
                 {
                     errores.Add(
-                        $"El limite por gasto (RD$ {comando.LimitePorGasto:N2}) no puede superar el tope reglamentario " +
+                        $"El límite por gasto (RD$ {comando.LimitePorGasto:N2}) no puede superar el tope reglamentario " +
                         $"de RD$ {topeReglamentario:N2} ({comando.PorcentajeMaximoPorGasto:N1}% del monto fijo).");
                 }
             }
@@ -113,7 +109,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Fondos
                 || comando.PorcentajeAlertaReposicion > LimitesFondo.AlertaReposicionMaxima)
             {
                 errores.Add(
-                    $"El porcentaje de alerta para reposicion debe estar entre " +
+                    $"El porcentaje de alerta para reposición debe estar entre " +
                     $"{LimitesFondo.AlertaReposicionMinima:N0}% y {LimitesFondo.AlertaReposicionMaxima:N0}%.");
             }
 

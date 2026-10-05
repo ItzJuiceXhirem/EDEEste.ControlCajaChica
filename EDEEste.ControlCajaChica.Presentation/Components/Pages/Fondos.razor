@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = Permisos.ConfigurarFondos)]
 
 <PageTitle>Fondos de caja chica</PageTitle>
+<BotonSubirArriba />
 
 @if (fondos is null || custodios is null)
 {
@@ -92,7 +93,7 @@ else if (vista == Vista.Lista)
                 var nota = NotaEstado(fondo);
 
                 <button type="button" class="fnd-card @(fondo.Estado == EstadoFondo.Inactivo ? "fnd-off" : "")"
-                        @onclick="() => AbrirEdicion(fondo)">
+                        @onclick="() => AbrirEdicionAsync(fondo)">
                     <span class="fnd-card-h">
                         <span>
                             <span class="fnd-who">@UsuarioDe(fondo.CustodioId)</span>
@@ -431,13 +432,27 @@ else if (fondoEditando is { } fondo && entradaEdicion is not null)
                     <div>
                         <label class="fnd-cap" for="fnd-estado">Estado</label>
                         <select id="fnd-estado" class="fnd-input" @bind="entradaEdicion.Estado">
-                            @foreach (var estado in Enum.GetValues<EstadoFondo>())
+                            @foreach (var estado in EstadosElegibles(fondo.Estado))
                             {
                                 <option value="@estado">@EtiquetaEstado(estado)</option>
                             }
                         </select>
                     </div>
                 </div>
+
+                @* Cerrar un fondo con una reposición viva la rechaza sola: se avisa antes de
+                   guardar, porque el Administrador no ve esa solicitud en esta pantalla. *@
+                @if (entradaEdicion.Estado == EstadoFondo.Inactivo && fondoEditandoTieneReposicionEnCurso)
+                {
+                    <div class="fnd-alert fnd-a-warn fnd-mt14">
+                        <span aria-hidden="true">⚠</span>
+                        <span>
+                            Este fondo tiene una solicitud de reposición en curso. Al cerrarlo se rechazará con el
+                            motivo «@RechazoDeReposicion.MotivoCierreDeFondo» y sus gastos volverán a quedar
+                            pendientes de reposición.
+                        </span>
+                    </div>
+                }
 
                 <div class="fnd-mt18">
                     @RenderEscalaGasto(fondo.MontoFijo, entradaEdicion.PorcentajeMaximoPorGasto, entradaEdicion.LimitePorGasto,

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Application.DTOs;
 using EDEEste.ControlCajaChica.Application.Features.Gastos;
 using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Infrastructure.Configuration;
@@ -44,6 +45,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
         private const int CuotaArchivosStaging = 40;
         private const long CuotaBytesStaging = 200 * 1024 * 1024;
 
+        private const string MensajeComprobanteAlterado =
+            "Este comprobante fue modificado después de registrarse y no se puede mostrar. Avise al Administrador.";
+
         public static IEndpointRouteBuilder MapGastoEndpoints(this IEndpointRouteBuilder endpoints)
         {
             endpoints.MapGet("/gastos/comprobantes/{id:guid}/archivo", async (
@@ -54,6 +58,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 IIdentityService identidad,
                 ICurrentUserService usuarioActual,
                 IFileStorageService almacenamiento,
+                ILoggerFactory loggers,
                 CancellationToken cancellationToken) =>
             {
                 // Una sola respuesta, reusada en las cuatro ramas de abajo -- a
@@ -101,10 +106,27 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                     }
                 }
 
-                var contenido = await almacenamiento.LeerArchivoAsync(comprobante.RutaArchivo);
-                if (contenido is null)
+                var archivo = await almacenamiento.LeerArchivoVerificadoAsync(
+                    comprobante.RutaArchivo, comprobante.HashSHA256, cancellationToken);
+                if (archivo is null)
                 {
                     return ComprobanteNoDisponible();
+                }
+
+                // Tambien la fila: sin ella, quien pudiera escribir en la BDD repuntaria
+                // a la vez la ruta y el hash, y la comparacion del archivo pasaria. Un
+                // comprobante siempre nace con hash, asi que "sin hash" tambien es
+                // anomalo y falla cerrado. Aqui si va un mensaje propio y no el 404
+                // uniforme: el usuario ya paso la autorizacion de arriba, asi que no
+                // revela nada que no pudiera ver.
+                if (!comprobante.IntegridadVerificada || archivo.Integridad != IntegridadArchivo.Integro)
+                {
+                    loggers.CreateLogger(typeof(GastoEndpoints)).LogCritical(
+                        "ALERTA DE MANIPULACION: se bloqueo la apertura del comprobante {ComprobanteId} del gasto " +
+                        "{GastoId} (fila integra: {FilaIntegra}, archivo: {Integridad}).",
+                        comprobante.Id, gasto.Id, comprobante.IntegridadVerificada, archivo.Integridad);
+
+                    return Results.Json(new { error = MensajeComprobanteAlterado }, statusCode: StatusCodes.Status409Conflict);
                 }
 
                 // Un comprobante es informacion sensible de un tercero; sin esto, un
@@ -112,7 +134,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 // compartida de oficina) podria conservarlo mas alla de esta respuesta.
                 contexto.Response.Headers.CacheControl = "private, no-store";
 
-                return Results.File(contenido, comprobante.TipoMime);
+                return Results.File(archivo.Contenido, comprobante.TipoMime);
             })
             .RequireAuthorization(Permisos.VerGastos);
 

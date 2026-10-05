@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Features.Reposiciones;
 using EDEEste.ControlCajaChica.Application.Tests.TestDoubles;
+using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using Xunit;
@@ -10,10 +11,16 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Reposiciones
 {
     public class AprobarReposicionHandlerTests
     {
-        private static (FondoCajaChica fondo, SolicitudReposicion solicitud, Gasto gasto, FakeReposicionRepository repo, FakeApplicationDbContext contexto, AprobarReposicionHandler handler)
-            CrearEscenario(decimal balanceActual = 7500m, decimal montoFijo = 10000m, decimal montoGasto = 2500m)
+        private static (FondoCajaChica fondo, SolicitudReposicion solicitud, Gasto gasto, FakeApplicationDbContext contexto, AprobarReposicionHandler handler)
+            CrearEscenario(
+                EstadoReposicion estadoSolicitud = EstadoReposicion.PendienteAprobacion,
+                EstadoFondo estadoFondo = EstadoFondo.Activo,
+                bool tienePermiso = true,
+                decimal balanceActual = 7500m,
+                decimal montoFijo = 10000m,
+                decimal montoGasto = 2500m)
         {
-            var fondo = new FondoCajaChica { MontoFijo = montoFijo, BalanceActual = balanceActual };
+            var fondo = new FondoCajaChica { MontoFijo = montoFijo, BalanceActual = balanceActual, Estado = estadoFondo };
 
             var gasto = new Gasto
             {
@@ -29,7 +36,7 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Reposiciones
                 FondoCajaChicaId = fondo.Id,
                 FondoCajaChica = fondo,
                 MontoReclamado = montoGasto,
-                Estado = EstadoReposicion.PendienteAprobacion
+                Estado = estadoSolicitud
             };
             solicitud.Gastos.Add(gasto);
             gasto.ReposicionId = solicitud.Id;
@@ -38,60 +45,132 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Reposiciones
             repo.Agregar(solicitud);
 
             var contexto = new FakeApplicationDbContext();
-            var handler = new AprobarReposicionHandler(repo, new FakeCurrentUserService(), new FakeAutorizacionService(), contexto);
+            var handler = new AprobarReposicionHandler(
+                repo, new FakeCurrentUserService(), new FakeAutorizacionService(tienePermiso), contexto);
 
-            return (fondo, solicitud, gasto, repo, contexto, handler);
+            return (fondo, solicitud, gasto, contexto, handler);
         }
 
         [Fact]
-        public async Task Aprobar_NoTocaElBalanceYCambiaElEstado()
+        public async Task Aprobar_Pendiente_NoTocaElBalance_PasaElFondoAEnReposicion()
         {
-            var (fondo, solicitud, gasto, _, contexto, handler) = CrearEscenario();
+            var (fondo, solicitud, gasto, contexto, handler) = CrearEscenario();
             var balanceOriginal = fondo.BalanceActual;
 
-            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = solicitud.Id, Aprobar = true });
+            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = solicitud.Id });
 
-            Assert.True(resultado.Exitoso);
+            Assert.True(resultado.Exitoso, string.Join("; ", resultado.Errores));
             Assert.Equal(EstadoReposicion.Aprobada, solicitud.Estado);
+            Assert.Equal(EstadoFondo.EnReposicion, fondo.Estado);
             Assert.Equal(balanceOriginal, fondo.BalanceActual);
             Assert.Equal(EstadoGasto.EnProcesoReposicion, gasto.Estado);
             Assert.Equal(1, contexto.VecesGuardado);
         }
 
         [Fact]
-        public async Task Rechazar_DevuelveGastosAPendienteYNoTocaElBalance()
+        public async Task Aprobar_Pendiente_NoGuardaMotivoAunqueLleguePorElComando()
         {
-            var (fondo, solicitud, gasto, _, contexto, handler) = CrearEscenario();
-            var balanceOriginal = fondo.BalanceActual;
+            // La primera aprobacion no lleva motivo: solo la nueva aprobacion de una devuelta.
+            var (_, solicitud, _, _, handler) = CrearEscenario();
 
-            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = solicitud.Id, Aprobar = false });
+            var resultado = await handler.EjecutarAsync(
+                new AprobarReposicionCommand { ReposicionId = solicitud.Id, Motivo = "irrelevante" });
 
             Assert.True(resultado.Exitoso);
-            Assert.Equal(EstadoReposicion.Rechazada, solicitud.Estado);
-            Assert.Equal(EstadoGasto.PendienteReposicion, gasto.Estado);
-            Assert.Null(gasto.ReposicionId);
-            Assert.Equal(balanceOriginal, fondo.BalanceActual);
+            Assert.Null(solicitud.MotivoReaprobacion);
+        }
+
+        [Fact]
+        public async Task Aprobar_Devuelta_SinMotivo_Falla()
+        {
+            var (fondo, solicitud, _, contexto, handler) = CrearEscenario(
+                EstadoReposicion.DevueltaPorFinanzas, EstadoFondo.EnReposicion);
+
+            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = solicitud.Id, Motivo = "   " });
+
+            Assert.False(resultado.Exitoso);
+            Assert.Equal(EstadoReposicion.DevueltaPorFinanzas, solicitud.Estado);
+            Assert.Equal(EstadoFondo.EnReposicion, fondo.Estado);
+            Assert.Equal(0, contexto.VecesGuardado);
+        }
+
+        [Fact]
+        public async Task Aprobar_Devuelta_ConMotivo_GuardaElMotivoYDejaElFondoEnReposicion()
+        {
+            var (fondo, solicitud, _, contexto, handler) = CrearEscenario(
+                EstadoReposicion.DevueltaPorFinanzas, EstadoFondo.EnReposicion);
+
+            var resultado = await handler.EjecutarAsync(
+                new AprobarReposicionCommand { ReposicionId = solicitud.Id, Motivo = "  Se adjuntó el comprobante faltante.  " });
+
+            Assert.True(resultado.Exitoso, string.Join("; ", resultado.Errores));
+            Assert.Equal(EstadoReposicion.Aprobada, solicitud.Estado);
+            Assert.Equal("Se adjuntó el comprobante faltante.", solicitud.MotivoReaprobacion);
+            Assert.Equal(EstadoFondo.EnReposicion, fondo.Estado);
             Assert.Equal(1, contexto.VecesGuardado);
         }
 
         [Fact]
-        public async Task Aprobar_DesdeEstadoQueNoEsPendienteAprobacion_Falla()
+        public async Task Aprobar_Devuelta_ConMotivoDemasiadoLargo_Falla()
         {
-            var (_, solicitud, _, _, contexto, handler) = CrearEscenario();
-            solicitud.Estado = EstadoReposicion.Aprobada;
+            var (_, solicitud, _, contexto, handler) = CrearEscenario(
+                EstadoReposicion.DevueltaPorFinanzas, EstadoFondo.EnReposicion);
 
-            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = solicitud.Id, Aprobar = true });
+            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand
+            {
+                ReposicionId = solicitud.Id,
+                Motivo = new string('x', LimitesReposicion.LongitudMaximaMotivo + 1)
+            });
+
+            Assert.False(resultado.Exitoso);
+            Assert.Equal(0, contexto.VecesGuardado);
+        }
+
+        [Theory]
+        [InlineData(EstadoReposicion.Aprobada)]
+        [InlineData(EstadoReposicion.Pagada)]
+        [InlineData(EstadoReposicion.Rechazada)]
+        public async Task Aprobar_DesdeEstadoQueNoSePuedeAprobar_Falla(EstadoReposicion estado)
+        {
+            var (_, solicitud, _, contexto, handler) = CrearEscenario(estado);
+
+            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = solicitud.Id, Motivo = "x" });
 
             Assert.False(resultado.Exitoso);
             Assert.Equal(0, contexto.VecesGuardado);
         }
 
         [Fact]
+        public async Task Aprobar_ConElFondoConLaFirmaComprometida_Falla()
+        {
+            var (fondo, solicitud, _, contexto, handler) = CrearEscenario();
+            fondo.IntegridadVerificada = false;
+
+            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = solicitud.Id });
+
+            Assert.False(resultado.Exitoso);
+            Assert.Equal(EstadoReposicion.PendienteAprobacion, solicitud.Estado);
+            Assert.Equal(0, contexto.VecesGuardado);
+        }
+
+        [Fact]
+        public async Task Aprobar_SinPermiso_Falla()
+        {
+            var (_, solicitud, _, contexto, handler) = CrearEscenario(tienePermiso: false);
+
+            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = solicitud.Id });
+
+            Assert.False(resultado.Exitoso);
+            Assert.Equal(EstadoReposicion.PendienteAprobacion, solicitud.Estado);
+            Assert.Equal(0, contexto.VecesGuardado);
+        }
+
+        [Fact]
         public async Task Aprobar_SolicitudInexistente_Falla()
         {
-            var (_, _, _, repo, contexto, handler) = CrearEscenario();
+            var (_, _, _, contexto, handler) = CrearEscenario();
 
-            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = Guid.NewGuid(), Aprobar = true });
+            var resultado = await handler.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = Guid.NewGuid() });
 
             Assert.False(resultado.Exitoso);
             Assert.Equal(0, contexto.VecesGuardado);

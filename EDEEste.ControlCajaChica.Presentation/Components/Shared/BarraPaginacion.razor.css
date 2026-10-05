@@ -1,0 +1,58 @@
+/* Barra de paginación compartida. Va entre la tabla y lo que cierre la tarjeta
+   (por ejemplo, un total): los números navegan las filas que tienen encima. */
+.pag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 14px 0 2px;
+}
+
+/* Sin cursor: pointer -- el reboot de Bootstrap ya se lo da a todo <button> que
+   no esté deshabilitado. */
+.pag-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-ctrl-line);
+    border-radius: 8px;
+    font-family: var(--cc-ff-text);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--cc-ctrl-fg);
+}
+
+    .pag-btn:hover:not(:disabled) {
+        filter: brightness(0.97);
+    }
+
+    /* Las flechas de los extremos pasan casi todo el tiempo en este estado y deben
+       leerse como apagadas, no como ausentes. */
+    .pag-btn:disabled {
+        opacity: 0.55;
+    }
+
+/* La página actual lleva el relleno del botón primario: es el único elemento
+   activo de la barra. Hereda el token, así que en oscuro pasa a dorado sobre tinta
+   sin una regla aparte. */
+.pag-on {
+    background: var(--cc-btn-bg);
+    border-color: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
+}
+
+.pag-ico {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}

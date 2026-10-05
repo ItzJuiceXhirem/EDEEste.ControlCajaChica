@@ -11,20 +11,18 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 {
     /// <summary>
-    /// Registra el pago de una solicitud de reposicion aprobada. Es el unico punto de
+    /// Registra el pago de una solicitud de reposición aprobada. Es el único punto de
     /// todo el sistema donde el efectivo vuelve al fondo.
     ///
-    /// No inyecta IFondoRepository a proposito: ObtenerConDetalleAsync ya trae el
-    /// fondo por Include, y comparte el mismo DbContext con scope, asi que pedirlo
-    /// aparte devolveria la misma instancia por el mapa de identidad. Dos variables
+    /// No inyecta IFondoRepository a propósito: ObtenerConDetalleAsync ya trae el
+    /// fondo por Include, y comparte el mismo DbContext con scope, así que pedirlo
+    /// aparte devolvería la misma instancia por el mapa de identidad. Dos variables
     /// distintas apuntando al mismo objeto invitan a un "+=" duplicado si el codigo
-    /// cambia mas adelante; con una sola referencia (solicitud.FondoCajaChica) ese
+    /// cambia más adelante; con una sola referencia (solicitud.FondoCajaChica) ese
     /// error es estructuralmente imposible.
     /// </summary>
     public sealed class ProcesarPagoReposicionHandler
     {
-        private const int LongitudMaximaReferencia = 100;
-
         private readonly IReposicionRepository _reposiciones;
         private readonly ICurrentUserService _usuarioActual;
         private readonly IAutorizacionService _autorizacion;
@@ -77,8 +75,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             solicitud.FechaPago = DateTime.UtcNow;
             solicitud.ReferenciaPago = comando.ReferenciaPago.Trim();
 
-            // UNICO punto de todo el sistema donde el efectivo vuelve a la caja.
+            // ÚNICO punto de todo el sistema donde el efectivo vuelve a la caja.
             fondo.BalanceActual += solicitud.MontoReclamado;
+
+            // Con el pago termina la reposición en camino: el fondo vuelve a Activo.
+            if (fondo.Estado == EstadoFondo.EnReposicion)
+            {
+                fondo.Estado = EstadoFondo.Activo;
+            }
 
             foreach (var gasto in solicitud.Gastos)
             {
@@ -88,7 +92,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo(
-                    "Otro usuario modifico esta solicitud o el fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+                    "Otro usuario modificó esta solicitud o el fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
             }
 
             return ResultadoOperacion<Guid>.Ok(solicitud.Id);
@@ -104,7 +108,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             if (solicitud.Estado != EstadoReposicion.Aprobada)
             {
                 errores.Add(
-                    $"Solo se puede pagar una solicitud aprobada. Esta solicitud esta en estado {solicitud.Estado}.");
+                    $"Solo se puede pagar una solicitud aprobada. Esta solicitud está en estado {solicitud.Estado}.");
             }
 
             var referencia = comando.ReferenciaPago?.Trim() ?? string.Empty;
@@ -112,33 +116,29 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
             {
                 errores.Add("Debe indicar la referencia del pago.");
             }
-            else if (referencia.Length > LongitudMaximaReferencia)
+            else if (referencia.Length > LimitesReposicion.LongitudMaximaReferenciaPago)
             {
-                errores.Add($"La referencia del pago no puede superar {LongitudMaximaReferencia} caracteres.");
+                errores.Add(
+                    $"La referencia del pago no puede superar {LimitesReposicion.LongitudMaximaReferenciaPago} caracteres.");
             }
 
             if (solicitud.MontoReclamado <= 0)
             {
-                errores.Add("El monto reclamado de la solicitud no es valido.");
+                errores.Add("El monto reclamado de la solicitud no es válido.");
             }
 
-            // Guarda de techo: si esto se dispara, algo ya se conto dos veces (doble
-            // pago, doble clic, dos usuarios de Finanzas a la vez).
+          /* Guarda de techo: si esto se dispara, algo ya se contó dos veces (doble
+             pago, doble clic, dos usuarios de Finanzas a la vez). */
             var balanceResultante = fondo.BalanceActual + solicitud.MontoReclamado;
             if (balanceResultante > fondo.MontoFijo)
             {
                 errores.Add(
-                    $"El pago dejaria el fondo en RD$ {balanceResultante:N2}, por encima del fondo fijo de " +
-                    $"RD$ {fondo.MontoFijo:N2}. Verifique que la reposicion no se haya pagado ya.");
+                    $"El pago dejaría el fondo en RD$ {balanceResultante:N2}, por encima del fondo fijo de " +
+                    $"RD$ {fondo.MontoFijo:N2}. Verifique que la reposición no se haya pagado ya.");
             }
 
             ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);
-
-            if (!fondo.IntegridadVerificada)
-            {
-                errores.Add("El fondo tiene la firma de integridad comprometida.");
-            }
-
+            ValidadorSolicitudReposicion.ValidarIntegridadFondo(errores, fondo);
             ValidadorSolicitudReposicion.ValidarGastosEnProceso(errores, solicitud);
 
             return errores;

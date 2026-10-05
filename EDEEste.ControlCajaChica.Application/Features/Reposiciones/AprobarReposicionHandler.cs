@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
@@ -12,12 +11,17 @@ using EDEEste.ControlCajaChica.Domain.Enums;
 namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 {
     /// <summary>
-    /// Aprueba o rechaza una solicitud de reposicion.
+    /// Aprueba una solicitud de reposición: la pendiente de aprobación (primera
+    /// aprobación) o la que Finanzas devolvió (aprobar de nuevo, con motivo).
     ///
-    /// No inyecta IFondoRepository a proposito: ni aprobar ni rechazar mueven dinero,
-    /// y no tener el repositorio disponible lo hace evidente en la firma del
-    /// constructor. El efectivo solo vuelve al fondo cuando Finanzas paga
-    /// (ProcesarPagoReposicionHandler).
+    /// Al aprobar, el fondo pasa a EnReposicion si estaba Activo: desde ahí hasta que
+    /// Finanzas pague o el Gerente rechace, el fondo tiene una reposición en camino.
+    ///
+    /// No inyecta IFondoRepository a propósito: aprobar no mueve dinero, y no tener el
+    /// repositorio disponible lo hace evidente en la firma del constructor. El estado
+    /// del fondo se cambia a través de solicitud.FondoCajaChica (mismo razonamiento que
+    /// ProcesarPagoReposicionHandler). El efectivo solo vuelve al fondo cuando Finanzas
+    /// paga.
     /// </summary>
     public sealed class AprobarReposicionHandler
     {
@@ -44,7 +48,7 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
         {
             if (!await _autorizacion.TienePermisoAsync(Permisos.AprobarReposicion, cancellationToken))
             {
-                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para aprobar o rechazar una reposición.");
+                return ResultadoOperacion<Guid>.Fallo("No tiene permiso para aprobar una reposición.");
             }
 
             var solicitud = await _reposiciones.ObtenerConDetalleAsync(comando.ReposicionId, cancellationToken);
@@ -53,7 +57,14 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
                 return ResultadoOperacion<Guid>.Fallo("La solicitud indicada no existe.");
             }
 
-            var errores = Validar(solicitud);
+            if (solicitud.FondoCajaChica is null)
+            {
+                return ResultadoOperacion<Guid>.Fallo("El fondo de la solicitud no existe.");
+            }
+
+            var fondo = solicitud.FondoCajaChica;
+
+            var errores = Validar(comando, solicitud, fondo);
             if (errores.Count > 0)
             {
                 return ResultadoOperacion<Guid>.Fallo(errores);
@@ -61,52 +72,51 @@ namespace EDEEste.ControlCajaChica.Application.Features.Reposiciones
 
             var usuario = await _usuarioActual.ObtenerAsync(cancellationToken);
 
+            if (solicitud.Estado == EstadoReposicion.DevueltaPorFinanzas)
+            {
+                solicitud.MotivoReaprobacion = comando.Motivo!.Trim();
+            }
+
             solicitud.GerenteUsuarioId = usuario.Id ?? string.Empty;
             solicitud.FechaAprobacion = DateTime.UtcNow;
+            solicitud.Estado = EstadoReposicion.Aprobada;
 
-            if (comando.Aprobar)
+            // Si venía devuelta, el fondo ya está EnReposicion y no hay nada que cambiar.
+            if (fondo.Estado == EstadoFondo.Activo)
             {
-                solicitud.Estado = EstadoReposicion.Aprobada;
-            }
-            else
-            {
-                solicitud.Estado = EstadoReposicion.Rechazada;
-
-                // Los gastos vuelven al ruedo para que el custodio corrija y arme otra
-                // solicitud. El balance NO se toca: el efectivo nunca volvio a la
-                // caja, se sigue debiendo. ToList() no es cosmetico: al poner
-                // ReposicionId en null, el arreglo de relaciones de EF saca el gasto
-                // de solicitud.Gastos en plena iteracion.
-                foreach (var gasto in solicitud.Gastos.ToList())
-                {
-                    gasto.ReposicionId = null;
-                    gasto.Estado = EstadoGasto.PendienteReposicion;
-                }
+                fondo.Estado = EstadoFondo.EnReposicion;
             }
 
-            // RutaPdfConsolidado se conserva: una rechazada queda en el historial con
-            // su expediente.
             if (!await _contexto.IntentarGuardarCambiosAsync(cancellationToken))
             {
                 return ResultadoOperacion<Guid>.Fallo(
-                    "Otro usuario modifico esta solicitud mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
+                    "Otro usuario modificó esta solicitud o el fondo mientras usted trabajaba. Recargue la pantalla e intente de nuevo.");
             }
 
             return ResultadoOperacion<Guid>.Ok(solicitud.Id);
         }
 
-        private static List<string> Validar(SolicitudReposicion solicitud)
+        private static List<string> Validar(
+            AprobarReposicionCommand comando,
+            SolicitudReposicion solicitud,
+            FondoCajaChica fondo)
         {
             var errores = new List<string>();
 
-            if (solicitud.Estado != EstadoReposicion.PendienteAprobacion)
+            if (solicitud.Estado is not (EstadoReposicion.PendienteAprobacion or EstadoReposicion.DevueltaPorFinanzas))
             {
                 errores.Add(
-                    $"Solo se puede aprobar o rechazar una solicitud pendiente de aprobacion. " +
-                    $"Esta solicitud esta en estado {solicitud.Estado}.");
+                    $"Solo se puede aprobar una solicitud pendiente de aprobación o devuelta por Finanzas. " +
+                    $"Esta solicitud está en estado {solicitud.Estado}.");
+            }
+
+            if (solicitud.Estado == EstadoReposicion.DevueltaPorFinanzas)
+            {
+                ValidadorSolicitudReposicion.ValidarMotivo(errores, comando.Motivo, "para aprobarla de nuevo");
             }
 
             ValidadorSolicitudReposicion.ValidarIntegridadSolicitud(errores, solicitud);
+            ValidadorSolicitudReposicion.ValidarIntegridadFondo(errores, fondo);
             ValidadorSolicitudReposicion.ValidarGastosEnProceso(errores, solicitud);
 
             return errores;

@@ -18,23 +18,23 @@ using System.Threading.Tasks;
 namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
 {
     /// <summary>
-    /// Corre en cada SaveChanges: rellena los campos de auditoria, convierte los
-    /// borrados fisicos en logicos, sella con HMAC las entidades firmadas y escribe
-    /// la bitacora encadenada, todo dentro de la misma transaccion del guardado.
+    /// Corre en cada SaveChanges: rellena los campos de auditoría, convierte los
+    /// borrados físicos en lógicos, sella con HMAC las entidades firmadas y escribe
+    /// la bitácora encadenada, todo dentro de la misma transacción del guardado.
     ///
     /// Se registra Singleton (ver DependencyInjection.AgregarPersistencia) para que
     /// EF vea siempre la MISMA instancia y no reconstruya su proveedor de servicios
-    /// interno en cada peticion (se probaron dos formas de pasar un interceptor Scoped
+    /// interno en cada petición (se probaron dos formas de pasar un interceptor Scoped
     /// -- por el lambda de AddDbContext, y por constructor de ApplicationDbContext +
     /// OnConfiguring -- y las dos revientan con ManyServiceProvidersCreatedWarning
     /// pasadas ~20 peticiones, porque en ambas EF ve una instancia distinta cada vez).
     ///
     /// Por ser Singleton, NO puede recibir ICurrentUserService (Scoped) por
-    /// constructor. Se lo pide al ApplicationDbContext que esta guardando, que si es
+    /// constructor. Se lo pide al ApplicationDbContext que está guardando, que sí es
     /// Scoped (ver ApplicationDbContext.ObtenerUsuarioAuditoriaAsync). No usar un
-    /// AsyncLocal asignado dentro de un metodo async para esto: el metodo restaura el
+    /// AsyncLocal asignado dentro de un método async para esto: el método restaura el
     /// ExecutionContext al salir, el valor nunca llega al llamador, y toda la
-    /// bitacora quedaba a nombre de "Sistema".
+    /// bitácora quedaba a nombre de "Sistema".
     /// </summary>
     public class AuditoriaInterceptor : SaveChangesInterceptor
     {
@@ -42,29 +42,29 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
         private const string MarcadorRedactado = "***";
 
         // Nombre del lock nombrado de SQL Server (sp_getapplock) que serializa la
-        // lectura del ultimo HashFirma con el INSERT de los logs nuevos. Ver el
-        // comentario de FirmarCadenaDeLogs para el porque, y el de
-        // ApplicationDbContext.SaveChangesAsync para el porque del @LockOwner='Transaction'.
+        // lectura del último HashFirma con el INSERT de los logs nuevos. Ver el
+        // comentario de FirmarCadenaDeLogs para el porqué, y el de
+        // ApplicationDbContext.SaveChangesAsync para el porqué del @LockOwner='Transaction'.
         private const string RecursoLockCadena = "LogsAuditoria:Cadena";
 
         // 5 segundos de margen generoso: un guardado normal (unas pocas filas de
-        // bitacora) toma milisegundos, asi que esta espera solo se nota si algo mas
-        // esta genuinamente atascado reteniendo el lock.
+        // bitácora) toma milisegundos, así que esta espera solo se nota si algo más
+        // está genuinamente atascado reteniendo el lock.
         private const string ScriptTomarLockDeCadena = """
             DECLARE @resultado int;
             EXEC @resultado = sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 5000;
             IF @resultado < 0
             BEGIN
-                THROW 50000, 'No se pudo obtener el lock de la cadena de auditoria a tiempo. Nada se guardo todavia; probablemente otra persona registraba un cambio al mismo tiempo. Vuelva a intentarlo en unos segundos.', 1;
+                THROW 50000, 'No se pudo obtener el lock de la cadena de auditoría a tiempo. Nada se guardó todavía; probablemente otra persona registraba un cambio al mismo tiempo. Vuelva a intentarlo en unos segundos.', 1;
             END
             """;
 
         /// <summary>
-        /// Propiedades que jamas deben llegar a LogsAuditoria en claro, aunque
-        /// pertenezcan a una entidad legitima que si se audita (AspNetUsers,
-        /// SolicitudesPasswordReset). LogsAuditoria es una bitacora de negocio para
-        /// que un Auditor vea "quien cambio que" -- no un lugar donde deba poder leerse
-        /// un hash de contrasena o un secreto de un solo uso, ni siquiera un DBA con
+        /// Propiedades que JAMÁS deben llegar a LogsAuditoria en claro, aunque
+        /// pertenezcan a una entidad legítima que sí se audita (AspNetUsers,
+        /// SolicitudesPasswordReset). LogsAuditoria es una bitácora de negocio para
+        /// que un Auditor vea "quién cambio qué" -- no un lugar donde deba poder leerse
+        /// un hash de contraseña o un secreto de un solo uso, ni siquiera un DBA con
         /// acceso de lectura a la BDD.
         /// </summary>
         private static readonly HashSet<string> PropiedadesSensibles = new(StringComparer.OrdinalIgnoreCase)
@@ -87,18 +87,18 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             _logger = logger;
         }
 
-        // EF llama SavingChanges para SaveChanges() y SavingChangesAsync para
-        // SaveChangesAsync(). Hay que sobreescribir las dos: antes solo estaba la
-        // version sincrona, asi que toda la auditoria se saltaba en el camino async,
-        // que es justamente el que usa la aplicacion (IApplicationDbContext solo
-        // expone SaveChangesAsync).
+      /* EF llama SavingChanges para SaveChanges() y SavingChangesAsync para
+         SaveChangesAsync(). Hay que sobreescribir las dos: antes solo estaba la
+         version síncrona, así que toda la auditoría se saltaba en el camino async,
+         que es justamente el que usa la aplicación (IApplicationDbContext solo
+         expone SaveChangesAsync). */
         public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
         {
             if (eventData.Context is not null)
             {
-                // El lado sincrono no puede esperar a ICurrentUserService.ObtenerAsync.
-                // Ningun camino de la app guarda de forma sincrona (ver
-                // ApplicationDbContext.SaveChanges), asi que aqui queda "Sistema".
+              /* El lado síncrono no puede esperar a ICurrentUserService.ObtenerAsync.
+                 Ningún camino de la app guarda de forma síncrona (ver
+                 ApplicationDbContext.SaveChanges), así que aquí queda "Sistema". */
                 var logs = PrepararEntidades(eventData.Context, UsuarioSistema);
 
                 if (logs.Count > 0)
@@ -153,16 +153,16 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
                 : UsuarioSistema;
 
         /// <summary>
-        /// Recorre el ChangeTracker aplicando auditoria y firma, y devuelve los logs
+        /// Recorre el ChangeTracker aplicando auditoría y firma, y devuelve los logs
         /// listos para encadenar. No hace IO para poder compartirse entre la ruta
-        /// sincrona y la asincrona.
+        /// síncrona y la asíncrona.
         /// </summary>
         private List<LogAuditoria> PrepararEntidades(DbContext context, string usuarioId)
         {
             var logs = new List<LogAuditoria>();
 
-            // Se materializa la lista antes de recorrerla porque abajo se modifica el
-            // State de algunas entradas (borrado fisico -> logico).
+          /* Se materializa la lista antes de recorrerla porque abajo se modifica el
+             State de algunas entradas (borrado físico -> lógico). */
             var entradas = context.ChangeTracker.Entries()
                 .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
                 .Where(e => e.Entity is not LogAuditoria)
@@ -170,14 +170,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
 
             foreach (var entry in entradas)
             {
-                // Se guarda el estado real antes de tocarlo: si no, un borrado logico
-                // quedaria registrado en la bitacora como un simple "Modified".
+              /* Se guarda el estado real antes de tocarlo: si no, un borrado lógico
+                 quedaría registrado en la bitácora como un simple "Modified". */
                 var estadoOriginal = entry.State;
 
                 AplicarCamposDeAuditoria(entry, usuarioId);
 
-                // La firma se calcula ANTES de fotografiar CurrentValues, para que el
-                // log guarde exactamente el mismo HashFirma que termina en la BDD.
+              /* La firma se calcula ANTES de fotografiar CurrentValues, para que el
+                 log guarde exactamente el mismo HashFirma que termina en la BDD. */
                 AplicarSelloDeIntegridad(entry);
 
                 logs.Add(ConstruirLog(entry, estadoOriginal, usuarioId));
@@ -216,9 +216,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
         }
 
         /// <summary>
-        /// Sello criptografico para que no puedan manipular la fila directamente desde
-        /// la BDD. Antes de re-firmar se comprueba que lo que se leyo no venia ya
-        /// alterado: de lo contrario la aplicacion "lavaria" el fraude firmando de
+        /// Sello criptográfico para que no puedan manipular la fila directamente desde
+        /// la BDD. Antes de re-firmar se comprueba que lo que se leyó no venía ya
+        /// alterado: de lo contrario la aplicación "lavaría" el fraude firmando de
         /// nuevo sobre los datos adulterados.
         /// </summary>
         private void AplicarSelloDeIntegridad(EntityEntry entry)
@@ -237,7 +237,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
             {
                 var registroId = ObtenerClavePrimaria(entry);
                 _logger.LogCritical(
-                    "Se bloqueo un guardado sobre {Entidad} '{RegistroId}': la firma almacenada no coincide con los datos.",
+                    "Se bloqueó un guardado sobre {Entidad} '{RegistroId}': la firma almacenada no coincide con los datos.",
                     entry.Entity.GetType().Name,
                     registroId);
 
@@ -265,8 +265,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
                 log.ValoresAnteriores = JsonSerializer.Serialize(valoresAnteriores);
             }
 
-            // CurrentValues tiene el nuevo estado que se va a guardar. Tambien se
-            // registra para el borrado logico, porque ahi si hay una fila resultante.
+            /* CurrentValues tiene el nuevo estado que se va a guardar. También se
+               registra para el borrado lógico, porque ahí sí hay una fila resultante. */
             if (entry.State is EntityState.Added or EntityState.Modified)
             {
                 var valoresNuevos = entry.CurrentValues.Properties
@@ -278,9 +278,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
         }
 
         /// <summary>
-        /// Se redacta con un marcador en vez de omitir la clave: la bitacora sigue
-        /// dejando constancia de que ese campo cambio (para "SecurityStamp cambio" es
-        /// dato util -- indica un cierre de sesion forzado), sin revelar el valor.
+        /// Se redacta con un marcador en vez de omitir la clave: la bitácora sigue
+        /// dejando constancia de que ese campo cambió (para "SecurityStamp cambio" es
+        /// dato útil -- indica un cierre de sesión forzado), sin revelar el valor.
         /// </summary>
         private static object? RedactarSiEsSensible(string nombrePropiedad, object? valor) =>
             PropiedadesSensibles.Contains(nombrePropiedad) && valor is not null
@@ -288,11 +288,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
                 : valor;
 
         /// <summary>
-        /// Toma el lock nombrado dentro de la transaccion que envuelve este guardado
-        /// (ver ApplicationDbContext.SaveChanges/SaveChangesAsync). Sin el, dos
-        /// SaveChanges concurrentes podian leer el mismo HashFirma "ultimo" -- el que
-        /// se lee justo despues de esta llamada -- y encadenar los dos logs desde
-        /// ahi, bifurcando la cadena.
+        /// Toma el lock nombrado dentro de la transacción que envuelve este guardado
+        /// (ver ApplicationDbContext.SaveChanges/SaveChangesAsync). Sin él, dos
+        /// SaveChanges concurrentes podían leer el mismo HashFirma "último" -- el que
+        /// se lee justo después de esta llamada -- y encadenar los dos logs desde
+        /// ahí, bifurcando la cadena.
         /// </summary>
         private static void TomarLockDeCadena(DbContext context) =>
             context.Database.ExecuteSqlRaw(ScriptTomarLockDeCadena, RecursoLockCadena);
@@ -300,10 +300,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Interceptors
         private static Task TomarLockDeCadenaAsync(DbContext context, CancellationToken cancellationToken) =>
             context.Database.ExecuteSqlRawAsync(ScriptTomarLockDeCadena, [RecursoLockCadena], cancellationToken);
 
-        /// <summary>
-        /// Enlaza cada log con la firma del anterior. Romper un eslabon (borrar o
-        /// editar una fila) deja la cadena inconsistente y por lo tanto detectable.
-        /// </summary>
+        /* Enlaza cada log con la firma del anterior. Romper un eslabón (borrar o
+           editar una fila) deja la cadena inconsistente y por lo tanto detectable. */
         private void FirmarCadenaDeLogs(List<LogAuditoria> logs, string? hashPrevio)
         {
             var anterior = string.IsNullOrEmpty(hashPrevio) ? LogAuditoria.HashGenesis : hashPrevio;

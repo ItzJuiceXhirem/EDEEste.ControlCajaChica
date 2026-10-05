@@ -506,6 +506,28 @@ html[data-tema="oscuro"] .rep-scope.fondo {
 .rep-p-warn { background: var(--cc-warn-bg); color: var(--cc-alert-warn-fg); }
 .rep-p-info { background: var(--cc-info-bg); color: var(--cc-alert-info-fg); }
 
+/* Lo que dijo quien decidió (un motivo), en corto debajo de la píldora o de la celda
+   a la que explica. Se parte en líneas: un motivo puede tener hasta 500 caracteres. */
+.rep-nota {
+    margin-top: 6px;
+    max-width: 280px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--cc-text-label);
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+    .rep-nota b {
+        font-weight: 600;
+        color: var(--cc-text-emphasis);
+    }
+
+/* Dentro de su propia celda (no debajo de otro contenido) no necesita separación. */
+.rep-nota-tabla {
+    margin-top: 0;
+}
+
 /* ── Avisos ──────────────────────────────────────────────────────────────── */
 .rep-alert {
     border-radius: 10px;

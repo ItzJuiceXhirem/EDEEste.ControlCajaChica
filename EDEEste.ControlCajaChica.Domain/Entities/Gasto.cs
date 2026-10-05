@@ -31,8 +31,8 @@ namespace EDEEste.ControlCajaChica.Domain.Entities
         public DateTime FechaGasto { get; set; }
         public EstadoGasto Estado { get; set; }
 
-        // Por que se anulo el gasto. Lo escribe quien pide la anulacion (custodio) o
-        // quien la ejecuta (gerente), y se limpia si la anulacion se revierte.
+      /* Por qué se anuló el gasto. Lo escribe quien pide la anulación (custodio) o
+         quien la ejecuta (gerente), y se limpia si la anulación se revierte. */
         public string? MotivoAnulacion { get; set; }
 
         public string RegistradoPorUsuarioId { get; set; } = string.Empty; // Identity

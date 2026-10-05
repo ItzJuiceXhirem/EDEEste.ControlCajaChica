@@ -3,10 +3,10 @@ using System;
 namespace EDEEste.ControlCajaChica.Infrastructure.Configuration
 {
     /// <summary>
-    /// Clave con la que se firman las entidades y la bitacora. Todo el esquema
-    /// anti-fraude depende de que esta clave NO este en la base de datos ni en el
-    /// codigo fuente: si el DBA la tuviera, podria recalcular las firmas y la
-    /// manipulacion seria indetectable.
+    /// Clave con la que se firman las entidades y la bitácora. Todo el esquema
+    /// anti-fraude depende de que esta clave NO esté en la base de datos ni en el
+    /// código fuente: si el DBA la tuviera, podría recalcular las firmas y la
+    /// manipulación sería indetectable.
     /// </summary>
     public sealed class OpcionesCriptografia
     {
@@ -19,7 +19,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Configuration
         /// </summary>
         public string ClaveHmac { get; set; } = string.Empty;
 
-        /// <summary>Tamano minimo aceptado para la clave, en bytes.</summary>
+        // Tamaño mínimo aceptado para la clave, en bytes
         public const int BytesMinimosClave = 32;
     }
 }

@@ -19,7 +19,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         }
 
         /// <summary>
-        /// HMACSHA256 genera un hash unico a partir de los datos y la llave secreta.
+        /// HMACSHA256 genera un hash único a partir de los datos y la llave secreta.
         /// Si cambia un solo caracter de los datos, o si no se tiene la llave, el
         /// hash resultante es completamente distinto.
         /// </summary>
@@ -40,9 +40,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             var firmaEsperada = CalcularHMAC(datos);
 
-            // Comparacion en tiempo constante: un == normal corta en el primer byte
-            // distinto y filtra, por diferencias de tiempo, cuanto prefijo acerto
-            // quien este probando firmas.
+            /* Comparación en tiempo constante: un == normal corta en el primer byte
+               distinto y filtra, por diferencias de tiempo, cuánto prefijo acertó
+               quién esté probando firmas. */
             return CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(firmaEsperada),
                 Encoding.UTF8.GetBytes(firmaGuardada));

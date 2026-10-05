@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = Permisos.VerReposiciones)]
 
 <PageTitle>Reposiciones</PageTitle>
+<BotonSubirArriba />
 
 <div class="rep-rowt">
     <div>
@@ -116,18 +117,40 @@ else
     }
 }
 
+@if (dialogoAbierto is { } dialogo)
+{
+    var contenido = ContenidoDe(dialogo);
+
+    @* Un solo diálogo para las cinco acciones que lo necesitan (aprobar, aprobar de
+       nuevo, rechazar, rechazar una devuelta y devolver); ContenidoDe decide qué muestra. *@
+    <DialogoAccion Titulo="@contenido.Titulo"
+                   Texto="@contenido.Texto"
+                   TextoConfirmar="@contenido.TextoConfirmar"
+                   Estilo="@contenido.Estilo"
+                   RequiereMotivo="@contenido.RequiereMotivo"
+                   EtiquetaMotivo="@contenido.EtiquetaMotivo"
+                   MarcadorMotivo="@contenido.MarcadorMotivo"
+                   MotivoFijo="@contenido.MotivoFijo"
+                   EtiquetaMotivoFijo="@contenido.EtiquetaMotivoFijo"
+                   Procesando="@(procesando is not null)"
+                   OnConfirmar="ConfirmarDialogoAsync"
+                   OnCancelar="CerrarDialogo" />
+}
+
 @code {
     // ── Bandejas (§A · Bandeja) ──────────────────────────────────────────────
 
     private RenderFragment RenderBandejaCustodio() =>
         @<text>
-            <div class="rep-job @(pendientes is { Count: > 0 } && !Habilitada ? "quiet" : "")">
+            <div class="rep-job @((pendientes is { Count: > 0 } && !Habilitada) || SolicitudEnCurso is not null ? "quiet" : "")">
                 <span class="rep-jic">@RenderIcono(IconoReloj)</span>
                 <div>
                     <div class="rep-jt">
-                        @(pendientes is not { Count: > 0 }
-                            ? "No hay gastos pendientes"
-                            : Habilitada ? "Puede solicitar la reposición" : "Aún no puede solicitar")
+                        @(SolicitudEnCurso is not null
+                            ? "Ya hay una reposición en curso"
+                            : pendientes is not { Count: > 0 }
+                                ? "No hay gastos pendientes"
+                                : Habilitada ? "Puede solicitar la reposición" : "Aún no puede solicitar")
                     </div>
                     <div class="rep-jd">
                         <span class="rep-scope fondo">@RenderIcono(IconoFondo, "12") Sólo este fondo</span>
@@ -145,6 +168,21 @@ else
                     <div class="rep-jnl">a reponer</div>
                 </div>
             </div>
+
+            @* Una sola solicitud viva por fondo: hasta que se pague o se rechace no se
+               puede pedir otra. El aviso va fuera del bloque de gastos porque aplica aunque
+               ya no queden gastos pendientes. *@
+            @if (SolicitudEnCurso is { } enCurso)
+            {
+                <div class="rep-alert rep-a-info rep-mt14">
+                    @RenderIcono(IconoAlerta)
+                    <span>
+                        La solicitud @CodigoCorto(enCurso.Id) (@EtiquetaEstado(enCurso.Estado)) está en curso.
+                        @DescripcionEnCurso(enCurso.Estado)
+                        Podrá pedir otra cuando se pague o se rechace.
+                    </span>
+                </div>
+            }
 
             @if (pendientes is { Count: > 0 })
             {
@@ -190,7 +228,7 @@ else
                         }
 
                         <div class="rep-mt14" style="display:flex;justify-content:flex-end">
-                            <button type="button" class="rep-btn rep-btn-pri" disabled="@(generando || !Habilitada)" @onclick="GenerarAsync">
+                            <button type="button" class="rep-btn rep-btn-pri" disabled="@(generando || !Habilitada || SolicitudEnCurso is not null)" @onclick="GenerarAsync">
                                 @(generando ? "Generando expediente..." : "Generar solicitud y expediente PDF")
                             </button>
                         </div>
@@ -201,10 +239,10 @@ else
 
     private RenderFragment RenderBandejaGerente() =>
         @<text>
-            <div class="rep-job @(porAprobar is { Count: > 0 } ? "" : "quiet")">
+            <div class="rep-job @(TotalParaGerente > 0 ? "" : "quiet")">
                 <span class="rep-jic">@RenderIcono(IconoCheck)</span>
                 <div>
-                    <div class="rep-jt">@(porAprobar is { Count: > 0 } ? "Esperan su aprobación" : "Nada pendiente de aprobación")</div>
+                    <div class="rep-jt">@(TotalParaGerente > 0 ? "Esperan su decisión" : "Nada pendiente de aprobación")</div>
                     <div class="rep-jd">
                         <span class="rep-scope">@RenderIcono(IconoLista, "12") Todos los fondos</span>
                         @if (porAprobar is { Count: > 0 })
@@ -214,7 +252,7 @@ else
                     </div>
                 </div>
                 <div>
-                    <div class="rep-jn cc-num">@(porAprobar?.Count ?? 0)</div>
+                    <div class="rep-jn cc-num">@TotalParaGerente</div>
                     <div class="rep-jnl">solicitudes</div>
                 </div>
             </div>
@@ -226,8 +264,9 @@ else
                         <div class="rep-alert rep-a-warn">
                             @RenderIcono(IconoAlerta)
                             <span>
-                                Al rechazar, los gastos vuelven a quedar pendientes de reposición y podrán entrar en una
-                                nueva solicitud. El expediente PDF se conserva en el historial.
+                                Al rechazar debe indicar el motivo: el custodio lo verá para corregir. Los gastos vuelven a
+                                quedar pendientes de reposición y podrán entrar en una nueva solicitud. El expediente PDF se
+                                conserva en el historial.
                             </span>
                         </div>
                         <div class="rep-tablewrap rep-mt14">
@@ -250,11 +289,63 @@ else
                                             <td class="act">
                                                 <span class="rep-g6">
                                                     <button type="button" class="rep-btn rep-btn-ok rep-btn-sm"
-                                                            disabled="@(procesando is not null)" @onclick="() => AprobarAsync(solicitud.Id, true)">
+                                                            disabled="@(procesando is not null)" @onclick="() => AbrirDialogo(AccionReposicion.Aprobar, solicitud)">
                                                         Aprobar
                                                     </button>
                                                     <button type="button" class="rep-btn rep-btn-bad rep-btn-sm"
-                                                            disabled="@(procesando is not null)" @onclick="() => AprobarAsync(solicitud.Id, false)">
+                                                            disabled="@(procesando is not null)" @onclick="() => AbrirDialogo(AccionReposicion.Rechazar, solicitud)">
+                                                        Rechazar
+                                                    </button>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (devueltas is { Count: > 0 })
+            {
+                <div class="rep-card">
+                    <div class="rep-cb">
+                        <div class="rep-row">
+                            <h2 class="rep-h2">Devueltas por Finanzas</h2>
+                        </div>
+                        <div class="rep-alert rep-a-warn rep-mt14">
+                            @RenderIcono(IconoAlerta)
+                            <span>
+                                Finanzas devolvió estas solicitudes en vez de pagarlas. Apruébelas de nuevo indicando por qué
+                                (lo verá Finanzas), o rechácelas: al rechazar se usa el motivo de Finanzas y el custodio lo verá.
+                            </span>
+                        </div>
+                        <div class="rep-tablewrap rep-mt14">
+                            <table class="rep-table">
+                                <thead>
+                                    <tr>
+                                        <th>Solicitada</th><th>Fondo</th><th class="r">Monto reclamado</th>
+                                        <th>Motivo de Finanzas</th><th>Expediente</th><th class="act">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var solicitud in devueltas)
+                                    {
+                                        <tr>
+                                            <td class="cc-num">@FormatoFechaHora(solicitud.FechaSolicitud)</td>
+                                            <td>@NombreCustodio(solicitud.FondoCajaChica?.CustodioId ?? string.Empty)</td>
+                                            <td class="r rep-money">@solicitud.MontoReclamado.ToString("N2")</td>
+                                            <td><div class="rep-nota rep-nota-tabla">@solicitud.MotivoDevolucion</div></td>
+                                            <td>@RenderPdf(solicitud)</td>
+                                            <td class="act">
+                                                <span class="rep-g6">
+                                                    <button type="button" class="rep-btn rep-btn-ok rep-btn-sm"
+                                                            disabled="@(procesando is not null)" @onclick="() => AbrirDialogo(AccionReposicion.AprobarDeNuevo, solicitud)">
+                                                        Aprobar de nuevo
+                                                    </button>
+                                                    <button type="button" class="rep-btn rep-btn-bad rep-btn-sm"
+                                                            disabled="@(procesando is not null)" @onclick="() => AbrirDialogo(AccionReposicion.RechazarDevuelta, solicitud)">
                                                         Rechazar
                                                     </button>
                                                 </span>
@@ -272,7 +363,7 @@ else
                 <span class="rep-jic">@RenderIcono(IconoGuion)</span>
                 <div>
                     <div class="rep-jt">Nada más pendiente para usted</div>
-                    <div class="rep-jd"><span>El pago lo registra Finanzas; después de aprobar, usted no vuelve a intervenir.</span></div>
+                    <div class="rep-jd"><span>El pago lo registra Finanzas. Solo vuelve a intervenir si Finanzas le devuelve una solicitud.</span></div>
                 </div>
                 <div>
                     <div class="rep-jn cc-num">0</div>
@@ -307,7 +398,10 @@ else
                     <div class="rep-cb">
                         <div class="rep-alert rep-a-info">
                             @RenderIcono(IconoAlerta)
-                            <span>La referencia es obligatoria: es la prueba externa de que el dinero salió de tesorería. Sin ella el pago se rechaza.</span>
+                            <span>
+                                La referencia es obligatoria: es la prueba externa de que el dinero salió de tesorería. Sin ella el pago se rechaza.
+                                Si no puede pagar una solicitud, devuélvala al Gerente indicando el motivo.
+                            </span>
                         </div>
                         <div class="rep-tablewrap rep-mt14">
                             <table class="rep-table">
@@ -321,7 +415,15 @@ else
                                     @foreach (var solicitud in porPagar)
                                     {
                                         <tr>
-                                            <td class="cc-num">@FormatoFechaHoraOpcional(solicitud.FechaAprobacion)</td>
+                                            <td>
+                                                <span class="cc-num">@FormatoFechaHoraOpcional(solicitud.FechaAprobacion)</span>
+                                                @* Si ya la devolvió antes, ve por qué el Gerente la aprobó de nuevo. *@
+                                                @if (!string.IsNullOrWhiteSpace(solicitud.MotivoReaprobacion))
+                                                {
+                                                    <div class="rep-nota"><b>Aprobada de nuevo:</b> @solicitud.MotivoReaprobacion</div>
+                                                    <div class="rep-nota"><b>Su devolución:</b> @solicitud.MotivoDevolucion</div>
+                                                }
+                                            </td>
                                             <td>@NombreCustodio(solicitud.FondoCajaChica?.CustodioId ?? string.Empty)</td>
                                             <td class="r rep-money">@solicitud.MontoReclamado.ToString("N2")</td>
                                             <td>@RenderPdf(solicitud)</td>
@@ -331,10 +433,16 @@ else
                                                        @onchange="e => referencias[solicitud.Id] = e.Value?.ToString() ?? string.Empty" />
                                             </td>
                                             <td class="act">
-                                                <button type="button" class="rep-btn rep-btn-pri rep-btn-sm"
-                                                        disabled="@(procesando is not null)" @onclick="() => PagarAsync(solicitud.Id)">
-                                                    Registrar pago
-                                                </button>
+                                                <span class="rep-g6">
+                                                    <button type="button" class="rep-btn rep-btn-ghost rep-btn-sm"
+                                                            disabled="@(procesando is not null)" @onclick="() => AbrirDialogo(AccionReposicion.Devolver, solicitud)">
+                                                        Devolver
+                                                    </button>
+                                                    <button type="button" class="rep-btn rep-btn-pri rep-btn-sm"
+                                                            disabled="@(procesando is not null)" @onclick="() => PagarAsync(solicitud.Id)">
+                                                        Registrar pago
+                                                    </button>
+                                                </span>
                                             </td>
                                         </tr>
                                     }
@@ -428,7 +536,14 @@ else
                                         <td class="cc-num">@FormatoFechaHora(solicitud.FechaSolicitud)</td>
                                         <td class="rep-code">@CodigoCorto(solicitud.Id)</td>
                                         <td class="r rep-money">@solicitud.MontoReclamado.ToString("N2")</td>
-                                        <td><span class="rep-pill @ClaseEstado(solicitud.Estado)">@EtiquetaEstado(solicitud.Estado)</span></td>
+                                        <td>
+                                            <span class="rep-pill @ClaseEstado(solicitud.Estado)">@EtiquetaEstado(solicitud.Estado)</span>
+                                            @* El Custodio lee por qué se rechazó para corregirlo y volver a solicitar. *@
+                                            @if (solicitud.Estado == EstadoReposicion.Rechazada && !string.IsNullOrWhiteSpace(solicitud.MotivoRechazo))
+                                            {
+                                                <div class="rep-nota"><b>Motivo:</b> @solicitud.MotivoRechazo</div>
+                                            }
+                                        </td>
                                         <td class="cc-num">@(solicitud.ReferenciaPago ?? "-")</td>
                                         <td class="act">@RenderPdf(solicitud)</td>
                                     </tr>
@@ -478,7 +593,7 @@ else
                                         <td class="cc-num">@FormatoFechaHora(solicitud.FechaSolicitud)</td>
                                         <td class="rep-code">@CodigoCorto(solicitud.Id)</td>
                                         <td class="r rep-money">@solicitud.MontoReclamado.ToString("N2")</td>
-                                        <td><span class="rep-pill @ClaseEstado(solicitud.Estado)">@EtiquetaEstado(solicitud.Estado)</span></td>
+                                        <td><span class="rep-pill @ClaseEstado(solicitud.Estado)" title="@TextoMotivos(solicitud)">@EtiquetaEstado(solicitud.Estado)</span></td>
                                         <td>@NombreUsuario(solicitud.GerenteUsuarioId)</td>
                                         <td>@NombreUsuario(solicitud.FinanzasUsuarioId)</td>
                                         <td class="cc-num">@(solicitud.ReferenciaPago ?? "-")</td>
@@ -527,7 +642,7 @@ else
                                         <td class="cc-num">@FormatoFechaHora(solicitud.FechaSolicitud)</td>
                                         <td class="rep-code">@CodigoCorto(solicitud.Id)</td>
                                         <td class="r rep-money">@solicitud.MontoReclamado.ToString("N2")</td>
-                                        <td><span class="rep-pill @ClaseEstado(solicitud.Estado)">@EtiquetaEstado(solicitud.Estado)</span></td>
+                                        <td><span class="rep-pill @ClaseEstado(solicitud.Estado)" title="@TextoMotivos(solicitud)">@EtiquetaEstado(solicitud.Estado)</span></td>
                                         <td class="cc-num">@FormatoFechaHoraOpcional(solicitud.FechaPago)</td>
                                         <td class="cc-num">@(solicitud.ReferenciaPago ?? "-")</td>
                                         <td class="act">@RenderPdf(solicitud)</td>
@@ -578,7 +693,7 @@ else
                                         <td class="cc-num">@FormatoFechaHora(solicitud.FechaSolicitud)</td>
                                         <td class="rep-code">@CodigoCorto(solicitud.Id)</td>
                                         <td class="r rep-money">@solicitud.MontoReclamado.ToString("N2")</td>
-                                        <td><span class="rep-pill @ClaseEstado(solicitud.Estado)">@EtiquetaEstado(solicitud.Estado)</span></td>
+                                        <td><span class="rep-pill @ClaseEstado(solicitud.Estado)" title="@TextoMotivos(solicitud)">@EtiquetaEstado(solicitud.Estado)</span></td>
                                         <td>@NombreUsuario(solicitud.GerenteUsuarioId)</td>
                                         <td class="cc-num">@FormatoFechaHoraOpcional(solicitud.FechaAprobacion)</td>
                                         <td>@NombreUsuario(solicitud.FinanzasUsuarioId)</td>

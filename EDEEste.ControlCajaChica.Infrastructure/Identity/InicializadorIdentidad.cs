@@ -10,10 +10,8 @@ using Microsoft.Extensions.Logging;
 
 namespace EDEEste.ControlCajaChica.Infrastructure.Identity
 {
-    /// <summary>
     /// Siembra en la BDD los roles declarados en <see cref="RolesApp"/> al arrancar.
-    /// Es idempotente, asi que puede correr en cada arranque sin duplicar nada.
-    /// </summary>
+    /// Es idempotente, así que puede correr en cada arranque sin duplicar nada.
     public sealed class InicializadorIdentidad
     {
         private readonly IIdentityService _identityService;
@@ -32,13 +30,13 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Identity
 
         public async Task SembrarRolesAsync(CancellationToken cancellationToken = default)
         {
-            // Si la BDD todavia no existe (proyecto recien clonado, migraciones sin
-            // aplicar) no tiene sentido reventar el arranque: se avisa y se sigue.
+            /* Si la BDD todavia no existe (proyecto recién clonado, migraciones sin
+               aplicar) no tiene sentido reventar el arranque: se avisa y se sigue. */
             if (!await _context.Database.CanConnectAsync(cancellationToken))
             {
                 _logger.LogWarning(
-                    "No se pudo conectar a la base de datos, se omitio la siembra de roles. " +
-                    "Ejecute 'dotnet ef database update' y vuelva a iniciar la aplicacion.");
+                    "No se pudo conectar a la base de datos, se omitió la siembra de roles. " +
+                    "Ejecute 'dotnet ef database update' y vuelva a iniciar la aplicación.");
                 return;
             }
 

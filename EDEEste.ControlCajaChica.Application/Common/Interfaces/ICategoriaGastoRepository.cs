@@ -12,14 +12,14 @@ namespace EDEEste.ControlCajaChica.Application.Common.Interfaces
 
         Task<IReadOnlyList<CategoriaGasto>> ListarAsync(CancellationToken cancellationToken = default);
 
-        /// <summary>Solo las marcadas como activas; es lo que se ofrece al registrar un gasto.</summary>
+        // Solo las marcadas como activas; es lo que se ofrece al registrar un gasto
         Task<IReadOnlyList<CategoriaGasto>> ListarActivasAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// True si ya existe una categoria con ese nombre (comparacion insensible a
-        /// mayusculas segun la intercalacion por defecto de SQL Server). Si se pasa
-        /// <paramref name="excluirId"/>, esa categoria no cuenta -- es el caso de
-        /// editar una categoria sin que choque contra si misma.
+        /// True si ya existe una categoría con ese nombre (comparacion insensible a
+        /// mayusculas según la intercalación por defecto de SQL Server). Si se pasa
+        /// <paramref name="excluirId"/>, esa categoría no cuenta -- es el caso de
+        /// editar una categorií sin que choque contra sí misma.
         /// </summary>
         Task<bool> ExisteNombreAsync(string nombre, Guid? excluirId = null, CancellationToken cancellationToken = default);
 

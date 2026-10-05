@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using EDEEste.ControlCajaChica.Application.Common.Models;
 using EDEEste.ControlCajaChica.Application.Features.Reposiciones;
 using EDEEste.ControlCajaChica.Application.Tests.TestDoubles;
 using EDEEste.ControlCajaChica.Domain.Entities;
@@ -19,38 +21,110 @@ namespace EDEEste.ControlCajaChica.Application.Tests.Features.Reposiciones
         [Fact]
         public async Task Guardado_ConConflictoDeConcurrencia_FallaYNoCuentaComoGuardado()
         {
-            var fondo = new FondoCajaChica { MontoFijo = 10000m, BalanceActual = 2000m };
+            var escenario = new Escenario();
+            escenario.Contexto.FallarPorConcurrencia = true;
 
-            var fondos = new FakeFondoRepository();
-            fondos.Agregar(fondo);
-
-            var gasto = new Gasto
-            {
-                FondoCajaChicaId = fondo.Id,
-                MontoTotal = 500m,
-                NCF = "B0100000001",
-                Estado = EstadoGasto.PendienteReposicion
-            };
-
-            var gastos = new FakeGastoRepository();
-            gastos.Agregar(gasto);
-
-            var reposiciones = new FakeReposicionRepository();
-            var contexto = new FakeApplicationDbContext();
-            contexto.FallarPorConcurrencia = true;
-
-            var handler = new CrearSolicitudReposicionHandler(
-                fondos, gastos, reposiciones, new FakePdfConsolidadorService(), new FakeFileStorageService(),
-                new FakeCurrentUserService(), new FakeIdentityService(), new FakeAutorizacionService(), contexto);
-
-            var resultado = await handler.EjecutarAsync(new CrearSolicitudReposicionCommand
-            {
-                FondoCajaChicaId = fondo.Id
-            });
+            var resultado = await escenario.EjecutarAsync();
 
             Assert.False(resultado.Exitoso);
             Assert.Contains(resultado.Errores, e => e.Contains("Otro usuario modificó"));
-            Assert.Equal(0, contexto.VecesGuardado);
+            Assert.Equal(0, escenario.Contexto.VecesGuardado);
+        }
+
+        [Fact]
+        public async Task Guardado_Exitoso_RegistraElHashDelExpediente()
+        {
+            var escenario = new Escenario();
+
+            var resultado = await escenario.EjecutarAsync();
+
+            Assert.True(resultado.Exitoso);
+            var solicitud = await escenario.Reposiciones.ObtenerConDetalleAsync(resultado.Valor);
+            Assert.NotNull(solicitud);
+            Assert.Equal(FakeFileStorageService.HashDePrueba, solicitud.HashPdfConsolidado);
+        }
+
+        [Theory]
+        [InlineData(EstadoReposicion.PendienteAprobacion)]
+        [InlineData(EstadoReposicion.Aprobada)]
+        [InlineData(EstadoReposicion.DevueltaPorFinanzas)]
+        public async Task ConOtraSolicitudEnCurso_Falla(EstadoReposicion estadoDeLaEnCurso)
+        {
+            var escenario = new Escenario();
+            escenario.AgregarSolicitudExistente(estadoDeLaEnCurso);
+
+            var resultado = await escenario.EjecutarAsync();
+
+            Assert.False(resultado.Exitoso);
+            Assert.Contains(resultado.Errores, e => e.Contains("en curso"));
+            Assert.Equal(0, escenario.Contexto.VecesGuardado);
+        }
+
+        [Theory]
+        [InlineData(EstadoReposicion.Pagada)]
+        [InlineData(EstadoReposicion.Rechazada)]
+        public async Task ConSolicitudesYaTerminadas_NoImpideSolicitarOtra(EstadoReposicion estadoTerminado)
+        {
+            var escenario = new Escenario();
+            escenario.AgregarSolicitudExistente(estadoTerminado);
+
+            var resultado = await escenario.EjecutarAsync();
+
+            Assert.True(resultado.Exitoso, string.Join("; ", resultado.Errores));
+        }
+
+        [Fact]
+        public async Task ConElFondoInactivo_Falla()
+        {
+            var escenario = new Escenario();
+            escenario.Fondo.Estado = EstadoFondo.Inactivo;
+
+            var resultado = await escenario.EjecutarAsync();
+
+            Assert.False(resultado.Exitoso);
+            Assert.Equal(0, escenario.Contexto.VecesGuardado);
+        }
+
+        /// <summary>Un fondo con un gasto pendiente, listo para pedir su reposicion.</summary>
+        private sealed class Escenario
+        {
+            private readonly FondoCajaChica _fondo = new() { MontoFijo = 10000m, BalanceActual = 2000m };
+            private readonly FakeFondoRepository _fondos = new();
+            private readonly FakeGastoRepository _gastos = new();
+
+            public FondoCajaChica Fondo => _fondo;
+            public FakeReposicionRepository Reposiciones { get; } = new();
+            public FakeApplicationDbContext Contexto { get; } = new();
+
+            /// <summary>Otra solicitud del mismo fondo, ya existente, en el estado dado.</summary>
+            public void AgregarSolicitudExistente(EstadoReposicion estado) =>
+                Reposiciones.Agregar(new SolicitudReposicion
+                {
+                    FondoCajaChicaId = _fondo.Id,
+                    FondoCajaChica = _fondo,
+                    Estado = estado
+                });
+
+            public Escenario()
+            {
+                _fondos.Agregar(_fondo);
+                _gastos.Agregar(new Gasto
+                {
+                    FondoCajaChicaId = _fondo.Id,
+                    MontoTotal = 500m,
+                    NCF = "B0100000001",
+                    Estado = EstadoGasto.PendienteReposicion
+                });
+            }
+
+            public Task<ResultadoOperacion<Guid>> EjecutarAsync()
+            {
+                var handler = new CrearSolicitudReposicionHandler(
+                    _fondos, _gastos, Reposiciones, new FakePdfConsolidadorService(), new FakeFileStorageService(),
+                    new FakeCurrentUserService(), new FakeIdentityService(), new FakeAutorizacionService(), Contexto);
+
+                return handler.EjecutarAsync(new CrearSolicitudReposicionCommand { FondoCajaChicaId = _fondo.Id });
+            }
         }
     }
 }

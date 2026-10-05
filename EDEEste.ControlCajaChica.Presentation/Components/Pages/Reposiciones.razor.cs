@@ -5,11 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Application.Common.Models;
 using EDEEste.ControlCajaChica.Application.Features.Reposiciones;
 using EDEEste.ControlCajaChica.Domain.Constants;
 using EDEEste.ControlCajaChica.Domain.Entities;
 using EDEEste.ControlCajaChica.Domain.Enums;
 using EDEEste.ControlCajaChica.Presentation.Common;
+using EDEEste.ControlCajaChica.Presentation.Components.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -32,6 +34,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
 
         [Inject]
         private AprobarReposicionHandler HandlerAprobar { get; set; } = default!;
+
+        [Inject]
+        private RechazarReposicionHandler HandlerRechazar { get; set; } = default!;
+
+        [Inject]
+        private DevolverReposicionHandler HandlerDevolver { get; set; } = default!;
 
         [Inject]
         private ProcesarPagoReposicionHandler HandlerPagar { get; set; } = default!;
@@ -58,6 +66,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private IReadOnlyList<Gasto>? pendientes;
         private IReadOnlyList<SolicitudReposicion>? solicitudes;
         private IReadOnlyList<SolicitudReposicion>? porAprobar;
+        private IReadOnlyList<SolicitudReposicion>? devueltas;
         private IReadOnlyList<SolicitudReposicion>? porPagar;
         private Guid fondoSeleccionado;
 
@@ -165,10 +174,26 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private async Task CargarColasAsync()
         {
             porAprobar = await RepositorioReposiciones.ListarPorEstadoAsync(EstadoReposicion.PendienteAprobacion);
+            devueltas = await RepositorioReposiciones.ListarPorEstadoAsync(EstadoReposicion.DevueltaPorFinanzas);
             porPagar = await RepositorioReposiciones.ListarPorEstadoAsync(EstadoReposicion.Aprobada);
 
             await ResolverNombresAsync(porAprobar.Select(s => s.FondoCajaChica?.CustodioId));
+            await ResolverNombresAsync(devueltas.Select(s => s.FondoCajaChica?.CustodioId));
             await ResolverNombresAsync(porPagar.Select(s => s.FondoCajaChica?.CustodioId));
+        }
+
+        /// <summary>
+        /// Recargar es obligatorio, no cosmético: el DbContext vive todo el circuito y
+        /// las listas apuntan a entidades ya rastreadas.
+        /// </summary>
+        private async Task RecargarAsync()
+        {
+            await CargarColasAsync();
+
+            if (fondos is { Count: > 0 })
+            {
+                await CargarFondoAsync(fondoSeleccionado);
+            }
         }
 
         private static decimal PorcentajeAlerta(FondoCajaChica fondo) =>
@@ -181,6 +206,24 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
         private decimal TotalPendientes => pendientes?.Sum(g => g.MontoTotal) ?? 0m;
 
         private decimal TotalPorPagar => porPagar?.Sum(s => s.MontoReclamado) ?? 0m;
+
+        // Lo que espera una decisión del Gerente: las pendientes y las que Finanzas devolvió.
+        private int TotalParaGerente => (porAprobar?.Count ?? 0) + (devueltas?.Count ?? 0);
+
+        /// <summary>
+        /// La solicitud viva del fondo elegido, si la hay. Un fondo admite una sola, y
+        /// mientras exista no se puede pedir otra (lo vuelve a exigir el handler).
+        /// </summary>
+        private SolicitudReposicion? SolicitudEnCurso =>
+            solicitudes?.FirstOrDefault(s => ReglasEstado.ReposicionEnCurso.Contains(s.Estado));
+
+        private static string DescripcionEnCurso(EstadoReposicion estado) => estado switch
+        {
+            EstadoReposicion.PendienteAprobacion => "Espera la aprobación del Gerente.",
+            EstadoReposicion.Aprobada => "Fue aprobada y espera el pago de Finanzas.",
+            EstadoReposicion.DevueltaPorFinanzas => "Finanzas la devolvió al Gerente para que la revise.",
+            _ => string.Empty
+        };
 
         /// <summary>
         /// Único subtítulo que de verdad cambia con el estado del fondo: los otros
@@ -277,19 +320,148 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             }
         }
 
-        private async Task AprobarAsync(Guid reposicionId, bool aprobar)
+        // ── Acciones que se confirman en un diálogo ──────────────────────────────
+
+        private enum AccionReposicion
+        {
+            Aprobar,
+            AprobarDeNuevo,
+            Rechazar,
+            RechazarDevuelta,
+            Devolver
+        }
+
+        private sealed record DialogoPendiente(AccionReposicion Accion, SolicitudReposicion Solicitud);
+
+        private sealed record ContenidoDialogo(
+            string Titulo,
+            string Texto,
+            string TextoConfirmar,
+            EstiloDialogo Estilo,
+            bool RequiereMotivo = false,
+            string? EtiquetaMotivo = null,
+            string? MarcadorMotivo = null,
+            string? MotivoFijo = null,
+            string? EtiquetaMotivoFijo = null);
+
+        private DialogoPendiente? dialogoAbierto;
+
+        private void AbrirDialogo(AccionReposicion accion, SolicitudReposicion solicitud)
         {
             errores.Clear();
             exito = null;
-            procesando = reposicionId;
+            dialogoAbierto = new DialogoPendiente(accion, solicitud);
+        }
+
+        private void CerrarDialogo() => dialogoAbierto = null;
+
+        private ContenidoDialogo ContenidoDe(DialogoPendiente dialogo)
+        {
+            var solicitud = dialogo.Solicitud;
+            var detalle =
+                $"{CodigoCorto(solicitud.Id)} por RD$ {solicitud.MontoReclamado:N2} " +
+                $"(fondo de {NombreCustodio(solicitud.FondoCajaChica?.CustodioId ?? string.Empty)})";
+
+            const string avisoRechazo =
+                "Los gastos volverán a quedar pendientes de reposición y el custodio podrá armar otra solicitud. " +
+                "El expediente PDF se conserva en el historial.";
+
+            return dialogo.Accion switch
+            {
+                AccionReposicion.Aprobar => new ContenidoDialogo(
+                    "Aprobar solicitud",
+                    $"¿Desea aprobar la solicitud {detalle}? Pasará a Finanzas para su pago.",
+                    "Aprobar",
+                    EstiloDialogo.Normal),
+
+                AccionReposicion.AprobarDeNuevo => new ContenidoDialogo(
+                    "Aprobar de nuevo",
+                    $"Finanzas devolvió la solicitud {detalle}. Al aprobarla de nuevo vuelve a Finanzas para su pago.",
+                    "Aprobar de nuevo",
+                    EstiloDialogo.Normal,
+                    RequiereMotivo: true,
+                    EtiquetaMotivo: "Por qué la aprueba de nuevo (lo verá Finanzas)",
+                    MarcadorMotivo: "Qué cambió, o por qué la devolución no procede.",
+                    MotivoFijo: solicitud.MotivoDevolucion,
+                    EtiquetaMotivoFijo: "Motivo de Finanzas"),
+
+                AccionReposicion.Rechazar => new ContenidoDialogo(
+                    "Rechazar solicitud",
+                    $"Va a rechazar la solicitud {detalle}. {avisoRechazo}",
+                    "Rechazar",
+                    EstiloDialogo.Peligro,
+                    RequiereMotivo: true,
+                    EtiquetaMotivo: "Motivo del rechazo (lo verá el custodio)",
+                    MarcadorMotivo: "Qué debe corregir el custodio."),
+
+                // El motivo es el que ya dio Finanzas: el Gerente no inventa uno distinto
+                // al que originó la devolución (lo exige también el handler).
+                AccionReposicion.RechazarDevuelta => new ContenidoDialogo(
+                    "Rechazar solicitud",
+                    $"Va a rechazar la solicitud {detalle}. {avisoRechazo}",
+                    "Rechazar",
+                    EstiloDialogo.Peligro,
+                    MotivoFijo: solicitud.MotivoDevolucion,
+                    EtiquetaMotivoFijo: "Motivo del rechazo (el que dio Finanzas; lo verá el custodio)"),
+
+                AccionReposicion.Devolver => new ContenidoDialogo(
+                    "Devolver al Gerente",
+                    $"La solicitud {detalle} vuelve al Gerente, que podrá aprobarla de nuevo o rechazarla. " +
+                    "No se registra ningún pago.",
+                    "Devolver",
+                    EstiloDialogo.Normal,
+                    RequiereMotivo: true,
+                    EtiquetaMotivo: "Motivo de la devolución (lo verá el Gerente)",
+                    MarcadorMotivo: "Por qué no se puede pagar todavía."),
+
+                _ => throw new ArgumentOutOfRangeException(nameof(dialogo), dialogo.Accion, null)
+            };
+        }
+
+        private Task<ResultadoOperacion<Guid>> EjecutarAccionAsync(DialogoPendiente dialogo, string? motivo)
+        {
+            var id = dialogo.Solicitud.Id;
+
+            return dialogo.Accion switch
+            {
+                AccionReposicion.Aprobar =>
+                    HandlerAprobar.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = id }),
+                AccionReposicion.AprobarDeNuevo =>
+                    HandlerAprobar.EjecutarAsync(new AprobarReposicionCommand { ReposicionId = id, Motivo = motivo }),
+                AccionReposicion.Rechazar or AccionReposicion.RechazarDevuelta =>
+                    HandlerRechazar.EjecutarAsync(new RechazarReposicionCommand { ReposicionId = id, Motivo = motivo }),
+                AccionReposicion.Devolver =>
+                    HandlerDevolver.EjecutarAsync(new DevolverReposicionCommand { ReposicionId = id, Motivo = motivo ?? string.Empty }),
+                _ => throw new ArgumentOutOfRangeException(nameof(dialogo), dialogo.Accion, null)
+            };
+        }
+
+        private static string MensajeExito(AccionReposicion accion) => accion switch
+        {
+            AccionReposicion.Aprobar => "Solicitud aprobada. Pasó a Finanzas para su pago.",
+            AccionReposicion.AprobarDeNuevo => "Solicitud aprobada de nuevo. Volvió a Finanzas para su pago.",
+            AccionReposicion.Devolver => "Solicitud devuelta al Gerente.",
+            _ => "Solicitud rechazada. Los gastos volvieron a quedar pendientes de reposición."
+        };
+
+        private async Task ConfirmarDialogoAsync(string? motivo)
+        {
+            if (dialogoAbierto is not { } dialogo)
+            {
+                return;
+            }
+
+            errores.Clear();
+            exito = null;
+            procesando = dialogo.Solicitud.Id;
 
             try
             {
-                var resultado = await HandlerAprobar.EjecutarAsync(new AprobarReposicionCommand
-                {
-                    ReposicionId = reposicionId,
-                    Aprobar = aprobar
-                });
+                var resultado = await EjecutarAccionAsync(dialogo, motivo);
+
+                // El diálogo se cierra con éxito o sin él: un error se muestra arriba, y
+                // el velo lo taparía.
+                dialogoAbierto = null;
 
                 if (!resultado.Exitoso)
                 {
@@ -297,21 +469,12 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                     return;
                 }
 
-                exito = aprobar
-                    ? "Solicitud aprobada."
-                    : "Solicitud rechazada. Los gastos volvieron a quedar pendientes de reposición.";
-
-                // Recargar es obligatorio, no cosmetico: el DbContext vive todo el
-                // circuito y las listas apuntan a entidades ya rastreadas.
-                await CargarColasAsync();
-
-                if (fondos is { Count: > 0 })
-                {
-                    await CargarFondoAsync(fondoSeleccionado);
-                }
+                exito = MensajeExito(dialogo.Accion);
+                await RecargarAsync();
             }
             catch (Exception ex)
             {
+                dialogoAbierto = null;
                 errores.Add(ex.Message);
             }
             finally
@@ -345,12 +508,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
                 exito = "Pago registrado. El efectivo volvió al fondo.";
                 referencias.Remove(reposicionId);
 
-                await CargarColasAsync();
-
-                if (fondos is { Count: > 0 })
-                {
-                    await CargarFondoAsync(fondoSeleccionado);
-                }
+                await RecargarAsync();
             }
             catch (Exception ex)
             {
@@ -427,6 +585,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             EstadoReposicion.Aprobada => "rep-p-info",
             EstadoReposicion.Pagada => "rep-p-ok",
             EstadoReposicion.Rechazada => "rep-p-bad",
+            EstadoReposicion.DevueltaPorFinanzas => "rep-p-warn",
             _ => "rep-p-dark"
         };
 
@@ -436,8 +595,36 @@ namespace EDEEste.ControlCajaChica.Presentation.Components.Pages
             EstadoReposicion.Aprobada => "Aprobada",
             EstadoReposicion.Pagada => "Pagada",
             EstadoReposicion.Rechazada => "Rechazada",
+            EstadoReposicion.DevueltaPorFinanzas => "Devuelta por Finanzas",
             _ => estado.ToString()
         };
+
+        /// <summary>
+        /// Todos los motivos que tiene la solicitud, para el tooltip de su píldora en las
+        /// tablas de consulta (Gerente, Finanzas, Auditor). Null si no tiene ninguno: así
+        /// el atributo ni se escribe.
+        /// </summary>
+        private static string? TextoMotivos(SolicitudReposicion solicitud)
+        {
+            var lineas = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(solicitud.MotivoDevolucion))
+            {
+                lineas.Add($"Devolución de Finanzas: {solicitud.MotivoDevolucion}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(solicitud.MotivoReaprobacion))
+            {
+                lineas.Add($"Nueva aprobación: {solicitud.MotivoReaprobacion}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(solicitud.MotivoRechazo))
+            {
+                lineas.Add($"Rechazo: {solicitud.MotivoRechazo}");
+            }
+
+            return lineas.Count == 0 ? null : string.Join('\n', lineas);
+        }
 
         /// <summary>
         /// dd/MM/yyyy h:mm a.m./p.m. -- el mismo formato del artifact aprobado.

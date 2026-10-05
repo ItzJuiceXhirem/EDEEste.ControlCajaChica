@@ -32,6 +32,13 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
     ///    resto para que no haya excepciones que buscar sueltas por los endpoints. Una
     ///    cuenta sin rol (Pendiente de aprobación) sigue sin tenerlo, que es lo
     ///    correcto: todavía no debería poder tocar nada.
+    ///
+    /// 5. <see cref="Permisos.ConsultarBitacora"/> es SOLO del Auditor. La
+    ///    "transparencia" del punto 1 cubre el historial de negocio (gastos,
+    ///    reposiciones, arqueos); la bitácora cruda es otra cosa: muestra qué hizo
+    ///    cada usuario, en todos los fondos, con los valores de cada fila. Ni el
+    ///    Administrador la tiene: quien configura el sistema no debe poder revisar en
+    ///    privado el rastro de sus propios cambios.
     /// </summary>
     public static class PermisosPorRol
     {
@@ -88,6 +95,7 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
                     Permisos.VerReposiciones,
                     Permisos.DescargarExpediente,
                     Permisos.ConsultarHistorial,
+                    Permisos.ConsultarBitacora,
                     Permisos.GestionarPerfilPropio
                 }
             };

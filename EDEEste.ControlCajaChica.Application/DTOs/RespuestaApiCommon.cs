@@ -2,21 +2,17 @@ using System;
 
 namespace EDEEste.ControlCajaChica.Application.DTOs
 {
-    /// <summary>
-    /// Envoltura estandar de las respuestas del APICommon: { "data": ..., "meta": ... }.
-    /// El payload util siempre viene dentro de <c>data</c>, nunca en la raiz.
-    /// </summary>
+  /* Envoltura estándar de las respuestas del APICommon: { "data": ..., "meta": ... }.
+     El payload útil siempre viene dentro de <c>data</c>, nunca en la raiz. */
     public sealed record RespuestaApiCommon<T>
     {
         public T? Data { get; init; }
         public MetaApiCommon? Meta { get; init; }
     }
 
-    /// <summary>
-    /// Bloque de paginacion que el APICommon incluye en todas sus respuestas, incluso
-    /// en las que devuelven un solo registro. Se modela para que la deserializacion no
-    /// lo descarte en silencio, aunque en las consultas de un unico usuario no aporte.
-    /// </summary>
+  /* Bloque de paginación que el APICommon incluye en todas sus respuestas, incluso
+     en las que devuelven un solo registro. Se modela para que la deserialización no
+     lo descarte en silencio, aunque en las consultas de un único usuario no aporte. */
     public sealed record MetaApiCommon
     {
         public int TotalCount { get; init; }

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using EDEEste.ControlCajaChica.Application.Common.Interfaces;
+using EDEEste.ControlCajaChica.Application.DTOs;
 using EDEEste.ControlCajaChica.Domain.Constants;
 
 namespace EDEEste.ControlCajaChica.Presentation.Endpoints
@@ -16,6 +17,9 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
     /// </summary>
     public static class ReposicionEndpoints
     {
+        private const string MensajeExpedienteAlterado =
+            "Este expediente fue modificado después de generarse y no se puede descargar. Avise al Administrador.";
+
         public static IEndpointRouteBuilder MapReposicionEndpoints(this IEndpointRouteBuilder endpoints)
         {
             endpoints.MapGet("/reposiciones/{id:guid}/pdf", async (
@@ -25,6 +29,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 IIdentityService identidad,
                 ICurrentUserService usuarioActual,
                 IFileStorageService almacenamiento,
+                ILoggerFactory loggers,
                 CancellationToken cancellationToken) =>
             {
                 // Una sola respuesta para las tres ramas de abajo, mismo motivo que
@@ -64,10 +69,25 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                     return ExpedienteNoDisponible();
                 }
 
-                var contenido = await almacenamiento.LeerArchivoAsync(solicitud.RutaPdfConsolidado);
-                if (contenido is null)
+                var archivo = await almacenamiento.LeerArchivoVerificadoAsync(
+                    solicitud.RutaPdfConsolidado, solicitud.HashPdfConsolidado, cancellationToken);
+                if (archivo is null)
                 {
                     return ExpedienteNoDisponible();
+                }
+
+                // Mismo criterio que abrir un comprobante (ver GastoEndpoints). Una
+                // solicitud anterior a HashPdfConsolidado no tiene contra que compararse y
+                // se sirve como antes: calcularle el hash ahora certificaria como bueno el
+                // archivo que haya hoy en disco, aunque ya estuviera alterado.
+                if (!solicitud.IntegridadVerificada || archivo.Integridad == IntegridadArchivo.Alterado)
+                {
+                    loggers.CreateLogger(typeof(ReposicionEndpoints)).LogCritical(
+                        "ALERTA DE MANIPULACION: se bloqueo la descarga del expediente de la solicitud " +
+                        "{SolicitudId} (fila integra: {FilaIntegra}, archivo: {Integridad}).",
+                        solicitud.Id, solicitud.IntegridadVerificada, archivo.Integridad);
+
+                    return Results.Json(new { error = MensajeExpedienteAlterado }, statusCode: StatusCodes.Status409Conflict);
                 }
 
                 // Mismo motivo que GastoEndpoints: un expediente es informacion
@@ -75,7 +95,7 @@ namespace EDEEste.ControlCajaChica.Presentation.Endpoints
                 // intermedia o en el disco del navegador.
                 contexto.Response.Headers.CacheControl = "private, no-store";
 
-                return Results.File(contenido, "application/pdf", $"reposicion-{id}.pdf");
+                return Results.File(archivo.Contenido, "application/pdf", $"reposicion-{id}.pdf");
             })
             .RequireAuthorization(Permisos.DescargarExpediente);
 

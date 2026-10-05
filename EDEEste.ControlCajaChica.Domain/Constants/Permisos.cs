@@ -20,20 +20,16 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         public const string VerGastos = "gastos.ver";
         public const string RegistrarGasto = "gastos.registrar";
 
-        /// <summary>Revisar el gasto e inspeccionar sus comprobantes (Gerente).</summary>
+        // Revisar el gasto e inspeccionar sus comprobantes (Gerente)
         public const string RevisarGastos = "gastos.revisar";
 
-        /// <summary>
-        /// Pedir la anulación de un gasto. No la ejecuta: lo deja pendiente de que el
-        /// Gerente la confirme (Custodio).
-        /// </summary>
+        /* Pedir la anulación de un gasto. No la ejecuta: lo deja pendiente de que el
+           Gerente la confirme (Custodio). */
         public const string SolicitarAnulacionGasto = "gastos.anular.solicitar";
 
-        /// <summary>
-        /// Anular un gasto, confirmar una anulación que pidió el Custodio, o
-        /// revertirla. Es la misma decisión sobre el mismo expediente, así que es un
-        /// solo permiso (Gerente).
-        /// </summary>
+        /* Anular un gasto, confirmar una anulación que pidió el Custodio, o
+           revertirla. Es la misma decisión sobre el mismo expediente, así que es un
+           solo permiso (Gerente). */
         public const string AnularGasto = "gastos.anular";
 
         // --- Arqueos ---
@@ -43,15 +39,28 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
         // --- Reposiciones ---
         public const string VerReposiciones = "reposiciones.ver";
         public const string SolicitarReposicion = "reposiciones.solicitar";
+
+        /* Aprobar una solicitud, aprobarla de nuevo si Finanzas la devolvió, o
+           rechazarla (Gerente). Ninguna de las tres mueve dinero. */
         public const string AprobarReposicion = "reposiciones.aprobar";
+
+        /* Registrar el pago de una solicitud aprobada, o devolverla al Gerente con un
+           motivo (Finanzas). Pagar o devolver es la misma decisión sobre el mismo
+           expediente, así que es un solo permiso, igual que AnularGasto. */
         public const string PagarReposicion = "reposiciones.pagar";
 
-        /// <summary>Descargar el expediente PDF consolidado de una reposición.</summary>
+        // Descargar el expediente PDF consolidado de una reposición
         public const string DescargarExpediente = "reposiciones.expediente";
 
         // --- Auditoría ---
-        /// <summary>Historial de reposiciones, arqueos y reportes de descuadres.</summary>
+        // Historial de reposiciones, arqueos y reportes de descuadres
         public const string ConsultarHistorial = "auditoria.historial";
+
+        /* Consultar la bitácora de auditoría y revisar la integridad de los datos
+           (cadena de la bitácora, firmas comprometidas, registros desaparecidos).
+           Separado de ConsultarHistorial a propósito: la bitácora cruda muestra las
+           acciones y los datos de todos los usuarios y de todos los fondos. */
+        public const string ConsultarBitacora = "auditoria.bitacora";
 
         // --- Configuración ---
         public const string ConfigurarFondos = "config.fondos";
@@ -85,6 +94,7 @@ namespace EDEEste.ControlCajaChica.Domain.Constants
             PagarReposicion,
             DescargarExpediente,
             ConsultarHistorial,
+            ConsultarBitacora,
             ConfigurarFondos,
             ConfigurarCategorias,
             AdministrarUsuarios,

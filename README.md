@@ -31,13 +31,15 @@
 
 - **Admin del sistema**:
 	*Configurar fondos, porcentajes de límites, categorías de gastos y asignación de usuarios.
+  *Cerrar un fondo en cualquier momento: si tenía una reposición en curso, se rechaza sola ("Fondo cerrado por el Administrador").
 
 - **Aprobador / Gerente de Área**:
 	*Revisar gastos e inspeccionar comprobantes.
-	*Aprobar o rechazar la solicitud de reposición.
+	*Aprobar o rechazar la solicitud de reposición. Rechazarla exige un motivo, que el Custodio lee para corregir.
+	*Aprobar de nuevo (con un motivo, que lee Finanzas) o rechazar una solicitud que Finanzas devolvió.
 
 - **Finanzas**:
-	*Procesar el pago de la reposición.
+	*Procesar el pago de la reposición, o devolverla al Gerente con un motivo si no se puede pagar.
 	*Recibir el PDF conjunto con las facturas.
 	*Marcar la reposición como "Pagada/Reembolsada".
 

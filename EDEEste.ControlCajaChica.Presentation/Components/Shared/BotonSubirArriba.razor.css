@@ -1,0 +1,80 @@
+/* Contrapeso de --cc-zoom, mismo patrón que el velo de los modales (.gst-scrim):
+   la capa es `fixed` dentro del árbol escalado, y anclada con right/bottom el
+   navegador multiplicaría también su posición por el zoom, empujándola fuera de
+   la pantalla. Se le devuelve la escala a 1 y se le reaplica al botón, que sí
+   debe crecer con el resto de la app.
+
+   z-index por debajo de #blazor-error-ui (1000), que también vive abajo y cuyo
+   botón de cerrar queda en la esquina derecha, y por debajo del velo de los
+   modales (1050): con un modal abierto, el botón no debe asomar encima. */
+.cc-subir-capa {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    zoom: calc(1 / var(--cc-zoom));
+    z-index: 990;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+}
+
+/* visibility (y no solo opacity) para que, oculto, tampoco reciba el foco con
+   Tab ni clics. Al mostrarse, la visibilidad cambia al instante; al ocultarse,
+   espera a que termine el fundido. */
+html[data-cc-desplazado] .cc-subir-capa {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition-delay: 0s;
+}
+
+.cc-subir {
+    zoom: var(--cc-zoom);
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--cc-btn-bg);
+    color: var(--cc-btn-fg);
+    box-shadow: 0 8px 20px -8px rgba(0, 8, 20, 0.55);
+    cursor: pointer;
+    transition: background .15s ease;
+}
+
+    .cc-subir:hover {
+        background: var(--cc-btn-bg-hover);
+    }
+
+    /* --cc-accent y no el anillo navy de .btn:focus: sobre el fondo oscuro ese
+       azul desaparece, y el acento ya pasa a dorado con el tema. */
+    .cc-subir:focus-visible {
+        outline: 2px solid var(--cc-accent);
+        outline-offset: 3px;
+    }
+
+    .cc-subir svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+@media (max-width: 704.98px) {
+    .cc-subir-capa {
+        right: 16px;
+        bottom: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cc-subir-capa {
+        transform: none;
+    }
+}

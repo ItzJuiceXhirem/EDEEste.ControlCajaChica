@@ -5,6 +5,7 @@
 @attribute [Authorize]
 
 <PageTitle>Control de Caja Chica</PageTitle>
+<BotonSubirArriba />
 
 <h1 class="cc-h1">Control de Caja Chica</h1>
 <p class="cc-lede">@Lede</p>
@@ -26,109 +27,112 @@ else if (fondos.Count == 0)
 }
 else
 {
-    @* Con un solo fondo cabe el panel de arqueos al lado; con varios, las tarjetas
-       se apilan a todo el ancho y el donut no aparece, porque mezclaría los
-       arqueos de fondos distintos en un mismo anillo. *@
-    <div class="@(EsPanelDeUnFondo ? "cc-split" : "cc-fcards")">
+    @* Una fila por fondo, con sus propios arqueos a la derecha. Cada panel recibe
+       solo los arqueos del fondo de su fila, así que el anillo nunca mezcla cajas
+       distintas -- que era la razón por la que antes, con varios fondos, el panel
+       se ocultaba para todos. *@
+    <div class="cc-fcards">
         @foreach (var fondo in fondos)
         {
             var porcentaje = fondo.MontoFijo > 0 ? fondo.BalanceActual / fondo.MontoFijo * 100m : 0m;
             var alerta = PorcentajeAlerta(fondo);
             var comprometido = fondo.MontoFijo - fondo.BalanceActual;
+            var ultimosArqueos = UltimosArqueos(fondo);
 
-            <div class="cc-fcard">
-                <div class="cc-ring" style="background: conic-gradient(@ColorAnillo(porcentaje) 0 @porcentaje.ToString("N1", Invariante)%, var(--cc-ring-track) @porcentaje.ToString("N1", Invariante)% 100%)">
-                    <div class="cc-ring-in">
-                        <span class="cc-ring-pct cc-num">@porcentaje.ToString("N1")%</span>
-                        <span class="cc-ring-lbl">disponible</span>
+            @* aria-label: con varios fondos hay varios "Últimos arqueos" iguales;
+               la región dice a qué fondo pertenece cada uno. *@
+            <section class="cc-split" aria-label="Fondo de @NombreCustodio(fondo.CustodioId)">
+                <div class="cc-fcard">
+                    <div class="cc-ring" style="background: conic-gradient(@ColorAnillo(porcentaje) 0 @porcentaje.ToString("N1", Invariante)%, var(--cc-ring-track) @porcentaje.ToString("N1", Invariante)% 100%)">
+                        <div class="cc-ring-in">
+                            <span class="cc-ring-pct cc-num">@porcentaje.ToString("N1")%</span>
+                            <span class="cc-ring-lbl">disponible</span>
+                        </div>
+                    </div>
+
+                    <div class="cc-fbody">
+                        <h2 class="cc-fwho">Fondo de @NombreCustodio(fondo.CustodioId)</h2>
+                        <div class="cc-fbig cc-num">RD$ @fondo.BalanceActual.ToString("N2")</div>
+
+                        @if (porcentaje <= alerta)
+                        {
+                            <p class="cc-flag">
+                                <svg class="cc-ico-alert" viewBox="0 0 20 20" aria-hidden="true">
+                                    <path d="M10 4.6 17 16.4H3L10 4.6Z" />
+                                    <path d="M10 9v3.3M10 14.5h.01" />
+                                </svg>
+                                Bajó del @alerta.ToString("N0")% — toca solicitar reposición
+                            </p>
+                        }
+
+                        <p class="cc-fof">
+                            de <b class="cc-num">RD$ @fondo.MontoFijo.ToString("N2")</b> de fondo fijo
+                            · comprometido <b class="cc-num">RD$ @comprometido.ToString("N2")</b>
+                        </p>
+
+                        @* Condicionados por permiso: un Administrador no tiene acceso
+                           operativo, así que ofrecerle estos botones solo lo mandaría
+                           a una pantalla que no puede abrir. *@
+                        <div class="cc-acts">
+                            <AuthorizeView Policy="@Permisos.VerGastos">
+                                <a class="cc-btn" href="/gastos">Ver gastos</a>
+                            </AuthorizeView>
+                            <AuthorizeView Policy="@Permisos.VerReposiciones">
+                                <a class="cc-btn cc-btn-ghost" href="/reposiciones">Reposiciones</a>
+                            </AuthorizeView>
+                        </div>
                     </div>
                 </div>
 
-                <div class="cc-fbody">
-                    <h2 class="cc-fwho">Fondo de @NombreCustodio(fondo.CustodioId)</h2>
-                    <div class="cc-fbig cc-num">RD$ @fondo.BalanceActual.ToString("N2")</div>
+                <div class="cc-fcard cc-arq-card">
+                    <div>
+                        <h2 class="cc-arq-title">Últimos arqueos</h2>
+                        <p class="cc-arq-sub">Efectivo contado vs. saldo teórico</p>
+                    </div>
 
-                    @if (porcentaje <= alerta)
+                    @if (ultimosArqueos.Count > 0)
                     {
-                        <p class="cc-flag">
-                            <svg class="cc-ico-alert" viewBox="0 0 20 20" aria-hidden="true">
-                                <path d="M10 4.6 17 16.4H3L10 4.6Z" />
-                                <path d="M10 9v3.3M10 14.5h.01" />
-                            </svg>
-                            Bajó del @alerta.ToString("N0")% — toca solicitar reposición
+                        <div class="cc-arq-body">
+                            <div class="cc-arq-ring" style="background: @GradienteArqueos(ultimosArqueos)">
+                                <div class="cc-arq-ring-in">
+                                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                                        <path d="M5.4 3.4h9.2a1 1 0 0 1 1 1v11.2a1 1 0 0 1-1 1H5.4a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1Z" />
+                                        <path d="M7 6.7h6" />
+                                        <path d="M7.2 10.1h.01M10 10.1h.01M12.8 10.1h.01M7.2 13.3h.01M10 13.3h.01M12.8 13.3h.01" />
+                                    </svg>
+                                    <span>@ultimosArqueos.Count</span>
+                                </div>
+                            </div>
+
+                            <ul class="cc-arq-legend">
+                                @for (var i = 0; i < ultimosArqueos.Count; i++)
+                                {
+                                    var arqueo = ultimosArqueos[i];
+                                    <li>
+                                        <span class="cc-arq-dot" style="background:@ColorResultado(arqueo.Resultado)"></span>
+                                        <div>
+                                            <b>@EtiquetaResultado(arqueo.Resultado)</b>
+                                            <small>
+                                                @arqueo.FechaArqueo.ToString("dd MMM yyyy", Espanol)
+                                                @(i == 0 ? " · más reciente" : string.Empty)
+                                            </small>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="cc-arq-empty">
+                            Este fondo todavía no tiene arqueos registrados.
+                            <AuthorizeView Policy="@Permisos.VerArqueos">
+                                <a href="/arqueos">Ir a arqueos</a>.
+                            </AuthorizeView>
                         </p>
                     }
-
-                    <p class="cc-fof">
-                        de <b class="cc-num">RD$ @fondo.MontoFijo.ToString("N2")</b> de fondo fijo
-                        · comprometido <b class="cc-num">RD$ @comprometido.ToString("N2")</b>
-                    </p>
-
-                    @* Condicionados por permiso: un Administrador no tiene acceso
-                       operativo, así que ofrecerle estos botones solo lo mandaría
-                       a una pantalla que no puede abrir. *@
-                    <div class="cc-acts">
-                        <AuthorizeView Policy="@Permisos.VerGastos">
-                            <a class="cc-btn" href="/gastos">Ver gastos</a>
-                        </AuthorizeView>
-                        <AuthorizeView Policy="@Permisos.VerReposiciones">
-                            <a class="cc-btn cc-btn-ghost" href="/reposiciones">Reposiciones</a>
-                        </AuthorizeView>
-                    </div>
                 </div>
-            </div>
-        }
-
-        @if (EsPanelDeUnFondo)
-        {
-            <div class="cc-fcard cc-arq-card">
-                <div>
-                    <h2 class="cc-arq-title">Últimos arqueos</h2>
-                    <p class="cc-arq-sub">Efectivo contado vs. saldo teórico</p>
-                </div>
-
-                @if (ultimosArqueos is { Count: > 0 })
-                {
-                    <div class="cc-arq-body">
-                        <div class="cc-arq-ring" style="background: @GradienteArqueos()">
-                            <div class="cc-arq-ring-in">
-                                <svg viewBox="0 0 20 20" aria-hidden="true">
-                                    <path d="M5.4 3.4h9.2a1 1 0 0 1 1 1v11.2a1 1 0 0 1-1 1H5.4a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1Z" />
-                                    <path d="M7 6.7h6" />
-                                    <path d="M7.2 10.1h.01M10 10.1h.01M12.8 10.1h.01M7.2 13.3h.01M10 13.3h.01M12.8 13.3h.01" />
-                                </svg>
-                                <span>@ultimosArqueos.Count</span>
-                            </div>
-                        </div>
-
-                        <ul class="cc-arq-legend">
-                            @for (var i = 0; i < ultimosArqueos.Count; i++)
-                            {
-                                var arqueo = ultimosArqueos[i];
-                                <li>
-                                    <span class="cc-arq-dot" style="background:@ColorResultado(arqueo.Resultado)"></span>
-                                    <div>
-                                        <b>@EtiquetaResultado(arqueo.Resultado)</b>
-                                        <small>
-                                            @arqueo.FechaArqueo.ToString("dd MMM yyyy", Espanol)
-                                            @(i == 0 ? " · más reciente" : string.Empty)
-                                        </small>
-                                    </div>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                }
-                else
-                {
-                    <p class="cc-arq-empty">
-                        Este fondo todavía no tiene arqueos registrados.
-                        <AuthorizeView Policy="@Permisos.VerArqueos">
-                            <a href="/arqueos">Ir a arqueos</a>.
-                        </AuthorizeView>
-                    </p>
-                }
-            </div>
+            </section>
         }
     </div>
 }

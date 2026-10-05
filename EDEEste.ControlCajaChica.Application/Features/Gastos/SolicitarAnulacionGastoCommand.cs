@@ -2,10 +2,8 @@ using System;
 
 namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 {
-    /// <summary>
-    /// Pide anular un gasto. No lo anula: lo deja en AnulacionPendiente hasta que el
-    /// Gerente lo confirme o lo revierta.
-    /// </summary>
+  /* Pide anular un gasto. No lo anula: lo deja en AnulacionPendiente hasta que el
+     Gerente lo confirme o lo revierta. */
     public sealed class SolicitarAnulacionGastoCommand
     {
         public Guid GastoId { get; set; }

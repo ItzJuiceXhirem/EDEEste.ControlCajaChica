@@ -25,11 +25,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         private const string CarpetaFotosPerfil = "perfil";
         private const string ExtensionManifiesto = ".meta.json";
 
-        // Fuera de wwwroot a propósito: MapStaticAssets solo sirve el manifiesto
-        // armado al compilar, así que hoy nada expone estos archivos por su ruta
-        // directa -- pero guardarlos bajo wwwroot los dejaba a un solo cambio de
-        // configuración (agregar UseStaticFiles, por ejemplo) de quedar servidos
-        // sin pasar por el permiso de GastoEndpoints/ReposicionEndpoints.
+        /* Fuera de wwwroot a propósito: MapStaticAssets solo sirve el manifiesto
+           armado al compilar, así que hoy nada expone estos archivos por su ruta
+           directa -- pero guardarlos bajo wwwroot los dejaba a un solo cambio de
+           configuración (agregar UseStaticFiles, por ejemplo) de quedar servidos
+           sin pasar por el permiso de GastoEndpoints/ReposicionEndpoints. */
         private readonly string _rutaRaiz;
         private readonly ICriptografiaService _criptografia;
 
@@ -45,11 +45,11 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         }
 
         /// <summary>
-        /// Resuelve la ruta relativa guardada en BDD a una ruta fisica en disco.
+        /// Resuelve la ruta relativa guardada en BDD a una ruta física en disco.
         ///
         /// Se valida que el resultado siga colgando de _rutaRaiz (App_Data): si una
-        /// ruta con ".." llegara desde la BDD (fila manipulada, migracion de datos
-        /// vieja), sin esta comprobacion se podria leer o borrar cualquier archivo
+        /// ruta con ".." llegara desde la BDD (fila manipulada, migración de datos
+        /// vieja), sin esta comprobación se podría leer o borrar cualquier archivo
         /// del servidor.
         /// </summary>
         public string ObtenerRutaFisica(string rutaRelativa)
@@ -60,7 +60,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             if (!rutaCompleta.StartsWith(raiz, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
-                    $"La ruta '{rutaRelativa}' apunta fuera del directorio de archivos de la aplicacion.");
+                    $"La ruta '{rutaRelativa}' apunta fuera del directorio de archivos de la aplicación.");
             }
 
             return rutaCompleta;
@@ -76,34 +76,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return Task.CompletedTask;
         }
 
-        public async Task<RespuestaArchivoDto> GuardarComprobanteAsync(SubirComprobanteDto comprobanteDto)
-        {
-            // Seguridad: Generar un nombre único para evitar sobreescrituras y Path Traversal Attacks
-            var extension = Path.GetExtension(comprobanteDto.NombreOriginal);
-            var nombreArchivoSeguro = $"{Guid.NewGuid()}{extension}";
-            var rutaCompleta = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaComprobantes, nombreArchivoSeguro);
-
-            // Se usa un FileStream para escribir el archivo directamente en disco chunk por chunk
-            using (var fileStream = new FileStream(rutaCompleta, FileMode.Create))
-            {
-                await comprobanteDto.ContenidoArchivo.CopyToAsync(fileStream);
-            }
-
-            // Calcular el Hash SHA-256 físico del archivo guardado
-            var hashCalculado = await CalcularHashArchivoAsync(rutaCompleta);
-
-            return new RespuestaArchivoDto
-            {
-                // Devolvemos la ruta relativa para guardarla en BDD, ej: "uploads/comprobantes/uuid.pdf"
-                RutaRelativa = ConstruirRutaRelativa(CarpetaComprobantes, nombreArchivoSeguro),
-                HashSha256 = hashCalculado
-            };
-        }
-
         public async Task<RespuestaArchivoDto> GuardarPdfConsolidadoAsync(byte[] contenido, string nombreArchivo)
         {
-            // El nombre viene armado por la aplicacion, pero se le quita cualquier
-            // componente de ruta por si acaso: solo interesa el nombre del archivo.
+            /* El nombre viene armado por la aplicación, pero se le quita cualquier
+               componente de ruta por si acaso: solo interesa el nombre del archivo. */
             var nombreSeguro = Path.GetFileName(nombreArchivo);
             var rutaCompleta = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaReposiciones, nombreSeguro);
 
@@ -127,41 +103,66 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             return await File.ReadAllBytesAsync(rutaFisica);
         }
 
-        public async Task<bool> VerificarIntegridadArchivoAsync(string rutaRelativa, string hashOriginal)
+        public async Task<ArchivoVerificadoDto?> LeerArchivoVerificadoAsync(
+            string rutaRelativa,
+            string? hashEsperado,
+            CancellationToken cancellationToken = default)
         {
             var rutaFisica = ObtenerRutaFisica(rutaRelativa);
-            if (!File.Exists(rutaFisica)) return false;
+            if (!File.Exists(rutaFisica))
+            {
+                return null;
+            }
 
-            var hashActual = await CalcularHashArchivoAsync(rutaFisica);
+            var contenido = await File.ReadAllBytesAsync(rutaFisica, cancellationToken);
 
-            // Comparacion en tiempo constante: el hash decide si un comprobante se
+            return new ArchivoVerificadoDto
+            {
+                Contenido = contenido,
+                Integridad = CompararHash(contenido, hashEsperado)
+            };
+        }
+
+        private static IntegridadArchivo CompararHash(byte[] contenido, string? hashEsperado)
+        {
+            if (string.IsNullOrEmpty(hashEsperado))
+            {
+                return IntegridadArchivo.SinHashRegistrado;
+            }
+
+            // Comparacion en tiempo constante: el hash decide si el archivo se
             // considera integro, asi que se trata como un secreto mas.
-            return CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(hashActual),
-                Encoding.UTF8.GetBytes(hashOriginal ?? string.Empty));
+            var coincide = CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(CalcularHash(contenido)),
+                Encoding.UTF8.GetBytes(hashEsperado));
+
+            return coincide ? IntegridadArchivo.Integro : IntegridadArchivo.Alterado;
         }
 
         private static string ConstruirRutaRelativa(string carpeta, string nombreArchivo) =>
             Path.Combine(CarpetaRaizUploads, carpeta, nombreArchivo).Replace("\\", "/");
 
-        // Método privado para calcular el hash criptográfico del archivo físico
-        private async Task<string> CalcularHashArchivoAsync(string rutaFisica)
+        // Guardar y verificar pasan por el mismo formato de salida: si divergieran
+        // (por ejemplo, mayusculas vs minusculas), todo archivo se veria alterado.
+        private static string FormatoHash(byte[] digest) => Convert.ToHexString(digest);
+
+        private static string CalcularHash(byte[] contenido) => FormatoHash(SHA256.HashData(contenido));
+
+        private static async Task<string> CalcularHashArchivoAsync(string rutaFisica)
         {
-            using var sha256 = SHA256.Create();
-            using var stream = File.OpenRead(rutaFisica);
-            var hashBytes = await sha256.ComputeHashAsync(stream);
-            return Convert.ToHexString(hashBytes);
+            await using var stream = File.OpenRead(rutaFisica);
+            return FormatoHash(await SHA256.HashDataAsync(stream));
         }
 
         // ── Staging ──────────────────────────────────────────────────────────────
 
         /// <summary>
         /// La carpeta es el HMAC del Id del usuario y no el Id crudo: aunque hoy es
-        /// un GUID de Identity, el modo ActiveDirectory (todavia stub) podria algun
-        /// dia traer ids con separadores de dominio, y un Path.Combine con eso seria
+        /// un GUID de Identity, el modo ActiveDirectory (todavía stub) podría algún
+        /// día traer ids con separadores de dominio, y un Path.Combine con eso sería
         /// un escape de directorio DENTRO de App_Data que ObtenerRutaFisica no
-        /// atraparia (su guarda solo cuida el limite exterior). El HMAC da un
-        /// alfabeto fijo (hexadecimal) sin importar que forma tenga el Id de origen.
+        /// atraparía (su guarda solo cuida el limite exterior). El HMAC da un
+        /// alfabeto fijo (hexadecimal) sin importar qué forma tenga el Id de origen.
         /// </summary>
         private string CarpetaDeUsuario(string usuarioId) =>
             Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaStaging, _criptografia.CalcularHMAC(usuarioId));
@@ -172,14 +173,14 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         ///
         /// El nombre es determinista -- el HMAC del Id del usuario, mismo criterio que
         /// <see cref="CarpetaDeUsuario"/> -- y no un Guid: hay exactamente una foto por
-        /// persona, asi que volver a subir pisa la anterior sin acumular huerfanos ni
+        /// persona, así que volver a subir pisa la anterior sin acumular huérfanos ni
         /// necesitar un barrido de limpieza como el de staging. La extension SI va en
-        /// el nombre, por lo que cambiar de .jpg a .png deja el archivo viejo atras:
+        /// el nombre, por lo que cambiar de .jpg a .png deja el archivo viejo atrás:
         /// quien llama se encarga de borrarlo (necesita la ruta anterior, que vive en
         /// la BDD).
         ///
         /// Se escribe a un temporal y se renombra: un File.Move sobre el destino es
-        /// atomico, asi que una peticion que este sirviendo la foto en ese mismo
+        /// atómico, así que una petición que esté sirviendo la foto en ese mismo
         /// instante nunca ve un archivo a medio escribir.
         /// </summary>
         public async Task<string> GuardarFotoPerfilAsync(
@@ -240,8 +241,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             var rutaArchivo = Path.Combine(carpetaUsuario, $"{referencia}{extension}");
 
-            // FileMode.CreateNew y no Create: una colision de Guid debe reventar de
-            // forma ruidosa, no pisar en silencio un archivo que ya estaba ahi.
+            /* FileMode.CreateNew y no Create: una colisión de Guid debe reventar de
+               forma ruidosa, no pisar en silencio un archivo que ya estaba ahí. */
             await using (var destino = new FileStream(rutaArchivo, FileMode.CreateNew))
             {
                 contenido.Position = 0;
@@ -294,9 +295,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 return null;
             }
 
-            // El manifiesto vive bajo la carpeta del usuario (que ya lo delimita por
-            // si sola), pero se revalida el campo tambien: es lo que hace que copiar
-            // un manifiesto entero a otra carpeta no baste para reusarlo.
+            /* El manifiesto vive bajo la carpeta del usuario (que ya lo delimita por
+               sí sola), pero se revalida el campo también: es lo que hace que copiar
+               un manifiesto entero a otra carpeta no baste para reusarlo. */
             if (!string.Equals(manifiesto.UsuarioId, usuarioId, StringComparison.Ordinal)
                 || manifiesto.Referencia != referencia)
             {
@@ -318,10 +319,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
             var nombreFinal = $"{Guid.NewGuid()}{manifiesto.Extension}";
             var rutaDestino = Path.Combine(_rutaRaiz, CarpetaRaizUploads, CarpetaComprobantes, nombreFinal);
 
-            // Copia y no mueve: si el guardado en BDD falla despues (el ejemplo mas
-            // comun es un choque de concurrencia en el balance del fondo, no algo
-            // exotico), el original en staging sigue intacto y el reintento no
-            // depende de volver a adjuntar nada.
+            /* Copia y no mueve: si el guardado en BDD falla después (el ejemplo más
+               común es un choque de concurrencia en el balance del fondo, no algo
+               exótico), el original en staging sigue intacto y el reintento no
+               depende de volver a adjuntar nada. */
             await using (var origen = File.OpenRead(rutaOrigen))
             await using (var destino = new FileStream(rutaDestino, FileMode.CreateNew))
             {
@@ -330,7 +331,7 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
 
             var tipoMime = ValidadorComprobante.MimeCanonicoPorExtension(manifiesto.Extension)
                 ?? throw new InvalidOperationException(
-                    $"La extension '{manifiesto.Extension}' del manifiesto no tiene un MIME canonico.");
+                    $"La extensión '{manifiesto.Extension}' del manifiesto no tiene un MIME canónico.");
 
             return new ComprobantePromovidoDto
             {
@@ -353,10 +354,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 return Task.CompletedTask;
             }
 
-            // El patron "{referencia}.*" alcanza tanto el archivo como su manifiesto
-            // ("{referencia}.meta.json") sin depender de poder leer el manifiesto
-            // primero -- una limpieza no deberia poder fallar por un manifiesto ya
-            // corrupto.
+            /* El patrón "{referencia}.*" alcanza tanto el archivo como su manifiesto
+               ("{referencia}.meta.json") sin depender de poder leer el manifiesto
+               primero -- una limpieza no debería poder fallar por un manifiesto ya
+               corrupto. */
             foreach (var ruta in Directory.EnumerateFiles(carpetaUsuario, $"{referencia}.*"))
             {
                 File.Delete(ruta);
@@ -375,8 +376,8 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
                 return Task.FromResult((0, 0L));
             }
 
-            // Solo los archivos de datos, no los manifiestos: contar los dos
-            // duplicaria el numero de "archivos pendientes" que percibe el usuario.
+            /* Solo los archivos de datos, no los manifiestos: contar los dos
+               duplicaría el número de "archivos pendientes" que percibe el usuario. */
             var archivos = Directory.EnumerateFiles(carpetaUsuario)
                 .Where(ruta => !ruta.EndsWith(ExtensionManifiesto, StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -418,9 +419,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         /// <summary>
         /// El manifiesto se borra antes que su archivo: una limpieza a medias deja un
         /// archivo sin manifiesto (que LeerManifiestoStagingAsync ya rechaza), nunca
-        /// un manifiesto senalando un archivo que ya no esta. Al final borra la
-        /// carpeta del usuario si quedo vacia, para que no se acumulen carpetas
-        /// vacias de usuarios que ya ni suben archivos.
+        /// un manifiesto señalando un archivo que ya no está. Al final borra la
+        /// carpeta del usuario si quedó vacía, para que no se acumulen carpetas
+        /// vacías de usuarios que ya ni suben archivos.
         /// </summary>
         private static int LimpiarCarpeta(string carpetaUsuario, DateTime limite)
         {

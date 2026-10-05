@@ -1,8 +1,8 @@
 namespace EDEEste.ControlCajaChica.Domain.Constants
 {
     /// <summary>
-    /// Limites de negocio sobre una categoria de gasto. Compartidos por tres sitios
-    /// que deben estar de acuerdo: la validacion en CrearCategoriaGastoHandler y
+    /// Límites de negocio sobre una categoría de gasto. Compartidos por tres sitios
+    /// que deben estar de acuerdo: la validación en CrearCategoriaGastoHandler y
     /// ActualizarCategoriaGastoHandler, y la columna real en ApplicationDbContext
     /// (HasMaxLength).
     /// </summary>

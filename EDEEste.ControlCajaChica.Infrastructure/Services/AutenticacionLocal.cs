@@ -7,10 +7,8 @@ using Microsoft.AspNetCore.Identity;
 
 namespace EDEEste.ControlCajaChica.Infrastructure.Services
 {
-    /// <summary>
-    /// V2: la contrasena es propia de esta aplicacion y la verifica ASP.NET Identity.
-    /// Es el modo activo mientras no llegue la API Key del APICommon.
-    /// </summary>
+    /* V2: la contraseña es propia de esta aplicación y la verifica ASP.NET Identity.
+       Es el modo activo mientras no llegue la API Key del APICommon. */
     public sealed class AutenticacionLocal : IAutenticadorCredenciales
     {
         private readonly UserManager<Usuario> _userManager;
@@ -24,9 +22,9 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Services
         {
             var entidad = await _userManager.FindByNameAsync(usuario);
 
-            // CheckPasswordAsync no mira el estado de la cuenta (aprobada, denegada,
-            // bloqueada): eso lo decide quien llama, despues. Aqui solo interesa si la
-            // contrasena es la correcta.
+            /* CheckPasswordAsync no mira el estado de la cuenta (aprobada, denegada,
+               bloqueada): eso lo decide quien llama, después. Aquí solo interesa si la
+               contraseña es la correcta. */
             return entidad is not null && await _userManager.CheckPasswordAsync(entidad, password)
                 ? ResultadoAutenticacion.Ok()
                 : ResultadoAutenticacion.Fallo();

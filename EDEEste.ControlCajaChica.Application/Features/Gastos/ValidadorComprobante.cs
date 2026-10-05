@@ -9,13 +9,13 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
     /// <summary>
     /// Reglas de que archivo se acepta como comprobante, en un solo sitio.
     ///
-    /// Vive en Application y no en la capa web a proposito: es la unica capa que el
+    /// Vive en Application y no en la capa web a propósito: es la única capa que el
     /// proyecto de pruebas referencia, y estas comprobaciones son controles de
     /// seguridad (lista blanca de formatos y firma del contenido) que no pueden
     /// quedarse sin cobertura por mudarse a un endpoint.
     ///
-    /// Estatico y sin dependencias: no toca disco, no conoce HTTP y no sabe de donde
-    /// salio el archivo, asi que sirve igual para el endpoint de subida que para el
+    /// Estático y sin dependencias: no toca disco, no conoce HTTP y no sabe de donde
+    /// salió el archivo, así que sirve igual para el endpoint de subida que para el
     /// handler que confirma el gasto.
     /// </summary>
     public static class ValidadorComprobante
@@ -33,29 +33,29 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
             ".pdf", ".jpg", ".jpeg", ".png"
         };
 
-        // Firmas (magic bytes) de los unicos cuatro tipos que TiposMimePermitidos
-        // acepta. No hace falta una firma de PNG/JPEG separada por variante: los
-        // primeros bytes ya identifican el formato sin importar el resto del archivo.
+      /* Firmas (magic bytes) de los únicos cuatro tipos que TiposMimePermitidos
+         acepta. No hace falta una firma de PNG/JPEG separada por variante: los
+         primeros bytes ya identifican el formato sin importar el resto del archivo. */
         private static readonly byte[] FirmaPdf = "%PDF"u8.ToArray();
         private static readonly byte[] FirmaPng = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
         private static readonly byte[] FirmaJpeg = [0xFF, 0xD8, 0xFF];
 
-        // Un PDF valido minimo ronda los 400 bytes; 512 deja margen de sobra sin
-        // arriesgarse a rechazar un comprobante real (una foto o un PDF escaneado
-        // real nunca se acercan a este piso). Sin este chequeo, un archivo truncado a
-        // mitad de una subida (por ejemplo un corte de red) puede colar solo la
-        // cabecera "%PDF" -- pasa el chequeo de firma de mas abajo igual que un PDF
-        // completo -- y quedar guardado como comprobante ilegible: se ve en la
-        // pantalla, pero PdfConsolidadorService no puede abrirlo despues al generar
-        // el expediente (ver el try/catch en AgregarComprobante, que existe
-        // precisamente porque este piso no estaba antes).
+      /* Un PDF válido mínimo ronda los 400 bytes; 512 deja margen de sobra sin
+         arriesgarse a rechazar un comprobante real (una foto o un PDF escaneado
+         real nunca se acercan a este piso). Sin este chequeo, un archivo truncado a
+         mitad de una subida (por ejemplo un corte de red) puede colar solo la
+         cabecera "%PDF" -- pasa el chequeo de firma de más abajo igual que un PDF
+         completo -- y quedar guardado como comprobante ilegible: se ve en la
+         pantalla, pero PdfConsolidadorService no puede abrirlo después al generar
+         el expediente (ver el try/catch en AgregarComprobanteAsync, que existe
+         precisamente porque este piso no estaba antes). */
         private const int TamanoMinimoValido = 512;
 
         /// <summary>
-        /// MIME y extension, la unica comprobacion que no necesita leer el contenido
+        /// MIME y extensión, la única comprobación que no necesita leer el contenido
         /// del archivo. Se validan las dos cosas: el navegador reporta el MIME y es
-        /// facil de falsear, pero la extension es la que decide como se abre el
-        /// archivo despues.
+        /// fácil de falsear, pero la extensión es la que decide cómo se abre el
+        /// archivo después.
         /// </summary>
         public static bool EsFormatoAceptado(string? nombreOriginal, string? tipoMime) =>
             tipoMime is not null
@@ -64,12 +64,12 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
         /// <summary>
         /// Compara los primeros bytes del archivo contra la firma del tipo que declara.
-        /// Deja el stream en la posicion 0 al terminar: quien llama todavia necesita
+        /// Deja el stream en la posición 0 al terminar: quien llama todavía necesita
         /// leerlo completo desde el principio para guardarlo.
         ///
         /// Un stream que no se pueda rebobinar devuelve false en vez de saltarse la
-        /// comprobacion: que este control degrade en silencio es el peor resultado
-        /// posible, asi que falla cerrado.
+        /// comprobación: que este control degrade en silencio es el peor resultado
+        /// posible, así que falla cerrado.
         /// </summary>
         public static async Task<bool> CoincideConFirmaEsperadaAsync(
             Stream contenido,
@@ -78,9 +78,8 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         {
             var firma = FirmaEsperada(tipoMime);
 
-            // Un TipoMime fuera de la lista blanca lo rechaza EsFormatoAceptado por su
-            // cuenta; aqui no hay firma con la que comparar, asi que no se declara
-            // coincidencia.
+          /* Un TipoMime fuera de la lista blanca lo rechaza EsFormatoAceptado por su
+             cuenta; aquí no hay firma con la que comparar, así que no se declara coincidencia */
             if (firma is null || !contenido.CanSeek)
             {
                 return false;
@@ -93,10 +92,10 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
 
             var buffer = new byte[firma.Length];
             contenido.Position = 0;
-            // ReadAtLeastAsync y no ReadAsync: una sola lectura puede devolver menos
-            // bytes de los pedidos aunque el archivo los tenga. Con throwOnEndOfStream
-            // en false, un archivo mas corto que la firma devuelve lo que haya y la
-            // comparacion de longitud de abajo lo rechaza.
+          /* ReadAtLeastAsync y no ReadAsync: una sola lectura puede devolver menos
+             bytes de los pedidos aunque el archivo los tenga. Con throwOnEndOfStream
+             en false, un archivo mas corto que la firma devuelve lo que haya y la
+             comparación de longitud de abajo lo rechaza. */
             var leidos = await contenido.ReadAtLeastAsync(
                 buffer, firma.Length, throwOnEndOfStream: false, cancellationToken);
             contenido.Position = 0;
@@ -105,9 +104,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         }
 
         /// <summary>
-        /// La extension en minusculas si esta en la lista blanca; null si no. Es la
-        /// extension que el servidor le pone al archivo guardado -- nunca se reutiliza
-        /// la que venga en el nombre del cliente sin pasar por aqui.
+        /// La extensión en minúsculas si esta en la lista blanca; null si no. Es la
+        /// extensión que el servidor le pone al archivo guardado -- nunca se reutiliza
+        /// la que venga en el nombre del cliente sin pasar por aquí.
         /// </summary>
         public static string? ExtensionCanonica(string? nombreOriginal)
         {
@@ -119,9 +118,9 @@ namespace EDEEste.ControlCajaChica.Application.Features.Gastos
         }
 
         /// <summary>
-        /// El MIME que corresponde a una extension ya validada. Es la fuente de verdad
-        /// del TipoMime que se guarda: derivarlo de la extension que eligio el servidor
-        /// (y no del que reporta el navegador) evita que alguien suba un PDF legitimo y
+        /// El MIME que corresponde a una extensión ya validada. Es la fuente de verdad
+        /// del TipoMime que se guarda: derivarlo de la extensión que eligió el servidor
+        /// (y no del que reporta el navegador) evita que alguien suba un PDF legítimo y
         /// lo declare "text/html", que es como se sirve despues en la descarga.
         ///
         /// De paso normaliza "image/jpg", que no es un tipo registrado, a "image/jpeg".

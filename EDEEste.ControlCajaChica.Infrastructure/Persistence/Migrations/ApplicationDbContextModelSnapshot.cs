@@ -514,6 +514,10 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("HashPdfConsolidado")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -524,6 +528,18 @@ namespace EDEEste.ControlCajaChica.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("MontoReclamado")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("MotivoDevolucion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MotivoReaprobacion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MotivoRechazo")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("ReferenciaPago")
                         .HasMaxLength(100)
