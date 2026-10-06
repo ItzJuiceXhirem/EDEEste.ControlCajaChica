@@ -1,0 +1,31 @@
+SISTEMA DE CONTROL DE CAJA CHICA - VERSION DE PRUEBA
+====================================================
+
+Requisito: un SQL Server en esta computadora. Si no tiene ninguno, instale
+SQL Server Express LocalDB (gratuito, unos 50 MB):
+  https://www.microsoft.com/sql-server/sql-server-downloads
+  -> "Express" -> "Descargar medios" -> "LocalDB" -> ejecutar SqlLocalDB.msi
+Si ya tiene SQL Server instalado y en marcha, se usa ese.
+
+No hace falta instalar .NET.
+
+COMO ABRIRLO
+  1. Extraiga el .zip completo en una carpeta (por ejemplo, Documentos).
+  2. Doble clic en Iniciar.cmd.
+  3. La primera vez se abre la pagina para crear el Administrador. Le pedira
+     un "token de configuracion inicial": la ventana de Iniciar.cmd lo muestra
+     y ya lo deja copiado, solo pegue con Ctrl+V.
+
+Para las siguientes veces, solo doble clic en Iniciar.cmd.
+Para cerrar el sistema, cierre la ventana negra de la aplicacion.
+
+ACTUALIZAR A UNA VERSION NUEVA
+  Copie los archivos nuevos ENCIMA de esta carpeta (reemplazando). No borre la
+  carpeta: dentro de app\ estan los comprobantes subidos (App_Data) y el
+  servidor elegido (appsettings.Production.json). Luego, Iniciar.cmd como
+  siempre; actualiza las tablas solo.
+
+IMPORTANTE
+  Use siempre el mismo usuario de Windows. La clave que protege los datos
+  contra alteraciones se guarda en ese usuario; con otro, el sistema no
+  arranca sobre los datos existentes.
